@@ -204,7 +204,7 @@ jobs:
           print("APK certificate report:\\n" + result.stdout)
           digests = dict((alg.upper(), h.upper().replace(":", ""))
                          for alg, h in re.findall(
-                             r"certificate\\s+SHA-(1|256)\\s+digest:\\s*([0-9a-fA-F:]+)",
+                             r"certificate\s+SHA-(1|256)\s+digest:\s*([0-9a-fA-F:]+)",
                              result.stdout, re.IGNORECASE))
           if digests.get("256") != expected_sha256 and digests.get("1") != expected_sha1:
               raise SystemExit("ERROR: APK signing certificate does not match permanent keystore. Upload blocked.")
