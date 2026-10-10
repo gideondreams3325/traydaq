@@ -12,10 +12,11 @@ This **public** repository is an APK build controller. It deliberately does **no
 
 ## Required stable Android debug signing
 
-The public builder requires **two repository Actions secrets** in `gideondreams3325/traydaq`:
+The public builder requires **three repository Actions secrets** in `gideondreams3325/traydaq`:
 
 - `SELLERFLOW_SOURCE_TOKEN`: read-only permission to the private SellerFlow source.
 - `TRAYDAQ_DEBUG_KEYSTORE_B64`: Base64 encoding of the **same private debug keystore** for every Android APK build.
+- `GOOGLE_SERVICES_JSON`: the **latest Firebase Android SDK config** from the `sellerflow-efaab` project, downloaded after registering the permanent signing certificate. This is NOT a Firebase Admin service-account JSON.
 
 To configure `TRAYDAQ_DEBUG_KEYSTORE_B64` on Android:
 
@@ -24,6 +25,17 @@ To configure `TRAYDAQ_DEBUG_KEYSTORE_B64` on Android:
 3. Set the secret name exactly to `TRAYDAQ_DEBUG_KEYSTORE_B64`, paste the Base64 text into the secret value field, and save.
 4. Keep `Traydaq-stable-debug.keystore` backed up securely outside GitHub. The workflow will not publish the signing key and will refuse to build if its secret is missing or invalid.
 5. In [GitHub Actions](https://github.com/gideondreams3325/traydaq/actions/workflows/traydaq-android-apk.yml), run **Traydaq Android APK (Public Builder)** manually.
+
+## Fixing Google Sign-In error 10 (DEVELOPER_ERROR)
+
+1. Open [Firebase project settings](https://console.firebase.google.com/project/sellerflow-efaab/settings/general). Under **Your apps**, select the existing Android app `com.sellerflow.app`.
+2. Register SHA-1 `46:7D:25:17:59:33:5B:94:B1:0A:72:9A:67:33:FA:DC:8D:F5:0D:31`.
+3. Register SHA-256 `F8:1F:CC:A1:BC:83:DC:EF:85:FA:EF:FB:2B:8A:FC:51:E3:14:A8:B4:06:2E:0C:D4:01:72:05:A7:CC:9B:2B:5A`.
+4. In [Firebase Authentication](https://console.firebase.google.com/project/sellerflow-efaab/authentication/providers), confirm **Google** sign-in provider is enabled. Return to project settings and download a fresh `google-services.json` for the Android app.
+5. Under the **public Traydaq repository's GitHub Actions secrets**, add `GOOGLE_SERVICES_JSON` and paste the entire JSON content. Never use Firebase Admin private key JSON or post it in a chat.
+6. Run the APK builder manually. It refuses to build if the real Firebase Android OAuth client for this package and signing key is missing.
+
+This is a Google/Firebase configuration requirement, not an issue that can be solved by changing the APK's visible error message.
 
 **Important:** This is a new private signing key. It cannot be used to upgrade an APK installed with a different signing certificate. Safeguard existing account access and any unsynced app data before replacing an older installation. Register the signing key's SHA-1 and SHA-256 fingerprints in Firebase for native Google Sign-In. An added Firebase SHA fingerprint is not a replacement for the GitHub signing secret.
 
