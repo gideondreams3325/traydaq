@@ -78,6 +78,24 @@ jobs:
           test -s android/app/google-services.json
           grep -q "AndroidGoogleAuthBridge" dist/index.html
 
+      - name: Re-sanitize packaged account snapshots before Gradle
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Capacitor asset sync may restore previously tracked app assets.
+          # Empty these local account snapshots after ALL bundling/sync steps.
+          for snapshot in \
+            data/registered_accounts.json \
+            dist/data/registered_accounts.json \
+            android/app/src/main/assets/public/data/registered_accounts.json; do
+            mkdir -p "$(dirname "$snapshot")"
+            printf '%s\\n' '[]' > "$snapshot"
+            if [ "$(tr -d '[:space:]' < "$snapshot")" != "[]" ]; then
+              echo "::error::Account sanitization failed at $snapshot"
+              exit 1
+            fi
+          done
+
       - name: Set up Java 21
         uses: actions/setup-java@v4
         with:
