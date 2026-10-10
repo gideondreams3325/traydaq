@@ -2,6 +2,12 @@ name: Traydaq Android APK (Public Builder)
 
 on:
   workflow_dispatch:
+  # Allow the owner to start a single build by updating this workflow on main.
+  # Pull requests and commits to other files do not trigger private source checkout.
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/traydaq-android-apk.yml'
 
 permissions:
   contents: read
