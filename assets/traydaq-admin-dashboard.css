@@ -1,0 +1,172 @@
+/* Traydaq Security Team Portal — white, green and gold administration design.
+   Scoped to the native app's admin page only; no global theme switching. */
+.td-admin-shell{
+  --td-green:#17653c;--td-deep:#10492e;--td-gold:#c8a433;
+  --td-text:#14251c;--td-muted:#5f7066;--td-line:#dfeae2;
+  color:var(--td-text);width:100%;max-width:100%;min-width:0;
+  overflow-x:clip;padding-bottom:24px;
+}
+.td-admin-shell *, .td-admin-shell *::before, .td-admin-shell *::after {box-sizing:border-box}
+.td-admin-header{
+  display:flex;align-items:flex-end;justify-content:space-between;gap:20px;
+  border:1px solid #dce9df;border-radius:24px;padding:22px 24px;
+  background:linear-gradient(114deg,#f0f9f2 0%,#fff 58%,#fffaf0 100%);
+  box-shadow:0 9px 30px -24px rgba(20,75,47,.38);margin-bottom:20px;
+}
+.td-admin-heading{min-width:0;flex:1}
+.td-admin-eyebrow{
+  display:flex;gap:8px;align-items:center;margin:0 0 10px;
+  color:var(--td-green);font-size:10px;line-height:1.4;
+  letter-spacing:.14em;font-weight:850;
+}
+.td-admin-shield{
+  width:30px;height:30px;border-radius:10px;background:#e1f1e5;
+  border:1px solid #c7e0ce;display:inline-flex;align-items:center;
+  justify-content:center;font-size:16px;flex:none;
+}
+.td-admin-breadcrumb{font-size:11px!important;color:#60856e!important;margin:0 0 5px!important}
+.td-admin-header h1{
+  color:var(--td-text)!important;font-size:clamp(23px,3vw,34px);
+  line-height:1.16;font-weight:850;letter-spacing:-.035em;margin:0;
+  text-wrap:balance;overflow-wrap:anywhere;
+}
+.td-admin-header #tdAdminHeaderSubtitle{
+  margin:9px 0 0!important;max-width:58ch;color:#5b7163!important;
+  line-height:1.55;font-size:12.5px;
+}
+.td-admin-header-actions{
+  min-width:0;display:flex;align-items:flex-end;flex-direction:column;gap:12px;
+}
+.td-admin-registry{
+  display:inline-flex;align-items:center;gap:8px;border-radius:999px;
+  border:1px solid #cce6d3;background:#ecf8ef;color:#155e38;
+  white-space:normal;max-width:100%;font-size:10px;font-weight:800;
+  padding:8px 11px;letter-spacing:.04em;
+}
+.td-admin-status-dot{width:7px;height:7px;flex:none;border-radius:50%;background:#2eaf6b;box-shadow:0 0 0 3px rgba(46,175,107,.12)}
+.td-admin-action-row{display:flex;justify-content:flex-end;align-items:center;flex-wrap:wrap;gap:8px}
+.td-admin-control{
+  min-height:42px;display:inline-flex;align-items:center;justify-content:center;
+  white-space:normal;text-align:center;gap:6px;background:white!important;
+  color:#26563a!important;border:1px solid #d7e4db!important;
+  border-radius:12px;padding:10px 13px;line-height:1.3;font-size:12px;font-weight:800;
+  box-shadow:0 3px 9px -7px rgba(21,75,47,.28);
+  cursor:pointer;transition:background .15s,border-color .15s,transform .15s;
+}
+.td-admin-control:hover{background:#eef8f1!important;border-color:#a7cfb5!important;transform:translateY(-1px)}
+.td-admin-control-primary{
+  background:var(--td-gold)!important;border-color:var(--td-gold)!important;
+  color:#211b08!important;
+}
+.td-admin-control-primary:hover{background:#ddba4e!important;border-color:#ddba4e!important}
+.td-admin-back[hidden], .td-admin-dashboard[hidden],#tdAdminAccountAudit[hidden],#adminTabsBar[hidden]{display:none!important}
+.td-admin-section-heading{
+  display:flex;justify-content:space-between;align-items:center;
+  flex-wrap:wrap;gap:12px;margin:6px 0 14px;
+}
+.td-admin-overline{margin:0 0 3px;color:#9b7b21;font-size:10px;font-weight:850;letter-spacing:.14em}
+.td-admin-section-heading h2{margin:0;color:#173b29;font-size:17px;font-weight:830;letter-spacing:-.02em}
+.td-admin-section-heading p:not(.td-admin-overline){margin:3px 0 0;font-size:12px;color:#6a796f}
+.td-admin-section-count{
+  border:1px solid #e4e9dd;border-radius:999px;background:#fffdf5;
+  color:#85691b;padding:7px 11px;font-size:11px;font-weight:800;
+}
+.td-admin-module-grid{width:100%;max-width:100%;min-width:0;align-items:stretch}
+.td-admin-module-grid .sf-dash-card{
+  width:100%;min-width:0;min-height:170px;overflow:hidden;
+  border:1px solid var(--td-line)!important;border-radius:20px!important;
+  background:#fff!important;box-shadow:0 5px 18px -15px rgba(14,73,43,.31)!important;
+  padding:15px 14px 13px!important;display:flex;flex-direction:column;
+  justify-content:space-between;gap:12px;text-align:left!important;
+  color:var(--td-text)!important;cursor:pointer;
+  transition:transform .17s ease,border-color .17s ease,box-shadow .17s ease;
+}
+.td-admin-module-grid .sf-dash-card:hover{
+  border-color:#93c4a4!important;box-shadow:0 13px 23px -17px rgba(14,73,43,.35)!important;
+  transform:translateY(-2px);
+}
+.td-admin-module-grid .sf-dash-card:active{transform:translateY(0)}
+.td-admin-module-grid .sf-dash-card > div{min-width:0;width:100%}
+.td-admin-module-grid .sf-dash-card > div:first-child > div:first-child{
+  align-items:flex-start;gap:6px;
+}
+.td-admin-module-grid .sf-dash-card > div:first-child > div:first-child > span:first-child{
+  font-size:11px!important;font-weight:850!important;line-height:1.45;
+  color:#52685b!important;letter-spacing:.035em;overflow-wrap:anywhere;
+}
+.td-admin-module-grid .sf-dash-card > div:first-child > div:first-child > span:last-child,
+.td-admin-extra-icon{
+  width:38px;height:38px;border-radius:12px!important;
+  background:#eef7f0!important;border:1px solid #d9eadd!important;
+  display:flex!important;align-items:center;justify-content:center;
+  font-size:19px!important;flex:none;padding:0!important;
+}
+.td-admin-module-grid .sf-dash-card .text-2xl{
+  font-size:clamp(25px,4vw,31px)!important;line-height:1.16!important;
+  color:var(--td-deep)!important;letter-spacing:-.035em;
+}
+.td-admin-module-grid .sf-dash-card > div:first-child .flex.flex-wrap.gap-1{gap:5px;margin-top:10px}
+.td-admin-module-grid .sf-dash-card > div:first-child .flex.flex-wrap.gap-1 > span{
+  background:#f1f8f3!important;color:#226344!important;
+  border:1px solid #deecdf!important;border-radius:7px!important;
+  font-size:10px!important;line-height:1.3!important;padding:4px 6px!important;
+  overflow-wrap:anywhere;
+}
+.td-admin-module-grid .sf-dash-card:nth-child(2) > div:first-child .flex.flex-wrap.gap-1 > span:first-child,
+.td-admin-module-grid .sf-dash-card:nth-child(3) > div:first-child .flex.flex-wrap.gap-1 > span:first-child{
+  background:#fff8e4!important;color:#87661c!important;border-color:#f1dfaa!important;
+}
+.td-admin-module-grid .sf-dash-card > div:last-child{
+  width:100%;padding-top:11px;border-top:1px solid #edf2ee;
+  color:#21623f!important;display:flex;justify-content:space-between;
+  gap:7px;align-items:center;font-size:11px!important;font-weight:820;
+}
+.td-admin-module-grid .sf-dash-card > div:last-child > span:last-child{
+  color:#a1822a!important;font-size:16px;flex:none;
+}
+.td-admin-extra-card .td-admin-extra-main{display:flex;flex-direction:column;align-items:flex-start;gap:7px}
+.td-admin-extra-heading{font-size:12px;font-weight:850;line-height:1.4;color:#52685b}
+.td-admin-extra-detail{font-size:12px;line-height:1.5;color:#718276}
+.td-admin-extra-stat{color:var(--td-green);font-size:27px;font-weight:850;line-height:1.1}
+.td-admin-extra-stat small{font-size:10px;font-weight:750;color:#688072}
+.td-admin-extra-footer{
+  padding-top:11px;border-top:1px solid #edf2ee;color:#21623f;
+  display:flex;justify-content:space-between;align-items:center;font-size:11px;font-weight:820;
+}
+.td-admin-shell #tdAdminAccountAudit{
+  background:#fffcf0!important;border-color:#eaddb6!important;color:#65501e!important;
+  line-height:1.6;margin-bottom:16px;
+}
+.td-admin-shell #adminWorkspace{max-width:100%;min-width:0;overflow-wrap:anywhere}
+.td-admin-shell #adminWorkspace .td-admin-queue-heading{margin:12px 0 17px}
+.td-admin-shell #adminWorkspace .card{
+  background:#fff;border-color:#e1eae4;border-radius:18px;
+  box-shadow:0 5px 20px -19px rgba(14,73,43,.35);
+}
+.td-admin-shell #adminWorkspace button[id$="BackOverview"]{display:none!important}
+.td-admin-shell button:focus-visible,
+.td-admin-shell [role="button"]:focus-visible{
+  outline:3px solid #c6a232!important;outline-offset:3px!important;
+}
+@media(max-width:768px){
+  .td-admin-header{flex-direction:column;align-items:stretch;gap:15px;padding:18px;border-radius:20px}
+  .td-admin-header-actions{align-items:stretch}
+  .td-admin-registry{align-self:flex-start}
+  .td-admin-action-row{justify-content:flex-start}
+  .td-admin-module-grid .sf-dash-card{min-height:163px}
+}
+@media(max-width:470px){
+  .td-admin-shell .td-admin-module-grid{gap:10px}
+  .td-admin-module-grid .sf-dash-card{padding:13px 11px 11px!important;min-height:162px;border-radius:16px!important}
+  .td-admin-module-grid .sf-dash-card > div:first-child > div:first-child > span:last-child,
+  .td-admin-extra-icon{width:32px;height:32px;font-size:17px!important}
+  .td-admin-header h1{font-size:25px}
+  .td-admin-control{min-height:41px;padding:9px 10px;font-size:11px}
+  .td-admin-action-row{display:grid;grid-template-columns:1fr 1fr}
+  .td-admin-control-primary{grid-column:auto}
+  .td-admin-back:not([hidden]){grid-column:1 / -1}
+  .td-admin-module-grid .sf-dash-card > div:last-child{font-size:10px!important}
+}
+@media(prefers-reduced-motion:reduce){
+  .td-admin-shell .sf-dash-card,.td-admin-control{transition:none!important;transform:none!important}
+}
