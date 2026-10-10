@@ -82,6 +82,18 @@ jobs:
           grep -q 'id="dashCardNotify"' index.html
           grep -q 'id="dashCardTerms"' index.html
           grep -q 'id="dashCardReports"' index.html
+      - name: Prevent admin dashboard freezes on Android
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --location \
+            "https://raw.githubusercontent.com/gideondreams3325/traydaq/${GITHUB_SHA}/scripts/patch-private-admin-freeze.mjs" \
+            --output /tmp/traydaq-admin-freeze-patch.mjs
+          node --check /tmp/traydaq-admin-freeze-patch.mjs
+          node /tmp/traydaq-admin-freeze-patch.mjs .
+          grep -q 'tdAdminAppendMore' index.html
+          grep -q 'tdLastListenerRefresh<60000' index.html
+          node tests/traydaq-admin-overview-edge.test.mjs
       - name: Strip legacy local account and activity snapshots
         shell: bash
         run: |
