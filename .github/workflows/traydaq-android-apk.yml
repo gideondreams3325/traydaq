@@ -64,6 +64,24 @@ jobs:
           node /tmp/traydaq-admin-metrics-patch.mjs .
           node tests/traydaq-admin-overview-edge.test.mjs
           # Never print or upload private source files.
+      - name: Modernize clickable Traydaq Security Team Portal
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Public UI patches are pinned to this workflow revision; private sources stay private.
+          curl --fail --silent --show-error --location \
+            "https://raw.githubusercontent.com/gideondreams3325/traydaq/${GITHUB_SHA}/scripts/patch-private-admin-ui.mjs" \
+            --output /tmp/traydaq-admin-ui-patch.mjs
+          curl --fail --silent --show-error --location \
+            "https://raw.githubusercontent.com/gideondreams3325/traydaq/${GITHUB_SHA}/assets/traydaq-admin-dashboard.css" \
+            --output /tmp/traydaq-admin-dashboard.css
+          node --check /tmp/traydaq-admin-ui-patch.mjs
+          node /tmp/traydaq-admin-ui-patch.mjs . /tmp/traydaq-admin-dashboard.css
+          # Fail the APK build rather than silently shipping an unpatched dashboard.
+          grep -q 'id="tdAdminDashboard"' index.html
+          grep -q 'id="dashCardNotify"' index.html
+          grep -q 'id="dashCardTerms"' index.html
+          grep -q 'id="dashCardReports"' index.html
       - name: Strip legacy local account and activity snapshots
         shell: bash
         run: |
