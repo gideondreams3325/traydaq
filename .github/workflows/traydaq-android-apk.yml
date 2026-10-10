@@ -36,6 +36,21 @@ jobs:
           persist-credentials: false
           fetch-depth: 1
 
+      - name: Strip legacy local account and activity snapshots
+        shell: bash
+        run: |
+          set -euo pipefail
+          # These JSON files are tracked in the private repository and some
+          # contain account/recovery fields or previously removed content.
+          # They must never be shipped inside a publicly downloadable APK.
+          rm -rf data android/app/src/main/assets/public/data
+          mkdir -p data
+          printf '[]\\n' > data/registered_accounts.json
+          printf '[]\\n' > data/posts_store.json
+          printf '[]\\n' > data/products_store.json
+          printf '[]\\n' > data/deleted_posts.json
+          printf '{"jobs":[],"events":[],"jobApplications":[],"eventRegistrations":[]}\\n' > data/jobs_events_store.json
+
       - name: Set up Node.js 22
         uses: actions/setup-node@v4
         with:
@@ -103,6 +118,20 @@ jobs:
           if [ -f "$HOME/.android/debug.keystore" ]; then
             keytool -list -v -keystore "$HOME/.android/debug.keystore" -storepass android -alias androiddebugkey -keypass android | grep -E 'SHA1:|SHA256:'
           fi
+
+      - name: Ensure no legacy account records are packaged
+        shell: bash
+        run: |
+          set -euo pipefail
+          for snapshot in \
+            data/registered_accounts.json \
+            dist/data/registered_accounts.json \
+            android/app/src/main/assets/public/data/registered_accounts.json; do
+            if [ -f "$snapshot" ] && [ "$(tr -d '[:space:]' < "$snapshot")" != "[]" ]; then
+              echo "::error::Nonempty account snapshot was found in a packaged asset."
+              exit 1
+            fi
+          done
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
