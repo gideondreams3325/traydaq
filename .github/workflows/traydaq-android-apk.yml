@@ -131,6 +131,35 @@ jobs:
             exit 1
           fi
           echo "Permanent Traydaq signing keystore loaded and validated."
+          # Gradle may use another default debug-keystore path on GitHub runners.
+          # Explicitly set the signingConfig so the APK is signed with this secret.
+          echo "TRAYDAQ_DEBUG_KEYSTORE_FILE=$HOME/.android/debug.keystore" >> "$GITHUB_ENV"
+          echo "ANDROID_USER_HOME=$HOME/.android" >> "$GITHUB_ENV"
+          python3 - <<'PY'
+          from pathlib import Path
+          app_gradle = Path("android/app/build.gradle")
+          src = app_gradle.read_text(encoding="utf-8")
+          needle = "android {\n"
+          if src.count(needle) != 1 or "    buildTypes {\n        release {" not in src:
+              raise SystemExit("Android Gradle structure changed; explicit signing config not applied.")
+          src = src.replace(needle, """android {
+              signingConfigs {
+                  debug {
+                      storeFile file(System.getenv('TRAYDAQ_DEBUG_KEYSTORE_FILE'))
+                      storePassword 'android'
+                      keyAlias 'androiddebugkey'
+                      keyPassword 'android'
+                  }
+              }
+          """, 1)
+          src = src.replace("    buildTypes {\n        release {", """    buildTypes {
+                  debug {
+                      signingConfig signingConfigs.debug
+                  }
+                  release {""", 1)
+          app_gradle.write_text(src, encoding="utf-8")
+          print("Explicit debug signingConfig installed for permanent Traydaq keystore.")
+          PY
 
       - name: Build Android APK
         working-directory: android
@@ -144,9 +173,23 @@ jobs:
           test -s Traydaq-debug.apk
           ls -lh Traydaq-debug.apk
           sha256sum Traydaq-debug.apk
-          # Report the actual certificate used to sign THIS build, even when
-          # Android generated a temporary debug keystore in a different home.
-          (cd android && ./gradlew signingReport --no-daemon | grep -E 'Variant: debug|SHA1:|SHA-256:' || true)
+          # Compare the actual APK certificate to the private keystore
+          # before uploading anything for installation.
+          tool_path="$(find "${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}/build-tools" -maxdepth 2 -type f -name apksigner | sort -V | tail -1)"
+          test -n "$tool_path" && test -x "$tool_path" || { echo "::error::Android apksigner not found."; exit 1; }
+          key_sha1="$(keytool -list -v -keystore "$TRAYDAQ_DEBUG_KEYSTORE_FILE" -storepass android -alias androiddebugkey | awk -F ': ' '/SHA1:/{gsub(":","",$2); print toupper($2); exit}')"
+          apk_sha1="$("$tool_path" verify --print-certs Traydaq-debug.apk | sed -n 's/.*Signer #1 certificate SHA-1 digest: //p' | head -n 1 | tr '[:lower:]' '[:upper:]' | tr -d '[:space:]')"
+          test -n "$key_sha1" && test -n "$apk_sha1" || { echo "::error::Unable to determine APK or keystore certificate fingerprint."; exit 1; }
+          if [ "$apk_sha1" != "$key_sha1" ]; then
+            echo "::error::APK was NOT signed by the Traydaq permanent debug key. Upload blocked."
+            exit 1
+          fi
+          if [ "$key_sha1" != "467D251759335B94B10A729A6733FADC8DF50D31" ]; then
+            echo "::error::Secret keystore is not the designated permanent Traydaq debug key."
+            exit 1
+          fi
+          echo "SUCCESS: APK signature matches the permanent Traydaq keystore."
+          echo "Signing SHA-1: $key_sha1"
 
       - name: Ensure no legacy account records are packaged
         shell: bash
