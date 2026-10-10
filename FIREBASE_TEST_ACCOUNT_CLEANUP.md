@@ -33,7 +33,13 @@ REPLACE_WITH_CONFIRMED_TEST_UID_2
 EOF
 ```
 
-Once verified, run:
+Run a **preflight preview** first. It checks every chosen UID and prints the exact allowed IDs but deletes nothing:
+
+```sh
+node scripts/firebase-auth-test-cleanup.cjs delete --uids-file=/tmp/traydaq-test-uids.txt --confirm-project=sellerflow-efaab
+```
+
+Only if every approved UID is a confirmed disposable test account, run the actual deletion:
 
 ```sh
 node scripts/firebase-auth-test-cleanup.cjs delete --uids-file=/tmp/traydaq-test-uids.txt --confirm-project=sellerflow-efaab --execute
