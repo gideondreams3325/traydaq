@@ -173,23 +173,44 @@ jobs:
           test -s Traydaq-debug.apk
           ls -lh Traydaq-debug.apk
           sha256sum Traydaq-debug.apk
-          # Compare the actual APK certificate to the private keystore
-          # before uploading anything for installation.
-          tool_path="$(find "${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}/build-tools" -maxdepth 2 -type f -name apksigner | sort -V | tail -1)"
-          test -n "$tool_path" && test -x "$tool_path" || { echo "::error::Android apksigner not found."; exit 1; }
-          key_sha1="$(keytool -list -v -keystore "$TRAYDAQ_DEBUG_KEYSTORE_FILE" -storepass android -alias androiddebugkey | awk -F ': ' '/SHA1:/{gsub(":","",$2); print toupper($2); exit}')"
-          apk_sha1="$("$tool_path" verify --print-certs Traydaq-debug.apk | sed -n 's/.*Signer #1 certificate SHA-1 digest: //p' | head -n 1 | tr '[:lower:]' '[:upper:]' | tr -d '[:space:]')"
-          test -n "$key_sha1" && test -n "$apk_sha1" || { echo "::error::Unable to determine APK or keystore certificate fingerprint."; exit 1; }
-          if [ "$apk_sha1" != "$key_sha1" ]; then
-            echo "::error::APK was NOT signed by the Traydaq permanent debug key. Upload blocked."
-            exit 1
-          fi
-          if [ "$key_sha1" != "467D251759335B94B10A729A6733FADC8DF50D31" ]; then
-            echo "::error::Secret keystore is not the designated permanent Traydaq debug key."
-            exit 1
-          fi
-          echo "SUCCESS: APK signature matches the permanent Traydaq keystore."
-          echo "Signing SHA-1: $key_sha1"
+          # Compare the actual APK signer to the permanent keystore's
+          # DER certificate (without ever printing private key material).
+          python3 - <<'PY'
+          import glob
+          import hashlib
+          import os
+          import re
+          import subprocess
+          from pathlib import Path
+
+          ks = os.environ["TRAYDAQ_DEBUG_KEYSTORE_FILE"]
+          cert = subprocess.check_output([
+              "keytool", "-exportcert", "-keystore", ks,
+              "-storepass", "android", "-alias", "androiddebugkey"
+          ], stderr=subprocess.DEVNULL)
+          expected_sha1 = hashlib.sha1(cert).hexdigest().upper()
+          expected_sha256 = hashlib.sha256(cert).hexdigest().upper()
+          if expected_sha1 != "467D251759335B94B10A729A6733FADC8DF50D31":
+              raise SystemExit("ERROR: Secret keystore differs from the permanent Traydaq signing key.")
+
+          sdk = os.environ.get("ANDROID_HOME") or os.environ.get("ANDROID_SDK_ROOT") or "/usr/local/lib/android/sdk"
+          candidates = sorted(glob.glob(f"{sdk}/build-tools/*/apksigner"))
+          if not candidates:
+              raise SystemExit("ERROR: Android apksigner unavailable.")
+          result = subprocess.run([candidates[-1], "verify", "--print-certs", "Traydaq-debug.apk"],
+                                  capture_output=True, text=True)
+          if result.returncode:
+              raise SystemExit("ERROR: APK signature verification failed: " + result.stderr[-500:])
+          print("APK certificate report:\\n" + result.stdout)
+          digests = dict((alg.upper(), h.upper().replace(":", ""))
+                         for alg, h in re.findall(
+                             r"certificate\\s+SHA-(1|256)\\s+digest:\\s*([0-9a-fA-F:]+)",
+                             result.stdout, re.IGNORECASE))
+          if digests.get("256") != expected_sha256 and digests.get("1") != expected_sha1:
+              raise SystemExit("ERROR: APK signing certificate does not match permanent keystore. Upload blocked.")
+          print("SUCCESS: APK is signed using the permanent Traydaq debug keystore.")
+          print("Verified SHA-1:", expected_sha1)
+          PY
 
       - name: Ensure no legacy account records are packaged
         shell: bash
