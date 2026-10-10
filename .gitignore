@@ -1,0 +1,44 @@
+node_modules
+.env
+.env.*
+!.env.example
+.vercel
+dist
+.DS_Store
+*.log
+*-service-account*.json
+*credentials*.json
+uploads/
+android/.gradle/
+SellerFlow-debug.apk
+SellerFlow-Debug.apk
+
+# Firebase Admin credentials must never be committed
+**/serviceAccountKey.json
+**/*serviceAccount*.json
+**/firebase-service-account.json
+
+# Cloud Functions staged backend (contains code only; generated for deployment)
+functions/backend/
+
+# Never commit Android signing credentials
+**/*.keystore
+**/*.jks
+**/*.p12
+**/*.pem
+**/*keystore*.b64
+**/*signing-key*.b64
+
+# Local Android SDK and build state
+android/local.properties
+android/**/.gradle/
+android/**/build/
+Traydaq-debug.apk
+Traydaq-Debug.apk
+
+# Local credentials / generated secret files
+**/service-account*.json
+**/*-service-account*.json
+**/google-services.secret.json
+**/.env.local
+**/.env.production.local
