@@ -92,8 +92,8 @@ async function audit() {
   console.log('No accounts were deleted. Select only UIDs you personally confirm are test accounts.');
 }
 async function deletion() {
-  if (value('--confirm-project') !== PROJECT || !present('--execute')) {
-    fail('Requires BOTH --confirm-project=' + PROJECT + ' and --execute.');
+  if (value('--confirm-project') !== PROJECT) {
+    fail('Requires --confirm-project=' + PROJECT + ' for preflight and deletion.');
   }
   const uidFile = value('--uids-file');
   if (!uidFile) fail('A private file containing approved UIDs is required.');
@@ -134,6 +134,11 @@ async function deletion() {
     approved.push(uid);
   }
   console.log('Passed safeguards for ' + approved.length + ' manually selected suspected test accounts.');
+  for (const uid of approved) console.log('APPROVED_FOR_REVIEW_UID=' + uid);
+  if (!present('--execute')) {
+    console.log('PREVIEW ONLY: no users deleted. Rerun with --execute only if every UID is confirmed test data.');
+    return;
+  }
   console.log('Deleting Firebase AUTH only; app database records are NOT changed.');
   // Delete one-by-one so errors are visible and unsuccessful UIDs are never reported as deleted.
   let success = 0, failures = 0;
