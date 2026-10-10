@@ -133,8 +133,8 @@ export function patchTraydaqAdminUi(source,css) {
   // Remove the old duplicate six-card launchpad inside the overview while
   // preserving all real review queues, fraud cases and management functionality.
   const overview=source.indexOf('  function sfAdminOverview(users, posts');
-  const duplicate=source.indexOf('          <!-- Distinct Section Quick-Launch Cards -->',overview);
-  const priority=source.indexOf('          <!-- Priority Attention Section: Orders Security Review Queue -->',duplicate);
+  const duplicate=source.indexOf('        <!-- Distinct Section Quick-Launch Cards -->',overview);
+  const priority=source.indexOf('        <!-- Priority Attention Section: Orders Security Review Queue -->',duplicate);
   if(overview<0||duplicate<0||priority<0||priority-duplicate>22000) fail('overview duplicated launchpad changed');
   const queueHeader=[
     '          <div class="td-admin-section-heading td-admin-queue-heading">',
