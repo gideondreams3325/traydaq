@@ -118,7 +118,7 @@ async function deletion() {
     const hint = fixtureHint(user, profileValues);
     if (!hint) fail('UID ' + uid + ' has no strong fixture indicator; review it manually in Firebase Console.');
     if (user.email?.toLowerCase() === ADMIN_EMAIL) fail('Admin account is protected.');
-    if (user.emailVerified || user.phoneNumber || user.providerData.some(p => p.providerId === 'google.com')) {
+    if (user.emailVerified || user.phoneNumber || (user.providerData || []).some(p => p.providerId === 'google.com')) {
       fail('UID ' + uid + ' has verified, phone, or Google sign-in credentials; protected.');
     }
     if (privileged(user.customClaims) || profileValues.some(privileged)) {
