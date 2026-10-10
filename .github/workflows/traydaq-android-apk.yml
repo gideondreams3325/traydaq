@@ -50,11 +50,11 @@ jobs:
           # They must never be shipped inside a publicly downloadable APK.
           rm -rf data android/app/src/main/assets/public/data
           mkdir -p data
-          printf '[]\\n' > data/registered_accounts.json
-          printf '[]\\n' > data/posts_store.json
-          printf '[]\\n' > data/products_store.json
-          printf '[]\\n' > data/deleted_posts.json
-          printf '{"jobs":[],"events":[],"jobApplications":[],"eventRegistrations":[]}\\n' > data/jobs_events_store.json
+          echo '[]' > data/registered_accounts.json
+          echo '[]' > data/posts_store.json
+          echo '[]' > data/products_store.json
+          echo '[]' > data/deleted_posts.json
+          echo '{"jobs":[],"events":[],"jobApplications":[],"eventRegistrations":[]}' > data/jobs_events_store.json
 
       - name: Set up Node.js 22
         uses: actions/setup-node@v4
@@ -89,7 +89,7 @@ jobs:
             dist/data/registered_accounts.json \
             android/app/src/main/assets/public/data/registered_accounts.json; do
             mkdir -p "$(dirname "$snapshot")"
-            printf '%s\\n' '[]' > "$snapshot"
+            echo '[]' > "$snapshot"
             if [ "$(tr -d '[:space:]' < "$snapshot")" != "[]" ]; then
               echo "::error::Account sanitization failed at $snapshot"
               exit 1
