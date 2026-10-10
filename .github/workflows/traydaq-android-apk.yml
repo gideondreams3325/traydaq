@@ -17,13 +17,18 @@ jobs:
     timeout-minutes: 65
 
     steps:
-      - name: Check private repository access
+      - name: Verify required private source and Android signing secrets
         env:
           SOURCE_TOKEN: ${{ secrets.SELLERFLOW_SOURCE_TOKEN }}
+          DEBUG_KEYSTORE_B64: ${{ secrets.TRAYDAQ_DEBUG_KEYSTORE_B64 }}
         shell: bash
         run: |
           if [ -z "$SOURCE_TOKEN" ]; then
-            echo "::error::Missing SELLERFLOW_SOURCE_TOKEN. Set an Actions repository secret containing a fine-grained GitHub token with Contents: read access only to gideondreams3325/sellerflow."
+            echo "::error::Missing SELLERFLOW_SOURCE_TOKEN. Add a GitHub Actions repository secret with Contents: read access only to the private gideondreams3325/sellerflow repository."
+            exit 1
+          fi
+          if [ -z "$DEBUG_KEYSTORE_B64" ]; then
+            echo "::error::Missing TRAYDAQ_DEBUG_KEYSTORE_B64. Add the Base64-encoded stable debug keystore as a repository Actions secret before building. Refusing to generate a different temporary signing certificate."
             exit 1
           fi
 
@@ -102,7 +107,7 @@ jobs:
         with:
           cache-read-only: true
 
-      - name: Prepare Gradle and optional stable debug signing key
+      - name: Install and validate permanent Traydaq debug signing key
         env:
           DEBUG_KEYSTORE_B64: ${{ secrets.TRAYDAQ_DEBUG_KEYSTORE_B64 }}
         shell: bash
@@ -111,15 +116,17 @@ jobs:
           chmod +x android/gradlew
           sed -i 's/gradle-8.2.1-all.zip/gradle-8.7-all.zip/' android/gradle/wrapper/gradle-wrapper.properties
 
-          if [ -n "$DEBUG_KEYSTORE_B64" ]; then
-            mkdir -p "$HOME/.android"
-            printf '%s' "$DEBUG_KEYSTORE_B64" | base64 --decode > "$HOME/.android/debug.keystore"
-            test -s "$HOME/.android/debug.keystore"
-            chmod 600 "$HOME/.android/debug.keystore"
-            echo "Using existing stable Android debug signing key."
-          else
-            echo "::warning::TRAYDAQ_DEBUG_KEYSTORE_B64 is not set. Gradle will create a temporary debug key, so this APK may not update previously installed builds and native Google Sign-In may require Firebase SHA registration."
+          mkdir -p "$HOME/.android"
+          chmod 700 "$HOME/.android"
+          printf '%s' "$DEBUG_KEYSTORE_B64" | base64 --decode > "$HOME/.android/debug.keystore"
+          test -s "$HOME/.android/debug.keystore" || { echo "::error::Decoded Traydaq debug keystore is empty."; exit 1; }
+          chmod 600 "$HOME/.android/debug.keystore"
+
+          if ! keytool -list -keystore "$HOME/.android/debug.keystore" -storepass android -alias androiddebugkey > /dev/null 2>&1; then
+            echo "::error::TRAYDAQ_DEBUG_KEYSTORE_B64 is not a valid Android debug keystore with alias androiddebugkey and the standard debug store password. Verify the complete secret value."
+            exit 1
           fi
+          echo "Permanent Traydaq signing keystore loaded and validated."
 
       - name: Build Android APK
         working-directory: android
