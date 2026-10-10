@@ -21,6 +21,7 @@ jobs:
         env:
           SOURCE_TOKEN: ${{ secrets.SELLERFLOW_SOURCE_TOKEN }}
           DEBUG_KEYSTORE_B64: ${{ secrets.TRAYDAQ_DEBUG_KEYSTORE_B64 }}
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
         shell: bash
         run: |
           if [ -z "$SOURCE_TOKEN" ]; then
@@ -29,6 +30,10 @@ jobs:
           fi
           if [ -z "$DEBUG_KEYSTORE_B64" ]; then
             echo "::error::Missing TRAYDAQ_DEBUG_KEYSTORE_B64. Add the Base64-encoded stable debug keystore as a repository Actions secret before building. Refusing to generate a different temporary signing certificate."
+            exit 1
+          fi
+          if [ -z "$GOOGLE_SERVICES_JSON" ]; then
+            echo "::error::Missing GOOGLE_SERVICES_JSON GitHub secret. Register the permanent Traydaq signing SHA-1 and SHA-256 in Firebase, download the updated Android google-services.json and add its entire contents as an Actions repository secret. Stopping before creating an APK with broken Google Sign-In."
             exit 1
           fi
 
@@ -64,13 +69,17 @@ jobs:
       - name: Install project dependencies
         run: npm install --no-audit --no-fund
 
-      - name: Check account switching and build app assets
+      - name: Check account switching, authentication screen and build app assets
         run: |
           node tests/android-account-switch.test.mjs
+          node tests/traydaq-auth-screen-regression.test.mjs
           npm run build
           test -s dist/index.html
+          node --input-type=module -e "import fs from 'node:fs';const html=fs.readFileSync('dist/index.html','utf8');if(!html.includes('class=\"text-[#17653c]\">Tray</span>')||html.includes('>Seller</span><span class=\"gold-gradient\">Flow'))process.exit(1);console.log('PASS: bundled Android login shows Traydaq, not SellerFlow.')"
 
-      - name: Synchronize Android assets
+      - name: Synchronize Android assets using the latest Firebase SDK config
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
         run: |
           npx cap sync android
           node scripts/prepare-android-variants.js
@@ -156,6 +165,13 @@ jobs:
           app_gradle.write_text(src, encoding="utf-8")
           print("Explicit debug signingConfig installed for permanent Traydaq keystore.")
           PY
+
+      - name: Validate real Android Google OAuth registration before building APK
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        shell: bash
+        run: |
+          node scripts/validate-traydaq-android-oauth.mjs
 
       - name: Build Android APK
         working-directory: android
