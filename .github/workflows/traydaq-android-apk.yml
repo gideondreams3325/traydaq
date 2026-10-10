@@ -2,6 +2,10 @@ name: Traydaq Android APK (Public Builder)
 
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/traydaq-android-apk.yml'
 
 permissions:
   contents: read
@@ -133,9 +137,9 @@ jobs:
           test -s Traydaq-debug.apk
           ls -lh Traydaq-debug.apk
           sha256sum Traydaq-debug.apk
-          if [ -f "$HOME/.android/debug.keystore" ]; then
-            keytool -list -v -keystore "$HOME/.android/debug.keystore" -storepass android -alias androiddebugkey -keypass android | grep -E 'SHA1:|SHA256:'
-          fi
+          # Report the actual certificate used to sign THIS build, even when
+          # Android generated a temporary debug keystore in a different home.
+          (cd android && ./gradlew signingReport --no-daemon | grep -E 'Variant: debug|SHA1:|SHA-256:' || true)
 
       - name: Ensure no legacy account records are packaged
         shell: bash
