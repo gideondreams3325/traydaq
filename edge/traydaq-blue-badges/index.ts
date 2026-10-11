@@ -138,4 +138,4 @@ export async function handleBadgeRequest(req){
   return send({success:true,uid,active},200,origin);
  }catch{return send({success:false,error:'Badge change could not be completed securely'},503,origin);}
 }
-if(import.meta.main)Deno.serve(handleBadgeRequest);
+Deno.serve(handleBadgeRequest);
