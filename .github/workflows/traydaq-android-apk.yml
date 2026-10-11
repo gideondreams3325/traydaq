@@ -8,7 +8,7 @@ on:
   # Fix Android event and vacancy publishing via confirmed Firebase RTDB writes (2026-10-11).
   # Refresh share-sheet branded colors and strip stray decorative glyphs (2026-10-11).
   # Allow the owner to start a single build by updating this workflow on main.
-  # Manual Android APK rebuild requested 2026-10-11: verify sharp launcher icon and animated cart splash.
+  # Remove the centered Android cart splash; retain crisp launcher icon and quick system startup.
   # Fix blank mobile feed viewport, responsive reel height, and media letterboxing (October 11, 2026).
   # Aspect-safe For You / Following photos and videos; verified fit-regression test (October 11, 2026).
   # For You grouped engagement controls (October 11, 2026).
@@ -1565,7 +1565,7 @@ jobs:
           grep -Fq 'tdPostDeepLinks2026' android/app/src/main/assets/public/index.html
           echo 'PASS: installed Traydaq receives shared post IDs on cold launch and app resume.'
 
-      - name: TRAYDAQ native splash cart wheel rotation
+      - name: Remove animated native cart startup screen
         shell: bash
         run: |
           set -euo pipefail
@@ -1580,11 +1580,14 @@ jobs:
           node --check /tmp/td-splash/scripts/patch-private-splash-wheels.mjs
           node --test /tmp/td-splash/tests/traydaq-splash-wheels.test.mjs
           node /tmp/td-splash/scripts/patch-private-splash-wheels.mjs .
-          grep -Fq '@drawable/traydaq_splash_animated' android/app/src/main/res/values-v31/styles.xml
-          grep -Fq 'android:name="tdWheelRear"' android/app/src/main/res/drawable/traydaq_splash_cart_vector.xml
-          grep -Fq 'android:name="tdWheelFront"' android/app/src/main/res/drawable/traydaq_splash_cart_vector.xml
-          grep -Fq 'android:repeatCount="infinite"' android/app/src/main/res/animator/traydaq_splash_wheel_spin.xml
-          echo 'PASS: APK will use the green-and-gold animated launch icon on Android 12+.'
+          grep -Fq '@drawable/traydaq_splash_transparent' android/app/src/main/res/values-v31/styles.xml
+          grep -Fq '@drawable/traydaq_splash_transparent' android/app/src/main/res/values-night-v31/styles.xml
+          grep -Fq 'android:fillColor="#00000000"' android/app/src/main/res/drawable/traydaq_splash_transparent.xml
+          ! grep -Fq 'traydaq_splash_animated' android/app/src/main/res/values-v31/styles.xml
+          test ! -e android/app/src/main/res/drawable/traydaq_splash_cart_vector.xml
+          test ! -e android/app/src/main/res/drawable/traydaq_splash_animated.xml
+          test ! -e android/app/src/main/res/animator/traydaq_splash_wheel_spin.xml
+          echo 'PASS: Android centered animated cart launch screen removed.'
 
       - name: Re-sanitize packaged account snapshots before Gradle
         shell: bash
