@@ -83,8 +83,7 @@ function patchDesk(source, config) {
       (config.kind === 'jobs' ? "JobsTab !== 'employer_desk'" : "EventsTab !== 'organizer_desk'") + ') return;\n' +
     '    for (let i = ' + rowName + '.length - 1; i >= 0; i--) {\n' +
     '      if (!tdListingBelongsToSignedInUid(' + rowName + '[i], ownerUid)) ' + rowName + '.splice(i, 1);\n' +
-    '    }\n' + target,
-    config.kind + ' final render verification';
+    '    }\n' + target;
   desk = desk.slice(0, firstTarget) + replacement + desk.slice(firstTarget + target.length);
   return source.slice(0, start) + desk + source.slice(end);
 }
