@@ -1183,6 +1183,35 @@ jobs:
           grep -Fq "const ADMIN_EMAILS" admin/app.js
           echo 'PASS: TRAYDAQ Team naming applied across app screens, safety hub and translations.'
 
+      - name: Preserve all media aspect ratios in For You and Following
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Adapt only the temporary private Android checkout. No private source
+          # or media URLs are committed to this public build repository.
+          base="https://raw.githubusercontent.com/gideondreams3325/traydaq/${GITHUB_SHA}"
+          mkdir -p /tmp/traydaq-adaptive/{scripts,assets,tests}
+          for part in \
+            scripts/patch-private-adaptive-feed.mjs \
+            assets/traydaq-adaptive-feed.css \
+            assets/traydaq-adaptive-feed.js \
+            tests/traydaq-adaptive-feed.test.mjs; do
+            curl --fail --silent --show-error --location "$base/$part" --output "/tmp/traydaq-adaptive/$part"
+          done
+          node --check /tmp/traydaq-adaptive/scripts/patch-private-adaptive-feed.mjs
+          node --check /tmp/traydaq-adaptive/assets/traydaq-adaptive-feed.js
+          node --check /tmp/traydaq-adaptive/tests/traydaq-adaptive-feed.test.mjs
+          node /tmp/traydaq-adaptive/tests/traydaq-adaptive-feed.test.mjs
+          node /tmp/traydaq-adaptive/scripts/patch-private-adaptive-feed.mjs \
+            . /tmp/traydaq-adaptive/assets/traydaq-adaptive-feed.css \
+            /tmp/traydaq-adaptive/assets/traydaq-adaptive-feed.js
+          grep -Fq 'id="tdAdaptiveFeedMedia20261011Style"' index.html
+          grep -Fq 'id="tdAdaptiveFeedMedia20261011"' index.html
+          grep -Fq 'data-td-adaptive-feed-media' index.html
+          # Keep the same snap/swipe feed and all original engagement actions.
+          grep -Fq 'class="reel-actions"' index.html
+          echo 'PASS: photos and videos of every aspect ratio fit without cropping in both feed tabs.'
+
       - name: Install project dependencies
         run: npm install --no-audit --no-fund
 
