@@ -71,6 +71,10 @@ export function patchSharedConfirmations(html,css,js){
   html=replaceOnce(html,'alert("Enter a reason between 10 and 220 characters.");',
     'await customAlert({title:"Invalid reason",message:"Enter a reason between 10 and 220 characters.",type:"warning"});',
     'blue badge reason validation');
+  html=replaceOnce(html,'alert("Blue-check update failed: "+String(error?.message||"Unknown issue"));',
+    'await customAlert({title:"Badge update failed",message:"Blue-check update failed: "+String(error?.message||"Unknown issue"),type:"danger"});',
+    'blue badge update error');
+
 
   const style='<style id="tdConfirmationStyles2026">\n'+css+'\n</style>\n';
   const runtime='<script id="tdConfirmationRuntime2026">\n'+js.replace(/<\/script/gi,'<\\/script')+'\n</script>\n';
