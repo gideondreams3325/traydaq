@@ -194,6 +194,31 @@ jobs:
           console.log('PASS: Firebase account availability check is read-only.');
           JS
 
+      - name: Apply account usernames across Traydaq UI
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Patch only the temporary private checkout; do not publish private source.
+          curl --fail --silent --show-error --location \
+            "https://raw.githubusercontent.com/gideondreams3325/traydaq/${GITHUB_SHA}/scripts/patch-private-usernames.mjs" \
+            --output /tmp/traydaq-usernames-patch.mjs
+          node --check /tmp/traydaq-usernames-patch.mjs
+          node /tmp/traydaq-usernames-patch.mjs .
+          grep -q 'id="tdActualUsernames"' index.html
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          const source=fs.readFileSync('index.html','utf8');
+          const start=source.indexOf('<script id="tdActualUsernames">');
+          const end=source.indexOf('</script>',start);
+          if(start<0||end<0||!source.slice(start,end).includes('MutationObserver')||
+            !source.slice(start,end).includes('handleInCard')||
+            !source.slice(start,end).includes('accountHandleFor')) {
+            throw new Error('App-wide username renderer patch is missing.');
+          }
+          new Function(source.slice(start+29,end));
+          console.log('PASS: real username display logic is injected and syntactically valid.');
+          JS
+
       - name: Strip legacy local account and activity snapshots
         shell: bash
         run: |
