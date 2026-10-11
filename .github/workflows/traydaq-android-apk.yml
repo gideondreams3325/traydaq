@@ -1490,13 +1490,14 @@ jobs:
           retention-days: 7
 
   publish-apk:
-    name: Publish TRAYDAQ Android download
+    name: Publish direct Android APK download
     needs: build-apk
     runs-on: ubuntu-latest
-    # The private-source build has READ-only GitHub permissions. Only this
-    # separate job receives permission to publish its verified public artifact.
+    # Authenticate with signed GitHub OIDC. No writeable GitHub token,
+    # public Storage insert policy, Supabase secret or PAT is required.
     permissions:
-      contents: write
+      contents: read
+      id-token: write
     steps:
       - name: Download signed and checked Android APK
         uses: actions/download-artifact@v4
@@ -1504,23 +1505,35 @@ jobs:
           name: Traydaq-debug-APK
           path: release
 
-      - name: Publish stable public Android preview download
-        env:
-          GH_TOKEN: ${{ github.token }}
+      - name: Upload APK to public TRAYDAQ Supabase Storage with GitHub OIDC
         shell: bash
         run: |
           set -euo pipefail
           test -s release/Traydaq-debug.apk
           sha256sum release/Traydaq-debug.apk
-          repo="$GITHUB_REPOSITORY"
-          tag="traydaq-android-preview"
-          if ! gh release view "$tag" --repo "$repo" >/dev/null 2>&1; then
-            gh release create "$tag" --repo "$repo" \
-              --target "$GITHUB_SHA" \
-              --title "TRAYDAQ Android preview" \
-              --notes "Android preview APK signed with the permanent Traydaq test key. Install only if you trust the source. This is not a Play Store release." \
-              --prerelease
-          fi
-          gh release upload "$tag" release/Traydaq-debug.apk \
-            --repo "$repo" --clobber
-          echo "TRAYDAQ download: https://github.com/$repo/releases/download/$tag/Traydaq-debug.apk"
+          # GitHub supplies a short-lived, RS256-signed OIDC identity. The
+          # Supabase Edge endpoint cryptographically verifies repo + branch +
+          # workflow reference before granting upload of exactly this file.
+          oidc="$(curl --fail --silent --show-error \
+            -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=traydaq-apk-upload-v1")"
+          jwt="$(printf '%s' "$oidc" | python3 -c 'import json,sys;print(json.load(sys.stdin)["value"])')"
+          unset oidc
+          grant="$(curl --fail --silent --show-error --retry 2 --max-time 25 \
+            --request POST \
+            -H "Authorization: Bearer $jwt" \
+            "https://vvpwntehstjbccarqqzp.supabase.co/functions/v1/traydaq-apk-upload")"
+          unset jwt
+          signed="$(printf '%s' "$grant" | python3 -c 'import json,sys;d=json.load(sys.stdin);assert d["success"] is True;print(d["signedUrl"])')"
+          case "$signed" in
+            https://vvpwntehstjbccarqqzp.supabase.co/storage/v1/object/upload/sign/traydaq-apk/Traydaq-debug.apk\?token=*) ;;
+            *) echo "::error::Unexpected signed Storage upload URL."; exit 1 ;;
+          esac
+          curl --fail --silent --show-error --retry 2 --max-time 180 \
+            --request PUT -H "content-type: application/vnd.android.package-archive" \
+            -H "x-upsert: true" -H "cache-control: max-age=60" \
+            --data-binary "@release/Traydaq-debug.apk" "$signed" > /dev/null
+          unset signed grant
+          download="https://vvpwntehstjbccarqqzp.supabase.co/storage/v1/object/public/traydaq-apk/Traydaq-debug.apk"
+          curl --fail --silent --show-error --retry 3 --head --max-time 25 "$download" > /dev/null
+          echo "PASS: Public TRAYDAQ APK is available without GitHub sign-in at $download"
