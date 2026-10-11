@@ -34,7 +34,8 @@ export function tdOwnedRow(type,row,uid){
     events:['creatorId','ownerUid','ownerId','posterId','userId','organizerId','sellerId']
   };
   const fields=byType[type]||[];
-  return fields.some(k=>row[k]!=null&&String(row[k]).trim()===id);
+  const owner=fields.map(k=>String(row[k]||'').trim()).find(v=>v&&v!=='local_user'&&v!=='system_seed');
+  return !!owner&&owner===id;
 }
 export function tdCurrentUid(){
   const user=getActiveUser();
@@ -115,6 +116,7 @@ export function patchOwnedJobsEvents(source){
     return s;
   },'my applications');
 
+  if(!source.includes('tdOnlyActualListingOwner2026')){
   source=region(source,'// Sub-view: Employer Desk',
     '// Modal: Review Candidates',s=>{
     s=once(s,'  const user = getActiveUser();\n  if (!user) {',
@@ -140,6 +142,7 @@ export function patchOwnedJobsEvents(source){
       'vacancy account switch guard');
     return s;
   },'my listings');
+  }
 
   // No applicant CV or phone number may be read unless the live online
   // vacancy belongs to this session. A locally cached fake listing is insufficient.
@@ -196,6 +199,7 @@ export function patchOwnedJobsEvents(source){
     return s;
   },'my registrations');
 
+  if(!source.includes('tdOnlyActualListingOwner2026')){
   source=region(source,'async function renderOrganizerDesk(container) {',
     '// Modal: Review Registered Attendees',s=>{
     s=once(s,'  const user = getActiveUser();\n  if (!user) {',
@@ -219,6 +223,7 @@ export function patchOwnedJobsEvents(source){
       'events switch guard');
     return s;
   },'my events');
+  }
 
   source=region(source,'// Modal: Review Registered Attendees',
     '// 3. SECURITY DESK EXTENSION',s=>{
