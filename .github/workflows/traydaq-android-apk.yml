@@ -135,6 +135,20 @@ jobs:
           grep -q 'tdAdminAppendMore' index.html
           grep -q 'tdLastListenerRefresh<60000' index.html
           node tests/traydaq-admin-overview-edge.test.mjs
+      - name: Enable inline playback in admin post cards
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Non-invasive wrapper of existing post-card calls; never publish private media.
+          curl -fsSL "https://raw.githubusercontent.com/gideondreams3325/traydaq/${GITHUB_SHA}/scripts/patch-private-admin-video-playback.mjs" -o /tmp/traydaq-admin-player-patch.mjs
+          node --check /tmp/traydaq-admin-player-patch.mjs
+          node /tmp/traydaq-admin-player-patch.mjs --self-test
+          node /tmp/traydaq-admin-player-patch.mjs .
+          grep -Fq 'tdAdminPlayableVideo2026' index.html
+          grep -Fq 'player.controls = true' index.html
+          grep -Fq 'tdAdminPlayablePostCard' index.html
+          echo 'PASS: inline moderation video playback enabled.'
+
       - name: Separate Traydaq ID verification from admin-only blue checks
         shell: bash
         run: |
