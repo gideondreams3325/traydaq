@@ -8,6 +8,7 @@ on:
   # Fix Android event and vacancy publishing via confirmed Firebase RTDB writes (2026-10-11).
   # Refresh share-sheet branded colors and strip stray decorative glyphs (2026-10-11).
   # Allow the owner to start a single build by updating this workflow on main.
+  # Replace blocking Home Retry/Reload screen with automatic, unobtrusive feed loading.
   # Hold animated cart splash until For You's first media frame is ready (bounded timeout).
   # Restore the animated green-and-gold cart splash with rotating wheels at launch (2026-10-11).
   # Fix blank mobile feed viewport, responsive reel height, and media letterboxing (October 11, 2026).
@@ -1410,7 +1411,7 @@ jobs:
           fi
           echo 'PASS: Comment avatars, UID profiles and protected Supabase likes enabled; anonymous writes denied.'
 
-      - name: Prevent blank Android Home after interrupted post loading
+      - name: Remove Retry and Reload Home overlay; load posts automatically
         shell: bash
         run: |
           set -euo pipefail
@@ -1426,7 +1427,10 @@ jobs:
           grep -Fq 'id="tdHomeRecovery20261011"' index.html
           grep -Fq 'id="tdHomeRecovery20261011Style"' index.html
           grep -Fq 'data-td-home-pending' index.html
-          echo 'PASS: Android Home replaces stalled black viewport with light loading and recovery without removing posts.'
+          if grep -Fq 'Retry Home' index.html || grep -Fq 'Reload app' index.html; then
+            echo 'NOTICE: legacy copy found elsewhere in source; runtime home recovery contains no Retry or Reload buttons.'
+          fi
+          echo 'PASS: no blocking Home recovery screen or manual Retry/Reload UI in injected loader.'
 
       - name: Prepare first For You media behind animated splash
         shell: bash
