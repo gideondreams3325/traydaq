@@ -1,23 +1,46 @@
 import fs from 'node:fs';
 import path from 'node:path';
-// Public patch; never exports private HTML.
-const css="/* High-contrast TRAYDAQ profile controls (permanent white, green, gold theme). */\n.td-profile-online-contrast,\n.td-profile-online-contrast :is(span,small,strong,b) {\n  color:#135b36 !important; -webkit-text-fill-color:#135b36 !important;\n  font-weight:750 !important; opacity:1 !important; text-shadow:none !important;\n}\n.td-profile-online-contrast:not([data-td-existing-dot=\"true\"])::before {\n  content:\"\"; display:inline-block; vertical-align:middle; width:10px; height:10px;\n  flex:0 0 auto; border-radius:50%; margin-inline-end:7px;\n  background:#157a44; border:1px solid #0e5630; box-shadow:0 0 0 2px #e3f4e8;\n}\n.td-profile-online-dot {\n  background:#157a44 !important; background-color:#157a44 !important;\n  border-color:#0e5630 !important; color:#157a44 !important;\n  opacity:1 !important; box-shadow:0 0 0 2px #e3f4e8 !important;\n}\nsvg.td-profile-online-dot { fill:#157a44 !important; stroke:#0e5630 !important; }\nbutton.td-profile-store-contrast, a.td-profile-store-contrast,\n[role=\"button\"].td-profile-store-contrast, [onclick].td-profile-store-contrast {\n  color:#17291e !important; -webkit-text-fill-color:#17291e !important;\n  background:linear-gradient(105deg,#ffce42 0%,#f1bc0b 100%) !important;\n  border:1px solid #c48f00 !important; text-shadow:none !important;\n  font-weight:800 !important; opacity:1 !important;\n}\n.td-profile-store-contrast :is(span,strong,b,small,i) {\n  color:#17291e !important; -webkit-text-fill-color:#17291e !important;\n  background:transparent !important; background-color:transparent !important;\n  background-image:none !important; text-shadow:none !important; opacity:1 !important;\n}\n.td-profile-store-contrast svg { stroke:currentColor !important; }\n.td-profile-store-contrast:focus-visible { outline:3px solid #155f38 !important; outline-offset:3px !important; }\n.td-profile-store-contrast:hover { filter:brightness(.97); }\n@media(prefers-reduced-motion:reduce) { .td-profile-store-contrast { transition:none !important; } }";
-const runtime="(function(){\n  \"use strict\";\n  // Maintain the original Visit Store click handler. Style only verified UI labels.\n  var STORE=\"td-profile-store-contrast\", ONLINE=\"td-profile-online-contrast\", DOT=\"td-profile-online-dot\";\n  function tidy(t){ return String(t||\"\").replace(/\\s+/g,\" \").trim(); }\n  function isOnline(t){ return /^[\\u{1F7E2}\\u{1F7E1}\\u25CF\\u25CB\\s]*Online$/iu.test(tidy(t)); }\n  function profileCard(action){\n    var p=action;\n    for(var n=0;p && n<9;n++,p=p.parentElement){\n      var t=tidy(p.textContent);\n      if(t.length<6000 && /Edit Profile/i.test(t) && /Profile Visits/i.test(t)) return p;\n    }\n    return action.parentElement || action;\n  }\n  function paintOnline(card){\n    card.querySelectorAll(\".\"+ONLINE).forEach(function(e){\n      if(!isOnline(e.textContent)){\n        e.classList.remove(ONLINE); e.removeAttribute(\"data-td-existing-dot\");\n        e.querySelectorAll(\".\"+DOT).forEach(function(d){ d.classList.remove(DOT); });\n      }\n    });\n    var candidates=card.querySelectorAll(\"span,small,strong,p,div\"),label=null;\n    for(var i=0;i<candidates.length;i++){\n      var e=candidates[i];\n      if(!isOnline(e.textContent)) continue;\n      if(e.children.length===0 || (e.children.length<=2 && !e.querySelector(\"button,a\"))){label=e;break;}\n    }\n    if(!label)return;\n    var parent=label.parentElement;\n    var holder=parent && isOnline(parent.textContent) && parent.children.length<=4 ? parent : label;\n    holder.classList.add(ONLINE);\n    var dots=[];\n    if(holder!==label)holder.querySelectorAll(\"span,i,svg,div\").forEach(function(e){ dots.push(e); });\n    if(label.previousElementSibling)dots.push(label.previousElementSibling);\n    for(var j=0;j<dots.length;j++){\n      var dot=dots[j], cn=dot && typeof dot.className===\"string\" ? dot.className : \"\";\n      if(!dot || dot===label || dot.contains(label))continue;\n      if(dot.tagName===\"SVG\" || /(?:rounded-full|status-dot|online-dot|presence-dot|rounded-circle)/.test(cn)){\n        dot.classList.add(DOT);holder.setAttribute(\"data-td-existing-dot\",\"true\");return;\n      }\n    }\n    holder.removeAttribute(\"data-td-existing-dot\");\n  }\n  function update(){\n    var buttons=document.querySelectorAll('button,a,[role=\"button\"],[onclick]');\n    for(var i=0;i<buttons.length;i++){\n      var btn=buttons[i],t=tidy(btn.textContent);\n      if(!/Visit\\s+Store/i.test(t) || t.length>48)continue;\n      btn.classList.add(STORE);\n      paintOnline(profileCard(btn));\n    }\n  }\n  var scheduled=false;\n  function queueUpdate(){\n    if(scheduled)return;\n    scheduled=true;\n    requestAnimationFrame(function(){scheduled=false;update();});\n  }\n  if(document.readyState===\"loading\")document.addEventListener(\"DOMContentLoaded\",queueUpdate,{once:true});\n  else queueUpdate();\n  new MutationObserver(queueUpdate).observe(document.documentElement,{childList:true,characterData:true,subtree:true});\n  window.addEventListener(\"pageshow\",queueUpdate);\n})();";
+// This public patch applies only on the temporary private Android build runner.
+// No private source, account records, or credentials are exported.
+const css = "/* Profile controls: direct source selectors; permanent white, green and gold theme. */\n.sf-profile-header-card .text-green-400,\n.sf-profile-header-card span:has(> .sf-online) {\n  color:#135b36 !important;\n  -webkit-text-fill-color:#135b36 !important;\n  font-weight:800 !important;\n  opacity:1 !important;\n  text-shadow:none !important;\n}\n.sf-profile-header-card .sf-online {\n  display:inline-block !important;\n  width:10px !important;\n  height:10px !important;\n  flex:0 0 10px !important;\n  border-radius:50% !important;\n  background:#16814a !important;\n  border:1px solid #0d5b34 !important;\n  box-shadow:0 0 0 3px #d6f0dd !important;\n  opacity:1 !important;\n}\n.sf-profile-header-card #profileVisitStoreBtn {\n  background:#f3bd1c !important;\n  background-image:linear-gradient(105deg,#ffce42,#f1bc0b) !important;\n  color:#17291e !important;\n  -webkit-text-fill-color:#17291e !important;\n  border:1px solid #c48f00 !important;\n  font-weight:800 !important;\n  opacity:1 !important;\n  text-shadow:none !important;\n}\n.sf-profile-header-card #profileVisitStoreBtn > span,\n.sf-profile-header-card #profileVisitStoreBtn > .td-profile-store-text {\n  color:#17291e !important;\n  -webkit-text-fill-color:#17291e !important;\n  background:transparent !important;\n  background-color:transparent !important;\n  background-image:none !important;\n  box-shadow:none !important;\n  border:0 !important;\n  padding:0 !important;\n  margin:0 !important;\n  opacity:1 !important;\n  font-weight:800 !important;\n  text-shadow:none !important;\n}\n.sf-profile-header-card #profileVisitStoreBtn:hover { filter:brightness(.97); }\n.sf-profile-header-card #profileVisitStoreBtn:focus-visible {\n  outline:3px solid #155f38 !important;\n  outline-offset:3px !important;\n}\n@media(prefers-reduced-motion:reduce) {\n .sf-profile-header-card #profileVisitStoreBtn {transition:none !important;}\n}";
 
-export function patchProfileContrast(html){
-  if(typeof html!=='string' || !html.includes('</head>') || !html.includes('</body>'))
-    throw Error('Traydaq profile contrast: expected full index.html.');
-  if(html.includes('id="tdProfileContrast2026"') || html.includes('id="tdProfileContrastRuntime2026"'))
-    throw Error('Traydaq profile contrast: already installed.');
-  if((html.match(/<\/head>/gi)||[]).length!==1 || (html.match(/<\/body>/gi)||[]).length!==1)
-    throw Error('Traydaq profile contrast: ambiguous HTML anchors.');
-  const style='<style id="tdProfileContrast2026">\n'+css.replace(/<\/style/gi,'<\\/style')+'\n</style>\n';
-  const script='<script id="tdProfileContrastRuntime2026">\n'+runtime.replace(/<\/script/gi,'<\\/script')+'\n</script>\n';
-  return html.replace('</head>',style+'</head>').replace('</body>',script+'</body>');
+function replaceOnce(source, before, after, label) {
+  const index=source.indexOf(before);
+  if(index<0 || source.indexOf(before,index+before.length)!==-1)
+    throw Error('TRAYDAQ profile contrast: missing or duplicate '+label);
+  return source.slice(0,index)+after+source.slice(index+before.length);
 }
-if(process.argv[1] && import.meta.url==='file://'+path.resolve(process.argv[1])){
+export function patchProfileContrast(html) {
+  if(typeof html!=='string' || !html.includes('</head>'))
+    throw Error('TRAYDAQ profile contrast: expected complete HTML');
+  if(html.includes('id="tdProfileContrast2026"') || html.includes('td-profile-store-text'))
+    throw Error('TRAYDAQ profile contrast: already installed');
+
+  // The source is known: sfPresenceBadge uses a very pale green utility class.
+  // Replace that utility inside the function only, not other badges app-wide.
+  const start=html.indexOf('function sfPresenceBadge(u){');
+  const end=html.indexOf('/* Profile Audio Preview Controller */',start);
+  if(start<0 || end<start || end-start>900)
+    throw Error('TRAYDAQ profile contrast: presence markup changed');
+  const presence=html.slice(start,end);
+  const fixed=replaceOnce(presence,
+    "sfIsOnline(u)?'text-green-400':'text-gray-500'",
+    "sfIsOnline(u)?'text-green-800 font-bold':'text-gray-500'",
+    'presence green text');
+  html=html.slice(0,start)+fixed+html.slice(end);
+
+  // Use the real store action button. Never replace the button or its handler.
+  if(!html.includes('id="profileVisitStoreBtn"'))
+    throw Error('TRAYDAQ profile contrast: real store button missing');
+  html=replaceOnce(html,'<span>Visit Store</span>',
+    '<span class="td-profile-store-text" style="background:transparent!important;background-image:none!important;color:#17291e!important;-webkit-text-fill-color:#17291e!important">Visit Store</span>',
+    'store button label');
+  const style='<style id="tdProfileContrast2026">\n'+css+'\n</style>\n';
+  return replaceOnce(html,'</head>',style+'</head>','HTML head');
+}
+if(process.argv[1] && import.meta.url==='file://'+path.resolve(process.argv[1])) {
   const target=path.join(path.resolve(process.argv[2]||'.'),'index.html');
-  const out=patchProfileContrast(fs.readFileSync(target,'utf8'));
-  fs.writeFileSync(target,out);
-  console.log('PASS: TRAYDAQ online presence and Visit Store contrast patched.');
+  const result=patchProfileContrast(fs.readFileSync(target,'utf8'));
+  fs.writeFileSync(target,result);
+  console.log('PASS: high-contrast Online and Visit Store now use real profile source selectors.');
 }
