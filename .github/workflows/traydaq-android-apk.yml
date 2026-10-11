@@ -820,10 +820,11 @@ jobs:
           node --input-type=module <<'JS'
           import fs from 'node:fs';
           import {pathToFileURL} from 'node:url';
-          const {patchFeed,patchCreator}=await import(pathToFileURL('/tmp/td-creator-feed-cover.mjs').href);
+          const {patchFeed,patchCreator,patchVideoExport}=await import(pathToFileURL('/tmp/td-creator-feed-cover.mjs').href);
           const originalHtml=fs.readFileSync('index.html','utf8');
           const originalCreator=fs.readFileSync('creator-studio.js','utf8');
           const html=patchFeed(originalHtml),studio=patchCreator(originalCreator);
+          const editor=patchVideoExport(fs.readFileSync('video-editor-pro.js','utf8'));
           const start=html.indexOf('const isEligibleFeedPost = (p) => {');
           const end=html.indexOf('window.isEligibleFeedPost = isEligibleFeedPost;',start);
           const src=html.slice(start,end);
@@ -841,12 +842,20 @@ jobs:
             !studio.includes("window.navigate('feed', published.ref.id)")||
             !studio.includes('Video frame is black')||!studio.includes('requestVideoFrameCallback'))
             throw Error('Creator cover or publish recovery missing');
+          if(!editor.includes('tdDecodedExportWarmup2026')||
+            !editor.includes("const mime=['video/mp4'"))
+            throw Error('Android video export decoder warmup or MP4 output preference missing');
+          new Function(editor.replace(/^export /gm,''));
+          try{patchVideoExport(editor);throw Error('Double video export patch was allowed');}
+          catch(e){if(!String(e.message).includes('already patched'))throw e;}
           try{patchCreator(studio);throw Error('Double patch was incorrectly allowed');}
           catch(e){if(!String(e.message).includes('already patched'))throw e;}
           console.log('PASS: authentic public posts eligible, private/hidden excluded, black frames rejected, published reel opens in feed.');
           JS
           node /tmp/td-creator-feed-cover.mjs .
           node --check creator-studio.js
+          node --check video-editor-pro.js
+          grep -Fq 'tdDecodedExportWarmup2026' video-editor-pro.js
           grep -Fq 'tdCreatorFeedCover20261011' index.html
           grep -Fq 'tdCreatorFeedCover20261011' creator-studio.js
           # The fix is for the Android APK's local source and requires no website deployment.
