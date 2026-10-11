@@ -20,6 +20,20 @@
           thumbnailObserver.unobserve(entry.target);
         }
       }, {rootMargin:'300px 0px'}) : null;
+  // Only near-screen reels may fetch metadata; decoding every offscreen video
+  // at boot causes frame drops and large network bursts on Android WebView.
+  const feedVideoObserver = typeof IntersectionObserver === 'function'
+    ? new IntersectionObserver(entries => {
+        for (const entry of entries) {
+          const video = entry.target;
+          if (!video.isConnected) { feedVideoObserver.unobserve(video); continue; }
+          if (entry.isIntersecting && document.visibilityState !== 'hidden') {
+            if (video.paused && video.preload === 'none') video.preload = 'metadata';
+          } else if (!video.paused) {
+            video.pause();
+          }
+        }
+      }, {rootMargin:'180px 0px', threshold:0.01}) : null;
 
   function safeUrl(value) {
     if (typeof value !== 'string' || !value.trim()) return '';
@@ -69,6 +83,7 @@
   function setupVideo(video, isThumbnail) {
     if (videos.has(video) || video.matches(PROTECTED)) return;
     videos.add(video);
+    const isFeedVideo = !!(video.closest('.reel-card') && video.closest('#reelFeed'));
     const poster = safeUrl(video.getAttribute('poster') || '');
     if (!poster || PLACEHOLDER.test(poster) || VIDEO_FILE.test(poster)) {
       const actualCover = coverFrom(video);
@@ -88,7 +103,7 @@
         video.addEventListener('loadedmetadata', seekFirstFrame, { once: true });
         if (video.readyState >= 1) seekFirstFrame();
         video.addEventListener('loadeddata', function () { video.classList.remove('td-media-awaiting-frame'); }, { once: true });
-        if (video.preload === 'none' && (isThumbnail || !video.hasAttribute('controls'))) {
+        if (video.preload === 'none' && !isThumbnail && !isFeedVideo && !video.hasAttribute('controls')) {
           video.preload = 'metadata';
         }
       }
@@ -106,6 +121,9 @@
       video.tabIndex = -1;
       video.setAttribute('aria-label', 'Video thumbnail');
       video.classList.add('td-media-native-preview');
+    } else if (isFeedVideo && feedVideoObserver && !video.hasAttribute('controls')) {
+      if (video.paused && video.readyState === 0) video.preload = 'none';
+      feedVideoObserver.observe(video);
     }
   }
   function upgradeImage(img) {
@@ -142,8 +160,24 @@
     if (!(node instanceof Element)) return;
     if (node.matches('img')) upgradeImage(node);
     if (node.matches('video')) setupVideo(node, false);
-    node.querySelectorAll('img').forEach(upgradeImage);
-    node.querySelectorAll('video').forEach(video => setupVideo(video, false));
+    const descendants = node.querySelectorAll('img,video');
+    let cursor = 0;
+    function processBatch() {
+      // Cap DOM upgrades per frame so first paint, taps and scrolling stay responsive.
+      const end = Math.min(cursor + 64, descendants.length);
+      for (; cursor < end; cursor++) {
+        const media = descendants[cursor];
+        if (!media.isConnected) continue;
+        if (media.tagName === 'IMG') upgradeImage(media);
+        else if (media.tagName === 'VIDEO') setupVideo(media, false);
+      }
+      if (cursor < descendants.length) {
+        if (document.visibilityState === 'hidden') window.setTimeout(processBatch, 120);
+        else if (typeof requestAnimationFrame === 'function') requestAnimationFrame(processBatch);
+        else window.setTimeout(processBatch, 16);
+      }
+    }
+    processBatch();
   }
   function queue(node) {
     if (!(node instanceof Element)) return;
@@ -171,6 +205,13 @@
   }
   function boot() {
     queue(document.body);
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') {
+        document.querySelectorAll('#reelFeed .reel-card video').forEach(video => {
+          if (!video.paused) video.pause();
+        });
+      }
+    });
     const observer = new MutationObserver(function (changes) {
       for (const change of changes) {
         if (change.type === 'attributes') { queue(change.target); continue; }
