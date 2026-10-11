@@ -1180,7 +1180,7 @@ jobs:
           grep -Fq "TRAYDAQ Security Team" translations.js
           # Do not replace literal role keys, authenticated access checks, endpoints or selectors.
           grep -Fq "'admin'" index.html
-          grep -Fq "role=" admin/app.js
+          grep -Fq "const ADMIN_EMAILS" admin/app.js
           echo 'PASS: TRAYDAQ Team naming applied across app screens, safety hub and translations.'
 
       - name: Install project dependencies
