@@ -471,6 +471,39 @@ jobs:
           console.log('PASS: Full-field tap, full-row option selection, validation, dismiss, label tap and updated form values.');
           JS
 
+      - name: Modernize event file chooser for touch and previews
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Only public enhancement code is fetched; the app source stays private.
+          mkdir -p /tmp/td-event-upload
+          for file in \
+            scripts/patch-private-event-file-picker.mjs \
+            assets/traydaq-event-file-picker.css \
+            assets/traydaq-event-file-picker.js; do
+            curl --fail --silent --show-error --location \
+              "https://raw.githubusercontent.com/gideondreams3325/traydaq/${GITHUB_SHA}/$file" \
+              --output "/tmp/td-event-upload/${file##*/}"
+          done
+          node --check /tmp/td-event-upload/patch-private-event-file-picker.mjs
+          node --check /tmp/td-event-upload/traydaq-event-file-picker.js
+          node /tmp/td-event-upload/patch-private-event-file-picker.mjs . \
+            /tmp/td-event-upload/traydaq-event-file-picker.css \
+            /tmp/td-event-upload/traydaq-event-file-picker.js
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          const page=fs.readFileSync('index.html','utf8');
+          for (const anchor of ['id="tdEventFilePickerStyle2026"',
+            'id="tdEventFilePickerRuntime2026"','td-event-file-tap',
+            'td-event-file-remove','td-event-file-native']) {
+            if(!page.includes(anchor))throw Error('Event picker missing: '+anchor);
+          }
+          const script=page.split('<script id="tdEventFilePickerRuntime2026">\n')[1]?.split('\n</script>')[0];
+          if(!script)throw Error('Event picker runtime missing');
+          new Function(script);
+          console.log('PASS: Android event upload keeps native file input, full-width tap target and previews.');
+          JS
+
       - name: Modernize Marketplace, Vacancies and Events as responsive card grids
         shell: bash
         run: |
