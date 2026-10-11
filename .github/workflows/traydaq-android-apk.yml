@@ -1373,6 +1373,24 @@ jobs:
           grep -Fq 'processBatch' index.html
           echo 'PASS: classified reels skip repeat layout, offscreen feed videos defer metadata and media DOM work is batched.'
 
+      - name: Install measured low-RAM TRAYDAQ Speed Engine
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Fetch only public, pinned patches into the private runner checkout.
+          # No private user data, media, credentials or source leave this build.
+          base="https://raw.githubusercontent.com/gideondreams3325/traydaq/${GITHUB_SHA}"
+          mkdir -p /tmp/td-speed/{assets,scripts,tests}
+          for part in assets/traydaq-speed-engine.js scripts/patch-private-speed-engine.mjs tests/traydaq-speed-engine.test.mjs; do
+            curl --fail --silent --show-error --location "$base/$part" --output "/tmp/td-speed/$part"
+          done
+          node --check /tmp/td-speed/assets/traydaq-speed-engine.js
+          node --check /tmp/td-speed/scripts/patch-private-speed-engine.mjs
+          node --test /tmp/td-speed/tests/traydaq-speed-engine.test.mjs
+          node /tmp/td-speed/scripts/patch-private-speed-engine.mjs . /tmp/td-speed/assets/traydaq-speed-engine.js
+          grep -Fq 'id="tdSpeedEngine20261011"' index.html
+          echo 'PASS: visible media first, nearby preload cap, lazy discovery, low-memory hints and local performance metrics.'
+
       - name: Apply comment usernames, avatars and unique likes
         shell: bash
         run: |
