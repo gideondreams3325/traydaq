@@ -9,6 +9,7 @@ const fixture = '<!doctype html><html><head></head><body><div id="customDialogRo
  'if(!window.confirm((active?"Revoke":"Award")+" official blue check for "+String(u.name||u.username||uid)+"?"))return;\n'+
  'const reason=window.prompt("Administrative reason (10–220 characters). This is recorded securely:","");\n'+
  'if(reason.trim().length<10||reason.trim().length>220){alert("Enter a reason between 10 and 220 characters.");return;}\n'+
+ 'alert("Blue-check update failed: "+String(error?.message||"Unknown issue"));\n'+
  '</script></body></html>';
 const css='#tdDecisionLayer{} .td-decision-card{}';
 const js='window.tdShowDecision=function(){};';
@@ -22,6 +23,7 @@ for(const marker of ['tdConfirmationRuntime2026','tdConfirmationStyles2026',
 assert.ok(!result.includes('window.confirm((active?'));
 assert.ok(!result.includes('const reason=window.prompt('));
 assert.ok(!result.includes('alert("Enter a reason between 10 and 220 characters.")'));
+assert.ok(!result.includes('alert("Blue-check update failed: '));
 assert.throws(()=>patchSharedConfirmations(result,css,js),/patch applied twice/);
 assert.throws(()=>patchSharedConfirmations(fixture.replace('window.prompt("Administrative reason','window.prompt("Other reason'),css,js),/native prompt/);
 console.log('PASS: shared app confirmations, prompts and alerts, badge grant/revoke and drift detection.');
