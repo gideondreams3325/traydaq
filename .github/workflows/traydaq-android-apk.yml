@@ -298,6 +298,25 @@ jobs:
           node tests/profile-social-activity.test.mjs
           # Post-engagement suite also needs dist/ and synced Android assets.
 
+      - name: Fix secure Android liveness camera and verification capture
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Public patch only runs inside the private checkout; no private app data is exported.
+          curl --fail --silent --show-error --location \
+            "https://raw.githubusercontent.com/gideondreams3325/traydaq/${GITHUB_SHA}/scripts/patch-private-verification-camera.mjs" \
+            --output /tmp/traydaq-verification-camera-patch.mjs
+          node --check /tmp/traydaq-verification-camera-patch.mjs
+          node /tmp/traydaq-verification-camera-patch.mjs .
+          grep -Fq 'tdCameraFix2026' index.html
+          grep -Fq 'TraydaqCameraPermissionBridge' android/app/src/main/java/com/sellerflow/app/MainActivity.java
+          grep -Fq 'Four separate live camera views are required' index.html
+          if grep -Fq "const photos = {" index.html && grep -Fq "FALLBACK_CAPTURE" index.html; then
+            echo '::error::Verification could still accept the same gallery image for all live angles.'
+            exit 1
+          fi
+          echo 'PASS: Camera permission bridge, secure four-view capture and anti-spoof regression guards.'
+
       - name: Strip legacy local account and activity snapshots
         shell: bash
         run: |
