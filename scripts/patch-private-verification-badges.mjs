@@ -29,7 +29,7 @@ export function patchVerificationBadges(source){
   'let tdBlueBadgeFetch=null,tdBlueBadgeUpdatedAt=0;',
   'async function sfRefreshBlueBadges(force=false){',
   '  if(tdBlueBadgeFetch)return tdBlueBadgeFetch;',
-  '  if(!force&&Date.now()-tdBlueBadgeUpdatedAt<60000)return window.sfBlueBadgeUidSet;',
+  '  if(!force&&Date.now()-tdBlueBadgeUpdatedAt<60000){if(!window.sfBlueBadgeRegistryOnline)await tdResolveSignedInOfficialBadge();tdRefreshVisibleTrustBadges();return window.sfBlueBadgeUidSet;}',
   '  tdBlueBadgeFetch=(async()=>{',
   '    try{',
   '      const res=await fetch(tdBlueBadgeEndpoint,{method:"GET",cache:"no-store",signal:(typeof AbortSignal!=="undefined"&&typeof AbortSignal.timeout==="function")?AbortSignal.timeout(7000):undefined});',
