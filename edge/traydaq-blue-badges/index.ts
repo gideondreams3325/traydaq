@@ -76,7 +76,7 @@ async function dbRequest(path,method='GET',body){
 // Server-side diagnostic categories only: never log user tokens, keys or claims.
 function logBadgeFailure(area,error){
  const msg=String(error?.message||'');
- const known=/^(CREDENTIAL_UNAVAILABLE|GOOGLE_OAUTH_HTTP_\\d{3}|RTDB_HTTP_\\d{3}|OFFICIAL_AUTH_LOOKUP_HTTP_\\d{3}|AUTH_LOOKUP_HTTP_\\d{3}|OFFICIAL_IDENTITY_AMBIGUOUS)$/;
+ const known=/^(CREDENTIAL_UNAVAILABLE|GOOGLE_OAUTH_HTTP_\d{3}|RTDB_HTTP_\d{3}|OFFICIAL_AUTH_LOOKUP_HTTP_\d{3}|AUTH_LOOKUP_HTTP_\d{3}|OFFICIAL_IDENTITY_AMBIGUOUS)$/;
  console.error('TRAYDAQ_BADGES_'+area+'_'+(known.test(msg)?msg:'UNEXPECTED_'+String(error?.name||'Error').replace(/[^A-Za-z]/g,'').slice(0,24)));
 }
 async function requireAdmin(req){
