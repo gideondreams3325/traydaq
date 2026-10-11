@@ -1,0 +1,47 @@
+/* Light, non-blocking Home loading state; never change loaded post appearance. */
+#reelFeed[data-td-home-pending="true"] {
+  position: relative !important;
+  background-color: #fbfcfa !important;
+}
+#reelFeed[data-td-home-pending="true"] > .td-home-state {
+  position: absolute !important;
+  inset: 0 !important;
+}
+.td-home-state {
+  box-sizing: border-box !important;
+  z-index: 40 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  align-items: center !important;
+  gap: 12px !important;
+  width: 100% !important;
+  min-height: 280px !important;
+  padding: 26px !important;
+  background: #fbfcfa !important;
+  color: #173f2b !important;
+  text-align: center !important;
+}
+.td-home-state-fixed {
+  position: fixed !important;
+  inset: 70px 0 82px !important;
+  z-index: 70 !important;
+}
+.td-home-state .td-home-heading { font-size: 17px; font-weight: 750; line-height: 1.35; }
+.td-home-state .td-home-description { font-size: 13px; line-height: 1.5; margin: 0; max-width: 290px; color: #64766b; }
+.td-home-state .td-home-spinner {
+  width: 34px; height: 34px; border-radius: 50%; box-sizing: border-box;
+  border: 3px solid #dce9df; border-top-color: #17653c;
+  animation: td-home-spin 900ms linear infinite;
+}
+.td-home-state .td-home-spinner[hidden] { display: none !important; }
+.td-home-state .td-home-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 10px; }
+.td-home-state .td-home-action {
+  min-height: 44px; padding: 10px 16px; border-radius: 14px; border: 0;
+  background: #17653c; color: white; font-weight: 700; cursor: pointer;
+}
+.td-home-state .td-home-action-secondary { background: #e9d9a6; color: #234532; }
+@keyframes td-home-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .td-home-state .td-home-spinner { animation: none; }
+}
