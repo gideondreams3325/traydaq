@@ -216,7 +216,7 @@
     try { focusTarget?.focus({ preventScroll: true }); } catch (_) { focusTarget?.focus(); }
   }
 
-  function enhance(select) {
+  function enhance(select, labelsById) {
     if (!isRendered(select) || enhanced.has(select)) return;
     const parent = select.parentNode;
     if (!parent) return;
@@ -251,8 +251,7 @@
       open(select, button);
     });
     select.addEventListener('blur', () => refresh(select));
-    const exactLabels = select.id ? [...document.querySelectorAll('label[for]')]
-      .filter(label => label.htmlFor === select.id) : [];
+    const exactLabels = select.id ? (labelsById.get(select.id) || []) : [];
     for (const label of exactLabels) {
       label.classList.add('td-easy-select-label');
       label.addEventListener('click', event => {
@@ -271,9 +270,17 @@
     if (busy) return;
     busy = true;
     try {
+      // Build the label index once, not once for every select on each page switch.
+      const labelsById = new Map();
+      for (const label of document.querySelectorAll('label[for]')) {
+        const id = label.htmlFor;
+        if (!id) continue;
+        if (!labelsById.has(id)) labelsById.set(id, []);
+        labelsById.get(id).push(label);
+      }
       for (const select of document.querySelectorAll('select')) {
         if (enhanced.has(select)) refresh(select);
-        else enhance(select);
+        else enhance(select, labelsById);
       }
       for (const select of enhanced.keys()) {
         if (!select.isConnected) enhanced.delete(select);
@@ -293,6 +300,10 @@
   document.addEventListener('change', event => {
     if (event.target?.tagName === 'SELECT') refresh(event.target);
   }, true);
+  // Recheck newly revealed forms after a tab change, without watching every class mutation.
+  document.addEventListener('click', event => {
+    if (event.target?.closest?.('nav, [role="navigation"], #bottomNav, .bottom-nav')) queueScan();
+  }, true);
   document.addEventListener('reset', event => {
     if (event.target?.tagName === 'FORM') window.setTimeout(queueScan, 0);
   }, true);
@@ -310,7 +321,10 @@
           return;
         }
       } else if (change.type === 'attributes') {
-        if (target.tagName === 'SELECT' || target.querySelector?.('select')) {
+        // A class change on a broad page container should not scan every form.
+        if (target.tagName === 'SELECT' ||
+            ((change.attributeName === 'hidden' || change.attributeName === 'style') &&
+             target.querySelector?.('select'))) {
           queueScan();
           return;
         }
