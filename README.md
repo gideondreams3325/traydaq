@@ -62,3 +62,21 @@ https://github.com/gideondreams3325/traydaq/releases/download/traydaq-android-pr
 This is a **debug-signed preview build**, not a Play Store release. The release will only be available after a successful APK build and release job. Existing users must install the updated APK for deep links to work. Do not use a new signing key for updates.
 
 **Production Android App Links:** For verified, one-tap HTTPS opening without browser prompts, serve the share URL from an app-owned custom HTTPS domain with \`/.well-known/assetlinks.json\`, and register that domain in the native Android manifest. The Supabase \`*.supabase.co\` host does not currently provide such a verification file for this app; therefore this implementation uses Android custom-scheme intents with an explicit browser fallback.
+
+## Android app performance patch (October 2026)
+
+The public APK workflow runs `tests/traydaq-speed-engine.test.mjs` and injects
+`assets/traydaq-speed-engine.js` into the temporary private app checkout **before**
+building. It also verifies the speed engine exists in the generated web bundle and the signed APK.
+
+The speed engine prioritizes visible For You media, limits nearby video metadata
+preloading (one next reel on low-RAM/Data Saver devices; two otherwise), pauses
+feed video when hidden or when leaving Home, lazy-loads offscreen discovery images,
+and records anonymous local `window.__tdSpeedEngine2026.stats` startup/long-task
+measurements. It preserves media aspect ratios, music, share links, user sessions,
+permissions, and the existing animated wheel splash.
+
+This client-side optimization does **not** transcode uploaded videos, add adaptive
+streaming renditions, rewrite private Firebase queries, or claim guaranteed startup
+timings. Those features require separate server-side integration and measurements.
+Do not paste private user records, access tokens or media URLs into performance logs.
