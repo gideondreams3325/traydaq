@@ -364,6 +364,41 @@ jobs:
             echo "::error::Camera verification is still dependent on an external model CDN."
             exit 1
           fi
+      - name: Modernize all Traydaq form controls and job application on Android
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Only the public CSS and patch script are fetched. Private source stays inside the runner.
+          curl --fail --silent --show-error --location \
+            "https://raw.githubusercontent.com/gideondreams3325/traydaq/${GITHUB_SHA}/scripts/patch-private-modern-forms.mjs" \
+            --output /tmp/traydaq-modern-forms.mjs
+          curl --fail --silent --show-error --location \
+            "https://raw.githubusercontent.com/gideondreams3325/traydaq/${GITHUB_SHA}/assets/traydaq-modern-forms.css" \
+            --output /tmp/traydaq-modern-forms.css
+          node --check /tmp/traydaq-modern-forms.mjs
+          node /tmp/traydaq-modern-forms.mjs . /tmp/traydaq-modern-forms.css
+          node --check jobs-events.js
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          const page=fs.readFileSync('index.html','utf8');
+          const jobs=fs.readFileSync('jobs-events.js','utf8');
+          for(const v of ['id="tdModernForms2026"','#applyJobModal .td-form-dialog',
+            'font-size: 16px','td-form-submit']) {
+            if(!page.includes(v))throw new Error('Missing shared form stylesheet: '+v);
+          }
+          for(const v of ['role="dialog"','aria-modal="true"','aria-labelledby="tdApplyHeading"',
+            'id="applicantEmail"','id="applicantPhone"','id="applicantCvFile"',
+            'id="applicantScamAck"','id="submitApplicationBtn"','class="td-form-fields"',
+            'class="td-form-actions"','10 * 1024 * 1024',
+            "modal.querySelector('#applyJobForm').onsubmit"]) {
+            if(!jobs.includes(v))throw new Error('Job application markup or logic missing: '+v);
+          }
+          if(jobs.includes('id="applicantCvFile" accept=".pdf,.docx,.doc,image/*" class="w-full')) {
+            throw new Error('Old overflowing native upload control still exists');
+          }
+          console.log('PASS: mobile job-application fields, file-picker validation, sticky action area and shared styles.');
+          JS
+
       - name: Strip legacy local account and activity snapshots
         shell: bash
         run: |
