@@ -21,7 +21,20 @@ export function patchFeed(html){
   if(!feed.includes('isPostRemovedBySecurity(p)')||!feed.includes("privacy === 'private'")||!feed.includes("id.startsWith('test_')"))
     throw Error('Security and privacy filters changed');
   feed='/* '+MARKER+': allow legitimate creator posts on For You. */\n'+feed;
-  return html.slice(0,start)+feed+html.slice(end);
+  let result=html.slice(0,start)+feed+html.slice(end);
+  const loadStart=result.indexOf('async function renderFeed(targetPostId, options){');
+  const loadEnd=result.indexOf('function verifyBadge(s){',loadStart);
+  if(loadStart<0||loadEnd<loadStart)throw Error('For You loader changed');
+  let loader=result.slice(loadStart,loadEnd);
+  loader=once(loader,
+    "const fetchPromise = getDocs(query(collection(db,'posts'), limit(60)));",
+    "const fetchPromise = getDocs(query(collection(db,'posts'), orderBy('createdAt','desc'), limit(100)));",
+    'recent public post ordering');
+  loader=once(loader,
+    "window._sfFeedHasMore = snap.docs.length >= 60;",
+    "window._sfFeedHasMore = snap.docs.length >= 100;",
+    'recent post pagination');
+  return result.slice(0,loadStart)+loader+result.slice(loadEnd);
 }
 export function patchCreator(source){
   if(source.includes(MARKER))throw Error('Creator studio already patched');
