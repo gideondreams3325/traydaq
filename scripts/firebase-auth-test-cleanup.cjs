@@ -4,7 +4,8 @@
 /**
  * Traydaq / sellerflow-efaab: manual-review-first Firebase Authentication cleanup.
  *
- * Run ONLY in a private, authenticated Google Cloud Shell (never in public Actions).
+ * Run privately in Cloud Shell or in the guarded manual GitHub Actions workflow.
+ * Public workflow runs MUST use --redact; no PII in logs or downloadable artifacts.
  * Does not change RTDB, Firestore, posts, or admin dashboard data.
  * No automated deletion or bulk deletion by email-pattern is permitted.
  */
@@ -20,7 +21,9 @@ const args = process.argv.slice(2);
 const mode = args[0];
 const value = key => args.find(x => x.startsWith(key + '='))?.slice(key.length + 1);
 const present = flag => args.includes(flag);
-const fail = msg => { console.error('BLOCKED: ' + msg); process.exit(1); };
+const redact = present('--redact');
+const fail = msg => { console.error('BLOCKED: ' + (redact ? 'Preflight rejected an account or configuration; no further deletions attempted.' : msg)); process.exit(1); };
+if (process.env.GITHUB_ACTIONS === 'true' && !redact) fail('Public workflow requires --redact.');
 if (!['audit', 'delete'].includes(mode)) {
   console.log('Usage: node scripts/firebase-auth-test-cleanup.cjs audit');
   console.log('       node scripts/firebase-auth-test-cleanup.cjs delete --uids-file=/tmp/traydaq-test-uids.txt --confirm-project=sellerflow-efaab --execute');
@@ -81,7 +84,7 @@ async function audit() {
       const reason = fixtureHint(user);
       if (reason) {
         suspected++;
-        console.log('REVIEW_ONLY\t' + user.uid + '\t' + (user.email || '(no email)') + '\t' + reason +
+        if (!redact) console.log('REVIEW_ONLY\t' + user.uid + '\t' + (user.email || '(no email)') + '\t' + reason +
           '\tcreated=' + (user.metadata.creationTime || '?') +
           '\tlastSignIn=' + (user.metadata.lastSignInTime || '?'));
       }
@@ -89,6 +92,7 @@ async function audit() {
     cursor = page.pageToken;
   } while (cursor);
   console.log('TOTAL_AUTH=' + total + ' REVIEW_CANDIDATES=' + suspected + ' EXPLICIT_ADMIN_PROTECTED=' + protectedCount);
+  if (redact) console.log('Public report is aggregate-only. To select accounts, review Firebase Console privately; do not copy UIDs into public logs or workflow inputs.');
   console.log('No accounts were deleted. Select only UIDs you personally confirm are test accounts.');
 }
 async function deletion() {
@@ -134,7 +138,7 @@ async function deletion() {
     approved.push(uid);
   }
   console.log('Passed safeguards for ' + approved.length + ' manually selected suspected test accounts.');
-  for (const uid of approved) console.log('APPROVED_FOR_REVIEW_UID=' + uid);
+  if (!redact) for (const uid of approved) console.log('APPROVED_FOR_REVIEW_UID=' + uid);
   if (!present('--execute')) {
     console.log('PREVIEW ONLY: no users deleted. Rerun with --execute only if every UID is confirmed test data.');
     return;
@@ -146,10 +150,10 @@ async function deletion() {
     try {
       await auth.deleteUser(uid);
       success++;
-      console.log('DELETED_AUTH_UID=' + uid);
+      if (!redact) console.log('DELETED_AUTH_UID=' + uid);
     } catch (e) {
       failures++;
-      console.error('FAILED_AUTH_UID=' + uid + ' CODE=' + (e.code || 'unknown'));
+      console.error('FAILED_AUTH_UID=' + (redact ? '[redacted]' : uid) + ' CODE=' + (e.code || 'unknown'));
     }
   }
   console.log('DELETED=' + success + ' FAILED=' + failures + ' RTDB_UNCHANGED=true');
@@ -157,6 +161,6 @@ async function deletion() {
 }
 (mode === 'audit' ? audit() : deletion()).catch(err => {
   // Avoid dumping account data, access tokens, or full secret-bearing stack traces.
-  console.error('FAILED: ' + (err.code || err.message || 'unknown error'));
+  console.error('FAILED: ' + (redact ? (err.code || 'Firebase operation failed; details withheld from public logs.') : (err.code || err.message || 'unknown error')));
   process.exitCode = 1;
 });
