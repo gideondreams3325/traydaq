@@ -6,6 +6,7 @@ on:
   # For You grouped engagement controls (October 11, 2026).
   # Profile media counters: video views replace hearts (2026-10-11).
   # Rebuild with corrected live profile fixture and shared media preview recovery.
+  # Verify profile video view counter refresh regression (2026-10-11).
   # Pull requests and commits to other files do not trigger private source checkout.
   push:
     branches: [main]
