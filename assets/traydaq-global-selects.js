@@ -63,6 +63,35 @@
     }
   }
 
+  // Swipe down from the sheet to close. Allow normal scrolling inside long option lists.
+  function installEasySheetDismiss(sheet, onClose) {
+    let start = null;
+    sheet.addEventListener('touchstart', event => {
+      if (event.touches.length !== 1) { start = null; return; }
+      const target = event.target;
+      if (target.closest?.('input, textarea, [contenteditable="true"]')) { start = null; return; }
+      const scrollArea = target.closest?.('.td-easy-list') || null;
+      if (scrollArea && scrollArea.scrollTop > 1) { start = null; return; }
+      const touch = event.touches[0];
+      start = { identifier: touch.identifier, x: touch.clientX, y: touch.clientY, scrollArea };
+    }, { passive: true });
+    sheet.addEventListener('touchend', event => {
+      if (!start) return;
+      const origin = start;
+      start = null;
+      const touch = Array.from(event.changedTouches).find(item => item.identifier === origin.identifier);
+      if (!touch) return;
+      const down = touch.clientY - origin.y;
+      const sideways = Math.abs(touch.clientX - origin.x);
+      if (down > 85 && down > sideways * 1.3 &&
+          (!origin.scrollArea || origin.scrollArea.scrollTop <= 1)) {
+        event.preventDefault(); // Prevent a swipe from also selecting an option.
+        onClose();
+      }
+    }, { passive: false });
+    sheet.addEventListener('touchcancel', () => { start = null; }, { passive: true });
+  }
+
   function onKeyDown(event) {
     if (!active) return;
     if (event.key === 'Escape') {
@@ -104,6 +133,10 @@
     const subtitle = document.createElement('p');
     subtitle.className = 'td-easy-subtitle';
     subtitle.textContent = 'Tap an option to select it';
+
+    const dragHandle = document.createElement('div');
+    dragHandle.className = 'td-easy-drag-handle';
+    dragHandle.setAttribute('aria-hidden', 'true');
 
     const header = document.createElement('header');
     header.className = 'td-easy-header';
@@ -154,7 +187,7 @@
       if (checked) chosenButton = choice;
     }
 
-    sheet.append(header);
+    sheet.append(dragHandle, header);
     if (available.length >= 9) {
       const search = document.createElement('input');
       search.className = 'td-easy-search';
@@ -175,6 +208,7 @@
     overlay.addEventListener('click', event => {
       if (event.target === overlay) dismiss();
     });
+    installEasySheetDismiss(sheet, () => dismiss());
     document.body.appendChild(overlay);
     active = { overlay, button, select };
     document.addEventListener('keydown', onKeyDown, true);
