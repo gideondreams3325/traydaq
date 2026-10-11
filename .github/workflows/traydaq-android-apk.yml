@@ -860,6 +860,30 @@ jobs:
           grep -Fq 'tdCreatorFeedCover20261011' creator-studio.js
           # The fix is for the Android APK's local source and requires no website deployment.
 
+      - name: Recover older black profile video previews without changing posted files
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --location \
+            "https://raw.githubusercontent.com/gideondreams3325/traydaq/${GITHUB_SHA}/scripts/patch-private-profile-dark-video-covers.mjs" \
+            --output /tmp/td-profile-video-covers.mjs
+          node --check /tmp/td-profile-video-covers.mjs
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          import {pathToFileURL} from 'node:url';
+          const {patchBlackProfileCovers}=await import(pathToFileURL('/tmp/td-profile-video-covers.mjs').href);
+          const html=patchBlackProfileCovers(fs.readFileSync('index.html','utf8'));
+          if((html.match(/onload="window.tdRepairBlackProfileCover\?\.\(this\)"/g)||[]).length!==2)
+            throw Error('Profile and saved-post video thumbnail recovery are not both installed');
+          const first=html.indexOf('<script id="tdProfileDarkVideoRecover">');
+          const last=html.indexOf('</script>',first);
+          if(first<0||last<first)throw Error('Profile black-cover recovery runtime missing');
+          new Function(html.slice(first+'<script id="tdProfileDarkVideoRecover">'.length,last));
+          console.log('PASS: legacy black covers can use decoded video frames without overwriting published media.');
+          JS
+          node /tmp/td-profile-video-covers.mjs .
+          grep -Fq 'id="tdProfileDarkVideoRecover"' index.html
+
       - name: Install project dependencies
         run: npm install --no-audit --no-fund
 
