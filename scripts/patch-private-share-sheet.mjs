@@ -16,7 +16,7 @@ export function injectTraydaqShareSheet(html, css, runtime) {
   }
   for (const label of ['share via android apps', 'save media to device',
     'td-share-social-item', 'td-share-link-card', 'MutationObserver']) {
-    if (!runtime.toLowerCase().includes(label)) {
+    if (!runtime.toLowerCase().includes(label.toLowerCase())) {
       throw new Error('Traydaq share sheet runtime is incomplete: ' + label);
     }
   }
