@@ -20,6 +20,13 @@ assert.ok(output.indexOf('installTraydaqAdaptiveFeedMedia') > output.indexOf('<s
 assert.match(output, /object-fit:\s*contain\s*!important/);
 assert.match(runtime, /loadedmetadata/);
 assert.match(runtime, /orientationchange/);
+assert.match(runtime, /function fitFeedViewport/);
+assert.match(runtime, /getBoundingClientRect/);
+assert.match(runtime, /data-td-feed-viewport/);
+assert.match(runtime, /visualViewport/);
+assert.match(css, /#reelFeed\\[data-td-feed-viewport/);
+assert.match(css, /--td-feed-viewport-height/);
+assert.match(css, /max-width: 900px/);
 assert.match(runtime, /largeEnough/);
 assert.match(runtime, /EXCLUDED/); // Avatars, buttons and overlaid actions left alone.
 assert.ok(!runtime.includes('.play()')); // Do not double-play videos to measure them.
