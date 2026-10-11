@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="TRAYDAQ green and gold shopping cart logo">
+ <defs>
+  <linearGradient id="green" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0c6241"/><stop offset="1" stop-color="#07462f"/></linearGradient>
+  <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f1c464"/><stop offset="1" stop-color="#c58e24"/></linearGradient>
+ </defs>
+ <!-- Rising gold marketplace bars and motion accents. All shapes are fully inside this canvas. -->
+ <path fill="url(#gold)" d="M310 187 348 168V236H310Z M360 162 402 136V236H360Z M414 130 462 105V236H414Z"/>
+ <path stroke="url(#gold)" stroke-width="12" stroke-linecap="round" fill="none" d="M50 264h63 M63 294h60 M80 324h55"/>
+ <!-- A flowing shopping-cart body inspired by the established TRAYDAQ mark. -->
+ <path fill="url(#green)" d="M172 212h79c17 0 30 7 39 20l15 21c9 13 21 19 39 19h105c15 0 25 8 31 20l11 28c5 14-5 27-21 27H236c-24 0-40-11-51-32l-51-97c-4-8-10-11-20-11H56v-31h68c24 0 40 9 51 30l16 30c-6-16-12-24-19-24z"/>
+ <!-- Gold inlay follows the top of the basket instead of intruding outside icon bounds. -->
+ <path fill="url(#gold)" d="M218 290c22 24 39 33 69 33h178l-5-12H293c-35 0-52-6-75-21z"/>
+ <path fill="url(#green)" d="M223 367h227l-13 21H222c-12 0-21 8-24 20l-21-9c7-20 21-32 46-32z"/>
+ <circle cx="226" cy="418" r="36" fill="#095438"/>
+ <circle cx="226" cy="418" r="18" fill="url(#gold)"/>
+ <circle cx="410" cy="418" r="36" fill="#095438"/>
+ <circle cx="410" cy="418" r="18" fill="url(#gold)"/>
+</svg>
