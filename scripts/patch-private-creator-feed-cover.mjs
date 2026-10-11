@@ -56,12 +56,29 @@ export function patchCreator(source){
     'open newly published reel in For You');
   return source;
 }
+export function patchVideoExport(editor){
+  if(editor.includes('tdDecodedExportWarmup2026'))throw Error('Video export already patched');
+  if(!editor.includes('async function exportFile(progress)')||!editor.includes('canvas.captureStream(30)'))
+    throw Error('Professional video editor export changed');
+  editor=once(editor,
+    "      draw();canvasStream=canvas.captureStream(30);",
+    "      // tdDecodedExportWarmup2026: Android WebView may have metadata but no drawable frames.\n      // Pre-roll a muted frame BEFORE starting Canvas MediaRecorder.\n      if(worker.readyState<2){\n        worker.muted=true;\n        let began=false;\n        try{\n          await worker.play();\n          began=true;\n          await new Promise((ok,no)=>{\n            if(worker.readyState>=2)return ok();\n            const timeout=setTimeout(()=>no(new Error('Android could not decode the video for editing. Retry or replace the video.')),6500);\n            const ready=()=>{if(worker.readyState>=2){clearTimeout(timeout);worker.removeEventListener('loadeddata',ready);ok();}};\n            worker.addEventListener('loadeddata',ready);\n            ready();\n          });\n        }finally{if(began)worker.pause();}\n        if(Math.abs(worker.currentTime-edits.start)>.025){\n          await new Promise((ok,no)=>{\n            const timeout=setTimeout(()=>no(new Error('Android could not return to the selected trim start.')),5000);\n            worker.addEventListener('seeked',()=>{clearTimeout(timeout);ok();},{once:true});\n            worker.currentTime=edits.start;\n          });\n        }\n        worker.muted=!!edits.mute;\n      }\n      draw();canvasStream=canvas.captureStream(30);",
+    'Android edited-video decoder warmup');
+  editor=once(editor,
+    "const mime=['video/webm;codecs=vp8,opus','video/webm;codecs=vp8','video/webm','video/mp4'].find(x=>MediaRecorder.isTypeSupported(x));",
+    "const mime=['video/mp4','video/webm;codecs=vp8,opus','video/webm;codecs=vp8','video/webm'].find(x=>MediaRecorder.isTypeSupported(x));",
+    'prefer Android-native MP4 where supported');
+  return editor;
+}
 if(process.argv[1]&&import.meta.url==='file://'+process.argv[1]){
   const root=path.resolve(process.argv[2]||'.');
   const htmlFile=path.join(root,'index.html'),creatorFile=path.join(root,'creator-studio.js');
   const html=patchFeed(fs.readFileSync(htmlFile,'utf8'));
   const creator=patchCreator(fs.readFileSync(creatorFile,'utf8'));
+  const editorFile=path.join(root,'video-editor-pro.js');
+  const editor=patchVideoExport(fs.readFileSync(editorFile,'utf8'));
   fs.writeFileSync(htmlFile,html);
   fs.writeFileSync(creatorFile,creator);
-  console.log('PASS: public creator posts appear in For You; blank cover image is rejected.');
+  fs.writeFileSync(editorFile,editor);
+  console.log('PASS: For You visibility, reliable covers and decoded Android video exports.');
 }
