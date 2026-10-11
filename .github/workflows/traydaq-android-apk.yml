@@ -739,6 +739,30 @@ jobs:
           grep -q 'data-user-delete-reel' index.html
           grep -q 'data-admin-takedown-reel' index.html
 
+      - name: Fix Online indicator and Visit Store button contrast
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Public UI patch only: private HTML stays on the temporary APK runner.
+          curl --fail --silent --show-error --location \
+            "https://raw.githubusercontent.com/gideondreams3325/traydaq/${GITHUB_SHA}/scripts/patch-private-profile-contrast.mjs" \
+            --output /tmp/traydaq-profile-contrast.mjs
+          node --check /tmp/traydaq-profile-contrast.mjs
+          node --input-type=module <<'JS'
+          import {patchProfileContrast} from '/tmp/traydaq-profile-contrast.mjs';
+          const sample = '<!doctype html><html><head></head><body>TRAYDAQ</body></html>';
+          const out = patchProfileContrast(sample);
+          for(const text of ['tdProfileContrast2026','tdProfileContrastRuntime2026','td-profile-online-contrast','td-profile-store-contrast','MutationObserver']){
+            if(!out.includes(text))throw Error('Missing profile contrast feature: '+text);
+          }
+          try{patchProfileContrast(out);throw Error('Duplicate patch allowed');}
+          catch(error){if(!String(error.message).includes('already installed'))throw error;}
+          console.log('PASS: profile contrast markers and duplicate insertion guard.');
+          JS
+          node /tmp/traydaq-profile-contrast.mjs .
+          grep -Fq 'id="tdProfileContrast2026"' index.html
+          grep -Fq 'id="tdProfileContrastRuntime2026"' index.html
+
       - name: Install project dependencies
         run: npm install --no-audit --no-fund
 
