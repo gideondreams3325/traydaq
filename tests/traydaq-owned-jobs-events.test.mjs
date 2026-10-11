@@ -28,6 +28,8 @@ test('records are visible to exactly their owner, never local_user or guests',()
   }
   assert.equal(tdOwnedRow('jobs',{ownerUid:'alice'},'alice'),true);
   assert.equal(tdOwnedRow('events',{organizerId:'alice'},'alice'),true);
+  assert.equal(tdOwnedRow('jobs',{creatorId:'bob',posterId:'alice'},'alice'),false);
+  assert.equal(tdOwnedRow('jobs',{creatorId:'local_user',posterId:'alice'},'alice'),true);
 });
 
 test('shared legacy application cache is filtered by Firebase UID',()=>{
@@ -65,12 +67,12 @@ test('patched APK source enforces owner checks before showing personal sections'
   for(const needed of [
     'tdOwnedAccountIsolation2026',
     "tdOwnedRow('applications',row,viewerUid)",
-    "tdOwnedRow('jobs',row,viewerUid)",
+    'tdOnlyActualListingOwner2026',
     "tdOwnedRow('registrations',row,viewerUid)",
-    "tdOwnedRow('events',row,viewerUid)",
+    "tdListingBelongsToSignedInUid(row, ownerUid)",
     "tdOwnedCached('sf_my_job_applications','applications',viewerUid)",
-    "tdOwnedCached('sf_my_posted_jobs','jobs',viewerUid)",
-    "tdOwnedCached('sf_my_hosted_events','events',viewerUid)",
+    "tdListingBelongsToSignedInUid(sj, ownerUid)",
+    "tdListingBelongsToSignedInUid(se, ownerUid)",
     "tdOwnedCached('sf_my_event_registrations','registrations',viewerUid)",
     "tdCanManageOnline('jobs',jobId,viewerUid)",
     "tdCanManageOnline('events',eventId,viewerUid)",
