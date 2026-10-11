@@ -74,6 +74,6 @@ emit('likes/p2',{viewerD:true,viewerE:true,viewerF:true,viewerG:true});
 assert.equal(likes.textContent,old,'Old profile listeners must detach on navigation');
 viewer='';
 watch('creatorA');
-assert.equal(likes.textContent,'3','Public profile counts must work without signed-in owner');
+assert.equal(likes.textContent,'4','Guests must see the current four Firebase likes, not the old three-like snapshot');
 assert(listeners.filter(x=>x.ref.path==='likes/p1').length<=1,'Navigation must not leak duplicate listeners');
 console.log('PASS: public/owner profile likes, per-post counters, real-time like/unlike, post changes, navigation, and guest reads.');
