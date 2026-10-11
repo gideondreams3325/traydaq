@@ -1,0 +1,81 @@
+name: TRAYDAQ Video View Backend (Public Controller)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/traydaq-video-views-backend.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: traydaq-public-video-view-backend
+  cancel-in-progress: false
+
+jobs:
+  video-views:
+    if: github.repository == 'gideondreams3325/traydaq' && github.actor == 'gideondreams3325'
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Require private source and Firebase credentials
+        env:
+          SOURCE_TOKEN: ${{ secrets.SELLERFLOW_SOURCE_TOKEN }}
+          ADMIN_JSON: ${{ secrets.TRAYDAQ_FIREBASE_ADMIN_JSON }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "${SOURCE_TOKEN:-}" ] || [ -z "${ADMIN_JSON:-}" ]; then
+            echo "::error::Missing SELLERFLOW_SOURCE_TOKEN or TRAYDAQ_FIREBASE_ADMIN_JSON. No live changes made."
+            exit 1
+          fi
+          umask 077
+          printf '%s' "$ADMIN_JSON" > "$RUNNER_TEMP/traydaq-views-admin.json"
+          node - "$RUNNER_TEMP/traydaq-views-admin.json" <<'JS'
+          const fs=require('node:fs');
+          const account=JSON.parse(fs.readFileSync(process.argv[2],'utf8'));
+          if(account.type!=='service_account'||account.project_id!=='sellerflow-efaab')throw Error('Firebase project mismatch');
+          console.log('PASS: correct Firebase project; credential hidden');
+          JS
+          echo "GOOGLE_APPLICATION_CREDENTIALS=$RUNNER_TEMP/traydaq-views-admin.json" >> "$GITHUB_ENV"
+      - name: Checkout private TRAYDAQ app source without publishing it
+        uses: actions/checkout@v4
+        with:
+          repository: gideondreams3325/sellerflow
+          token: ${{ secrets.SELLERFLOW_SOURCE_TOKEN }}
+          ref: main
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify playback tracking, counters and security
+        run: |
+          set -euo pipefail
+          node --check post-social.js
+          node --check functions/index.js
+          node --check scripts/deploy-video-view-rules.mjs
+          node --test tests/video-view-metrics.test.mjs
+      - name: Deploy trusted Firebase counter BEFORE accepting views
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install --prefix functions --no-audit --no-fund --ignore-scripts
+          npx --yes firebase-tools@14.19.1 deploy --only functions:tdCountVideoView --project sellerflow-efaab --non-interactive
+      - name: Publish only protected video view receipt permissions
+        run: |
+          set -euo pipefail
+          node scripts/deploy-video-view-rules.mjs
+      - name: Remove Firebase credentials
+        if: always()
+        shell: bash
+        run: rm -f "$RUNNER_TEMP/traydaq-views-admin.json"
+      - name: Save rollback-ready previous security rules
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: traydaq-video-view-previous-firebase-rules
+          path: ${{ runner.temp }}/traydaq-video-view-rules-before.json
+          retention-days: 7
+          if-no-files-found: ignore
