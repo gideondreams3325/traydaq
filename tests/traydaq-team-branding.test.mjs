@@ -40,6 +40,11 @@ const js = [
   'const banner=' + tick + '<span>Admin access granted</span>' + tick + ';'
 ].join('\n');
 const renamed = rewriteJavaScript(js);
+const selectorCode = 'document.querySelectorAll("main [data-admin-takedown-reel]");';
+assert.equal(rewriteJavaScript(selectorCode), selectorCode,
+  'CSS selectors with spaces must not be mistaken for team-facing text');
+const loneSelector = "document.querySelector('[data-admin-takedown-reel]')";
+assert.equal(rewriteJavaScript(loneSelector), loneSelector);
 assert.ok(renamed.includes('const teamLabel="TRAYDAQ Security Team"'));
 assert.ok(renamed.includes('const role="admin"'));
 assert.ok(renamed.includes('const path="/api/admin/review"'));
