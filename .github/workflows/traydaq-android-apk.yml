@@ -327,6 +327,29 @@ jobs:
           grep -Fq 'tdVisibleCameraFrame2026' index.html
           grep -Fq 'tdStartVerificationCamera' index.html
 
+      - name: Fix Inbox and chat invalid Firestore collection paths
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --location \
+            "https://raw.githubusercontent.com/gideondreams3325/traydaq/${GITHUB_SHA}/scripts/patch-private-inbox-rtdb.mjs" \
+            --output /tmp/traydaq-inbox-rtdb-patch.mjs
+          node --check /tmp/traydaq-inbox-rtdb-patch.mjs
+          node /tmp/traydaq-inbox-rtdb-patch.mjs .
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          const h=fs.readFileSync('index.html','utf8');
+          if(!h.includes('TRAYDAQ_INBOX_RTDB_PATH_FIX_V1') ||
+             !h.includes("rt.ref('messages/' + cid + '/' + mid)") ||
+             h.includes("collection(db,'messages',cid)") ||
+             h.includes("collection(db, 'messages', cid)") ||
+             h.includes("doc(db, 'messages', cid, mid)") ||
+             h.includes("doc(db,'messages',cid,mid)")) {
+            throw Error('Inbox still contains an invalid Firestore reference');
+          }
+          console.log('PASS: valid chat paths and realtime listener.');
+          JS
+
       - name: Bundle secure FaceMesh tracker into Traydaq APK
         shell: bash
         run: |
