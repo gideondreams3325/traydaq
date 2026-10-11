@@ -41,7 +41,11 @@
       element.setAttribute('data-td-adaptive-feed-media', 'true');
       found = true;
     }
-    if (found) return;
+    if (found) {
+      // Classify each stable reel once; taps on Like/Comment must not remeasure it.
+      if (card.setAttribute) card.setAttribute('data-td-adaptive-classified', 'true');
+      return;
+    }
 
     // Some image posts use a CSS background instead of an <img>. Do not
     // modify unrelated gradient overlays or the page-wide background.
@@ -56,6 +60,7 @@
       const image = window.getComputedStyle(element).backgroundImage || '';
       if (!/url\(/i.test(image)) continue;
       element.setAttribute('data-td-adaptive-feed-bg', 'true');
+      if (card.setAttribute) card.setAttribute('data-td-adaptive-classified', 'true');
       return;
     }
   }
@@ -122,7 +127,9 @@
     if (style.display === 'none' || style.visibility === 'hidden' ||
         feed.getClientRects().length === 0) return;
     fitFeedViewport();
-    feed.querySelectorAll(CARD).forEach(apply);
+    feed.querySelectorAll(CARD).forEach(card => {
+      if (!card.hasAttribute || !card.hasAttribute('data-td-adaptive-classified')) apply(card);
+    });
   }
 
   function schedule() {
@@ -134,13 +141,19 @@
 
   function isFeedChange(record) {
     if (record.type === 'attributes') {
-      return !!(record.target.closest && record.target.closest('#reelFeed ' + CARD));
+      const card = record.target.closest && record.target.closest('#reelFeed ' + CARD);
+      if (card && card.removeAttribute) card.removeAttribute('data-td-adaptive-classified');
+      return !!card;
     }
     if (record.type !== 'childList' || !record.addedNodes.length) return false;
     const root = document.getElementById('reelFeed');
     if (!root) return false;
     // Media inserted into unrelated screens must not rescan the Home feed.
-    if (record.target === root || root.contains(record.target)) return true;
+    if (record.target === root || root.contains(record.target)) {
+      const card = record.target.closest && record.target.closest(CARD);
+      if (card && card.removeAttribute) card.removeAttribute('data-td-adaptive-classified');
+      return true;
+    }
     for (const node of record.addedNodes) {
       if (node.nodeType !== 1) continue;
       if (node === root || node.contains(root) ||
@@ -169,7 +182,7 @@
     document.addEventListener('click', event => {
       const target = event.target;
       if (target && target.closest && target.closest(
-        '#reelFeed, #bottomNav, .bottom-nav, .bottom-navigation, .bottom-tab-bar, [role="navigation"], nav'
+        '#bottomNav, .bottom-nav, .bottom-navigation, .bottom-tab-bar, [role="navigation"], nav'
       )) schedule();
     }, true);
     document.addEventListener('visibilitychange', schedule);
