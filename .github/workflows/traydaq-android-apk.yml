@@ -160,7 +160,13 @@ jobs:
              !h.includes('AbortSignal.timeout(7000)')) {
             throw new Error('Blue badge lookup must not block profile loading indefinitely.');
           }
-          console.log('PASS: ID badge security, blue-check hub and nonblocking profile hydration.');
+          if(!h.includes('window.sfOfficialTraydaqUid=')||
+             !h.includes('window.sfBlueBadgeUidSet.add(window.sfOfficialTraydaqUid)')||
+             !h.includes('btn.disabled=official||!window.sfBlueBadgeRegistryOnline;')||
+             !h.includes('Permanent official badge')) {
+            throw new Error('Official Traydaq account must be permanently blue-checked and not revocable in the UI.');
+          }
+          console.log('PASS: ID badges, admin-only grants, permanent official Traydaq badge, and nonblocking profile hydration.');
 
           JS
 
