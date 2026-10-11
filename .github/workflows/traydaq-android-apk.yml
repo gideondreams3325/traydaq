@@ -738,6 +738,33 @@ jobs:
           console.log('PASS: compact Marketplace buttons and original cart, edit and delete actions integrated.');
           JS
 
+      - name: Compact Events controls and group secondary buttons
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Public UI assets are applied only to the temporary private APK checkout.
+          base="https://raw.githubusercontent.com/gideondreams3325/traydaq/${GITHUB_SHA}"
+          mkdir -p /tmp/td-events/{scripts,assets,tests}
+          for part in \
+            scripts/patch-private-event-space-saver.mjs \
+            assets/traydaq-event-space-saver.css \
+            assets/traydaq-event-space-saver.js \
+            tests/traydaq-event-space-saver.test.mjs; do
+            curl --fail --silent --show-error --location "$base/$part" --output "/tmp/td-events/$part"
+          done
+          node --check /tmp/td-events/scripts/patch-private-event-space-saver.mjs
+          node --check /tmp/td-events/assets/traydaq-event-space-saver.js
+          node --test /tmp/td-events/tests/traydaq-event-space-saver.test.mjs
+          node /tmp/td-events/scripts/patch-private-event-space-saver.mjs . \
+            /tmp/td-events/assets/traydaq-event-space-saver.css \
+            /tmp/td-events/assets/traydaq-event-space-saver.js
+          grep -Fq 'id="tdEventSpaceSaver20261011Style"' index.html
+          grep -Fq 'id="tdEventSpaceSaver20261011"' index.html
+          grep -Fq 'data-td-event-more' index.html
+          grep -Fq 'data-register-event' jobs-events.js
+          node --check jobs-events.js
+          echo 'PASS: event cards have compact controls with accessible secondary actions.'
+
       - name: Keep Creator Studio Music Library browse-only
         shell: bash
         run: |
