@@ -761,18 +761,26 @@ jobs:
           node --check /tmp/traydaq-profile-contrast.mjs
           node --input-type=module <<'JS'
           import {patchProfileContrast} from '/tmp/traydaq-profile-contrast.mjs';
-          const sample = '<!doctype html><html><head></head><body>TRAYDAQ</body></html>';
+          const sample = '<!doctype html><html><head></head><body>'
+            + '<button id="profileVisitStoreBtn"><span>Visit Store</span></button>'
+            + '<script>function sfPresenceBadge(u){const color=sfIsOnline(u)?\'text-green-400\':\'text-gray-500\';'
+            + ' /* Profile Audio Preview Controller */</script></body></html>';
           const out = patchProfileContrast(sample);
-          for(const text of ['tdProfileContrast2026','tdProfileContrastRuntime2026','td-profile-online-contrast','td-profile-store-contrast','MutationObserver']){
-            if(!out.includes(text))throw Error('Missing profile contrast feature: '+text);
+          for (const marker of ['tdProfileContrast2026','td-profile-store-text',
+              'text-green-800 font-bold','#profileVisitStoreBtn','.sf-online',
+              'background:transparent !important']) {
+            if (!out.includes(marker)) throw Error('Missing direct profile contrast fix: '+marker);
           }
-          try{patchProfileContrast(out);throw Error('Duplicate patch allowed');}
-          catch(error){if(!String(error.message).includes('already installed'))throw error;}
-          console.log('PASS: profile contrast markers and duplicate insertion guard.');
+          if (out.includes('text-green-400')) throw Error('Original faint green remains');
+          if (!out.includes('id="profileVisitStoreBtn"')) throw Error('Store click target was lost');
+          try { patchProfileContrast(out); throw Error('Duplicate patch allowed'); }
+          catch(e) { if (!String(e.message).includes('already installed')) throw e; }
+          console.log('PASS: source-anchored presence contrast and store label without background.');
           JS
           node /tmp/traydaq-profile-contrast.mjs .
           grep -Fq 'id="tdProfileContrast2026"' index.html
-          grep -Fq 'id="tdProfileContrastRuntime2026"' index.html
+          grep -Fq 'td-profile-store-text' index.html
+          grep -Fq 'text-green-800 font-bold' index.html
 
       - name: Verify Supabase video views service and patch authenticated Android playback
         shell: bash
