@@ -7,7 +7,7 @@ const DATABASE = 'https://sellerflow-efaab-default-rtdb.firebaseio.com';
 const API = 'https://identitytoolkit.googleapis.com/v1/projects/sellerflow-efaab/accounts:lookup';
 const ALLOWED_ORIGINS = new Set(['https://sellerflow-efaab.web.app','https://sellerflow-sigma.vercel.app','https://sellerflow.onrender.com','https://localhost','http://localhost','capacitor://localhost']);
 const UID = /^[A-Za-z0-9_-]{6,128}$/;
-const CACHE = {account:null, token:null, expiresAt:0};
+const CACHE = {account:null, token:null, expiresAt:0, official:null, officialExpiresAt:0};
 const encoder=new TextEncoder();
 const jwks=createRemoteJWKSet(new URL('https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com'));
 function headers(origin='') {
@@ -84,6 +84,29 @@ async function requireAdmin(req){
   return {uid:payload.sub};
  }catch{return {error:401};}
 }
+// Resolve the platform owner using Firebase Authentication as the authority.
+// Never trust a display name, profile role, public email field, or user-supplied UID.
+async function officialAdminUid(){
+ if(CACHE.officialExpiresAt>Date.now())return CACHE.official;
+ const token=await googleAccessToken();
+ const res=await fetch(API,{
+  method:'POST',
+  headers:{Authorization:'Bearer '+token,'Content-Type':'application/json','Cache-Control':'no-store'},
+  body:JSON.stringify({email:[ADMIN_EMAIL]})
+ });
+ if(!res.ok)throw Error('OFFICIAL_AUTH_LOOKUP_UNAVAILABLE');
+ const info=await res.json();
+ const candidates=(Array.isArray(info.users)?info.users:[]).filter(user=>
+  UID.test(String(user?.localId||'')) &&
+  String(user?.email||'').trim().toLowerCase()===ADMIN_EMAIL &&
+  user?.emailVerified===true && user?.disabled!==true
+ );
+ if(candidates.length>1)throw Error('OFFICIAL_IDENTITY_AMBIGUOUS');
+ const uid=candidates.length===1?String(candidates[0].localId):null;
+ CACHE.official=uid;
+ CACHE.officialExpiresAt=Date.now()+(uid?300000:30000);
+ return uid;
+}
 async function userExists(uid){
  const token=await googleAccessToken();
  const res=await fetch(API,{method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json','Cache-Control':'no-store'},body:JSON.stringify({localId:[uid]})});
@@ -97,10 +120,13 @@ export async function handleBadgeRequest(req){
  if(req.method==='OPTIONS')return new Response(null,{status:204,headers:headers(origin)});
  if(req.method==='GET'){
   try{
-   const rows=await dbRequest('blueBadgeGrants');
-   const approved=Object.entries(rows&&typeof rows==='object'?rows:{})
-    .filter(([uid,r])=>UID.test(uid)&&r&&r.status==='active').map(([uid])=>uid);
-   return send({success:true,blueVerifiedUids:approved},200,origin);
+   const [rows, officialUid]=await Promise.all([dbRequest('blueBadgeGrants'),officialAdminUid()]);
+   const approved=new Set(Object.entries(rows&&typeof rows==='object'?rows:{})
+    .filter(([uid,r])=>UID.test(uid)&&r&&r.status==='active').map(([uid])=>uid));
+   // The official Traydaq account always has a blue check while its Firebase
+   // Auth email is verified and its account is active. No manual badge grant.
+   if(officialUid)approved.add(officialUid);
+   return send({success:true,blueVerifiedUids:[...approved],officialAdminUid:officialUid},200,origin);
   }catch{return send({success:false,error:'Blue-check registry temporarily unavailable'},503,origin);}
  }
  if(req.method!=='POST')return send({success:false,error:'Method not allowed'},405,origin);
@@ -117,6 +143,14 @@ export async function handleBadgeRequest(req){
  if(!UID.test(uid)||!['grant','revoke'].includes(action)||reason.length<10||reason.length>220)
   return send({success:false,error:'Valid UID, action, and 10–220 character reason are required'},400,origin);
  try{
+  // Resolve this identity from the server, before processing any revoke/grant.
+  // A forged role, changed username, or even a stale grant cannot remove it.
+  const officialUid=await officialAdminUid();
+  if(officialUid && uid===officialUid){
+   if(action==='revoke')
+    return send({success:false,error:'The official Traydaq account has a permanent blue check and cannot be revoked here'},403,origin);
+   return send({success:true,unchanged:true,active:true,official:true},200,origin);
+  }
   if(!(await userExists(uid)))return send({success:false,error:'Target must be an active Firebase Authentication account'},404,origin);
   const existing=await dbRequest('blueBadgeGrants/'+uid);
   if((existing?.status==='active')===(action==='grant'))return send({success:true,unchanged:true,active:action==='grant'},200,origin);
