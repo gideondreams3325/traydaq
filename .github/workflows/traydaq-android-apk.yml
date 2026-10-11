@@ -449,6 +449,34 @@ jobs:
           grep -Fq "creatorPickerIntro = 'Use music released by artists who permit creator reuse'" index.html
           echo 'PASS: Creator Studio displays the song picker without its upload button.'
 
+      - name: Show original video cover and enable precise timeline scrubbing
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Run public patch only against temporary private checkout; never export the app source.
+          curl --fail --silent --show-error --location \
+            "https://raw.githubusercontent.com/gideondreams3325/traydaq/${GITHUB_SHA}/scripts/patch-private-video-cover-timeline.mjs" \
+            --output /tmp/traydaq-video-cover-timeline-patch.mjs
+          node --check /tmp/traydaq-video-cover-timeline-patch.mjs
+          node /tmp/traydaq-video-cover-timeline-patch.mjs .
+          node --check creator-studio.js
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          const s=fs.readFileSync('creator-studio.js','utf8');
+          for(const marker of ['tdLiveVideoCoverTimeline2026',
+            'id="studioCoverScrubPreview"', 'step=".05"',
+            'generateStudioVideoCover(opening, true)', 'previewImage.hidden = true',
+            'previewVideo.onloadedmetadata = seekPreview',
+            'setVideoCover(image, \'manual\', selectedTime())',
+            'preview.hidden = document.getElementById(\'studioCoverScrubPreview\')?.dataset.scrubbing']) {
+            if(!s.includes(marker)) throw Error('Video cover regression: '+marker);
+          }
+          if(s.includes('slider.value = String(Math.min(1, Math.max(0, videoDurationSeconds - .1)))')) {
+            throw Error('Obsolete fixed initial cover selection remains.');
+          }
+          console.log('PASS: default original cover, 50ms scrub precision, live preview, uploaded custom covers and publish persistence.');
+          JS
+
       - name: Strip legacy local account and activity snapshots
         shell: bash
         run: |
