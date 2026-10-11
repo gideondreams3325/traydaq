@@ -82,6 +82,22 @@ export function patchSharedConfirmations(html,css,js){
   }
   return html;
 }
+export function patchAdditionalConfirmationCallers(creatorJs,supportJs){
+  if(typeof creatorJs!=='string'||typeof supportJs!=='string')
+    throw new Error('TRAYDAQ confirmations: missing Creator Studio or Support Center files');
+  creatorJs=replaceOnce(creatorJs,"closeBtn.onclick = () => {",
+    "closeBtn.onclick = async () => {",'creator studio close handler');
+  creatorJs=replaceOnce(creatorJs,
+    "if (confirm('Discard your changes and close creator studio?')) {",
+    'if (await window.customConfirm({title:"Discard Creator Studio changes?",message:"You have unsaved changes. Discard your edits and close Creator Studio?",warningText:"Unsaved drawings, text and stickers will be lost.",type:"warning",confirmText:"Discard changes",cancelText:"Keep editing"})) {',
+    'creator studio native confirm');
+  supportJs=replaceOnce(supportJs,
+    "else alert('Sign in before reporting an app issue.');",
+    'else if(typeof window.customAlert==="function")void window.customAlert({title:"Sign in required",message:"Sign in before reporting an app issue.",type:"info"});',
+    'support report native alert');
+  return {creatorJs,supportJs};
+}
+
 if(process.argv[1] && import.meta.url==='file://'+process.argv[1]){
   const root=path.resolve(process.argv[2]||'.');
   const cssFile=process.argv[3],jsFile=process.argv[4];
@@ -89,6 +105,11 @@ if(process.argv[1] && import.meta.url==='file://'+process.argv[1]){
   const file=path.join(root,'index.html');
   const updated=patchSharedConfirmations(fs.readFileSync(file,'utf8'),
     fs.readFileSync(cssFile,'utf8'),fs.readFileSync(jsFile,'utf8'));
+  const creatorFile=path.join(root,'creator-studio.js');
+  const supportFile=path.join(root,'support-center.js');
+  const extra=patchAdditionalConfirmationCallers(fs.readFileSync(creatorFile,'utf8'),fs.readFileSync(supportFile,'utf8'));
   fs.writeFileSync(file,updated,'utf8');
-  console.log('PASS: TRAYDAQ shared confirm, prompt and alert screens and blue-check audit dialogs installed.');
+  fs.writeFileSync(creatorFile,extra.creatorJs,'utf8');
+  fs.writeFileSync(supportFile,extra.supportJs,'utf8');
+  console.log('PASS: TRAYDAQ shared confirm, prompt and alert screens, blue-check audit dialogs and Creator Studio confirmations installed.');
 }
