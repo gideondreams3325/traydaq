@@ -1,0 +1,142 @@
+name: Traydaq Comment Likes Rules (Owner Approval)
+
+on:
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: "Validate first; deploy only after reviewing the result"
+        required: true
+        type: choice
+        default: validate
+        options:
+          - validate
+          - deploy
+      confirmation:
+        description: "For deploy enter: DEPLOY COMMENT LIKES"
+        type: string
+        required: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: traydaq-comment-likes-live-firebase-rules
+  cancel-in-progress: false
+
+jobs:
+  comment-likes-rules:
+    if: >-
+      github.repository == 'gideondreams3325/traydaq' &&
+      github.actor == 'gideondreams3325' &&
+      github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Require correct owner approval and protected Firebase credential
+        shell: bash
+        env:
+          ADMIN_JSON: ${{ secrets.TRAYDAQ_FIREBASE_ADMIN_JSON }}
+          OPERATION: ${{ inputs.operation }}
+          CONFIRMATION: ${{ inputs.confirmation }}
+        run: |
+          set -euo pipefail
+          if [ "$OPERATION" = deploy ] && [ "$CONFIRMATION" != 'DEPLOY COMMENT LIKES' ]; then
+            echo "::error::Exact owner approval required; no security rules changed."
+            exit 1
+          fi
+          if [ "$OPERATION" != validate ] && [ "$OPERATION" != deploy ]; then
+            echo "::error::Unknown operation"; exit 1
+          fi
+          if [ -z "$ADMIN_JSON" ]; then
+            echo "::error::TRAYDAQ_FIREBASE_ADMIN_JSON Actions secret required."
+            exit 1
+          fi
+          umask 077
+          printf '%s' "$ADMIN_JSON" > "$RUNNER_TEMP/traydaq-comments-admin.json"
+          node - "$RUNNER_TEMP/traydaq-comments-admin.json" <<'JS'
+          const s=JSON.parse(require('node:fs').readFileSync(process.argv[2],'utf8'));
+          if(s.type!=='service_account'||s.project_id!=='sellerflow-efaab') throw Error('Wrong Firebase project');
+          console.log('PASS: Firebase project and admin credential type verified.');
+          JS
+          echo "GOOGLE_APPLICATION_CREDENTIALS=$RUNNER_TEMP/traydaq-comments-admin.json" >> "$GITHUB_ENV"
+
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Fetch current live security rules securely
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install --prefix "$RUNNER_TEMP/td-comment-deps" --ignore-scripts --no-package-lock --no-audit --no-fund google-auth-library@9.15.1
+          node - "$RUNNER_TEMP/td-comment-deps/node_modules/google-auth-library" "$RUNNER_TEMP" <<'JS'
+          const fs=require('node:fs');
+          const {GoogleAuth}=require(process.argv[2]);
+          const dir=process.argv[3];
+          async function main(){
+            const auth=new GoogleAuth({keyFile:process.env.GOOGLE_APPLICATION_CREDENTIALS,
+              scopes:['https://www.googleapis.com/auth/firebase.database','https://www.googleapis.com/auth/cloud-platform']});
+            const client=await auth.getClient();
+            const access=await client.getAccessToken();
+            if(!access.token)throw Error('Could not authenticate to Firebase');
+            const url='https://sellerflow-efaab-default-rtdb.firebaseio.com/.settings/rules.json?access_token='+encodeURIComponent(access.token);
+            const response=await fetch(url,{headers:{'Cache-Control':'no-store'}});
+            if(!response.ok)throw Error('Could not read LIVE RTDB rules ('+response.status+')');
+            const live=await response.json();
+            if(!live.rules||typeof live.rules!=='object')throw Error('Missing Firebase rules root');
+            fs.writeFileSync(dir+'/td-live-comments-rules.json',JSON.stringify(live),{mode:0o600});
+            console.log('PASS: current Firebase rules fetched without printing protected rules or token.');
+          }
+          main().catch(e=>{console.error('::error::'+e.message);process.exitCode=1;});
+          JS
+
+      - name: Stage only new UID-owned comment like permissions
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check scripts/patch-private-comment-like-rules.mjs
+          node scripts/patch-private-comment-like-rules.mjs \
+            "$RUNNER_TEMP/td-live-comments-rules.json" \
+            "$RUNNER_TEMP/td-comments-rules-staged.json"
+          node - "$RUNNER_TEMP" <<'JS'
+          const fs=require('node:fs');
+          const dir=process.argv[2];
+          const old=JSON.parse(fs.readFileSync(dir+'/td-live-comments-rules.json'));
+          const staged=JSON.parse(fs.readFileSync(dir+'/td-comments-rules-staged.json'));
+          const rule=staged.rules.commentLikes;
+          if(rule?.['$postId']?.['$commentId']?.['$uid']?.['.write']?.includes('auth.uid === $uid')!==true)
+            throw Error('Missing per-user ownership check');
+          delete staged.rules.commentLikes;
+          delete old.rules.commentLikes;
+          if(JSON.stringify(staged)!==JSON.stringify(old))throw Error('Unrelated security rules changed.');
+          console.log('PASS: only isolated commentLikes rules staged; other live permissions preserved.');
+          JS
+
+      - name: Publish Firebase comment likes rules after explicit approval
+        if: inputs.operation == 'deploy'
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Firebase deploy sends staged live rules, not an outdated checkout.
+          node - "$RUNNER_TEMP" <<'JS'
+          const fs=require('node:fs');
+          const dir=process.argv[2];
+          fs.writeFileSync(dir+'/td-comments-firebase.json',JSON.stringify({
+            database:{rules:dir+'/td-comments-rules-staged.json'}
+          }),{mode:0o600});
+          JS
+          npx --yes firebase-tools@14.19.1 deploy --only database --project sellerflow-efaab \
+            --config "$RUNNER_TEMP/td-comments-firebase.json" --non-interactive
+          echo "PASS: comment like permissions deployed to sellerflow-efaab RTDB."
+
+      - name: Delete temporary privileged credentials
+        if: always()
+        shell: bash
+        run: rm -f "$RUNNER_TEMP/traydaq-comments-admin.json" \
+          "$RUNNER_TEMP/td-live-comments-rules.json" \
+          "$RUNNER_TEMP/td-comments-rules-staged.json" \
+          "$RUNNER_TEMP/td-comments-firebase.json"
