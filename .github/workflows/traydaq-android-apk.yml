@@ -162,11 +162,13 @@ jobs:
           }
           if(!h.includes('window.sfOfficialTraydaqUid=')||
              !h.includes('window.sfBlueBadgeUidSet.add(window.sfOfficialTraydaqUid)')||
+             !h.includes('tdRefreshVisibleTrustBadges();')||
+             !h.includes('data-td-trust-uid')||
              !h.includes('btn.disabled=official||!window.sfBlueBadgeRegistryOnline;')||
              !h.includes('Permanent official badge')) {
             throw new Error('Official Traydaq account must be permanently blue-checked and not revocable in the UI.');
           }
-          console.log('PASS: ID badges, admin-only grants, permanent official Traydaq badge, and nonblocking profile hydration.');
+          console.log('PASS: dynamic official Traydaq blue check, permanent admin protection, ID distinction, and nonblocking profile hydration.');
 
           JS
 
