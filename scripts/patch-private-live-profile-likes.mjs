@@ -110,6 +110,15 @@ export function patchProfileLikesModule(input) {
   return input;
 }
 
+export function patchCanonicalFeedLikes(input) {
+  // Canonical Firebase /likes membership must win over stale legacy likes arrays
+  // so unliking immediately decreases the number on visible feed posts.
+  return replaceOnce(input,
+    'setCounter(card, action, Math.max(legacy, countEntries(all)));',
+    "setCounter(card, action, action === 'like' ? countEntries(all) : Math.max(legacy, countEntries(all)));",
+    'live feed unlike count');
+}
+
 export function patchProfileHtml(input) {
   const guest = '<span class="text-base sm:text-lg font-black text-amber-600">' + '$' + '{likes}</span>';
   const live = '<span id="sfProfileReceivedLikes" class="text-base sm:text-lg font-black text-amber-600">' + '$' + '{likes}</span>';
@@ -125,7 +134,7 @@ export function patchProfileHtml(input) {
 
 if (process.argv[1] && import.meta.url === 'file://' + process.argv[1]) {
   const root = (process.argv[2] || '.').replace(/\/$/, '');
-  for (const [path, patch] of [['profile-social-panels.js', patchProfileLikesModule], ['index.html', patchProfileHtml]]) {
+  for (const [path, patch] of [['profile-social-panels.js', patchProfileLikesModule], ['index.html', patchProfileHtml], ['post-social.js', patchCanonicalFeedLikes]]) {
     const full = root + '/' + path;
     const before = fs.readFileSync(full, 'utf8');
     const after = patch(before);
