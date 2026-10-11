@@ -2,6 +2,7 @@ name: Traydaq Android APK (Public Builder)
 
 on:
   workflow_dispatch:
+  # Correct Home recovery CSS injection order test and rebuild APK (2026-10-11).
   # Replace blank black Home feed on Android with immediate white loading and fast recovery (2026-10-11).
   # Keep Android feed scrolling smooth: skip classified reels, lazy video metadata and batch media DOM work (2026-10-11).
   # Fix Android event and vacancy publishing via confirmed Firebase RTDB writes (2026-10-11).
