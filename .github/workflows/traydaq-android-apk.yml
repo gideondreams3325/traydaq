@@ -2,6 +2,7 @@ name: Traydaq Android APK (Public Builder)
 
 on:
   workflow_dispatch:
+  # Replace blank black Home feed on Android with immediate white loading and fast recovery (2026-10-11).
   # Keep Android feed scrolling smooth: skip classified reels, lazy video metadata and batch media DOM work (2026-10-11).
   # Fix Android event and vacancy publishing via confirmed Firebase RTDB writes (2026-10-11).
   # Refresh share-sheet branded colors and strip stray decorative glyphs (2026-10-11).
@@ -1413,15 +1414,17 @@ jobs:
           set -euo pipefail
           base="https://raw.githubusercontent.com/gideondreams3325/traydaq/${GITHUB_SHA}"
           mkdir -p /tmp/td-home-guard/{assets,scripts,tests}
-          for file in assets/traydaq-home-recovery.js scripts/patch-private-home-recovery.mjs tests/traydaq-home-recovery.test.mjs; do
+          for file in assets/traydaq-home-recovery.js assets/traydaq-home-recovery.css scripts/patch-private-home-recovery.mjs tests/traydaq-home-recovery.test.mjs; do
             curl --fail --silent --show-error --location "$base/$file" --output "/tmp/td-home-guard/$file"
           done
           node --check /tmp/td-home-guard/assets/traydaq-home-recovery.js
           node --check /tmp/td-home-guard/scripts/patch-private-home-recovery.mjs
           node --test /tmp/td-home-guard/tests/traydaq-home-recovery.test.mjs
-          node /tmp/td-home-guard/scripts/patch-private-home-recovery.mjs . /tmp/td-home-guard/assets/traydaq-home-recovery.js
+          node /tmp/td-home-guard/scripts/patch-private-home-recovery.mjs . /tmp/td-home-guard/assets/traydaq-home-recovery.js /tmp/td-home-guard/assets/traydaq-home-recovery.css
           grep -Fq 'id="tdHomeRecovery20261011"' index.html
-          echo 'PASS: Android Home can recover without removing tabs or account data.'
+          grep -Fq 'id="tdHomeRecovery20261011Style"' index.html
+          grep -Fq 'data-td-home-pending' index.html
+          echo 'PASS: Android Home replaces stalled black viewport with light loading and recovery without removing posts.'
 
       - name: Repair and validate TRAYDAQ app startup JavaScript
         shell: bash
