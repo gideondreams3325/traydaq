@@ -23,3 +23,35 @@
   -o-object-fit: contain !important;
   object-fit: contain !important;
 }
+
+/* Keep each swipeable post in the REAL available mobile viewport rather than
+   a short fixed reel, while reserving the app's bottom tab bar. */
+@media (max-width: 900px) {
+  #reelFeed[data-td-feed-viewport="true"] {
+    box-sizing: border-box !important;
+    height: var(--td-feed-viewport-height) !important;
+    min-height: var(--td-feed-viewport-height) !important;
+    max-height: var(--td-feed-viewport-height) !important;
+  }
+  #reelFeed[data-td-feed-viewport="true"] .reel-card {
+    box-sizing: border-box !important;
+    height: var(--td-feed-viewport-height) !important;
+    min-height: var(--td-feed-viewport-height) !important;
+    max-height: var(--td-feed-viewport-height) !important;
+  }
+  #reelFeed[data-td-feed-viewport="true"] .reel-card [data-td-adaptive-feed-stage="true"] {
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 100% !important;
+  }
+  #reelFeed[data-td-feed-viewport="true"] .reel-card :is(video, img)[data-td-adaptive-feed-media="true"] {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: contain !important;
+    object-position: center center !important;
+  }
+  #reelFeed[data-td-feed-viewport="true"] .reel-card [data-td-adaptive-feed-bg="true"] {
+    background-size: contain !important;
+    background-position: center !important;
+  }
+}
