@@ -1465,3 +1465,39 @@ jobs:
           path: Traydaq-debug.apk
           if-no-files-found: error
           retention-days: 7
+
+  publish-apk:
+    name: Publish TRAYDAQ Android download
+    needs: build-apk
+    runs-on: ubuntu-latest
+    # The private-source build has READ-only GitHub permissions. Only this
+    # separate job receives permission to publish its verified public artifact.
+    permissions:
+      contents: write
+    steps:
+      - name: Download signed and checked Android APK
+        uses: actions/download-artifact@v4
+        with:
+          name: Traydaq-debug-APK
+          path: release
+
+      - name: Publish stable public Android preview download
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s release/Traydaq-debug.apk
+          sha256sum release/Traydaq-debug.apk
+          repo="$GITHUB_REPOSITORY"
+          tag="traydaq-android-preview"
+          if ! gh release view "$tag" --repo "$repo" >/dev/null 2>&1; then
+            gh release create "$tag" --repo "$repo" \
+              --target "$GITHUB_SHA" \
+              --title "TRAYDAQ Android preview" \
+              --notes "Android preview APK signed with the permanent Traydaq test key. Install only if you trust the source. This is not a Play Store release." \
+              --prerelease
+          fi
+          gh release upload "$tag" release/Traydaq-debug.apk \
+            --repo "$repo" --clobber
+          echo "TRAYDAQ download: https://github.com/$repo/releases/download/$tag/Traydaq-debug.apk"
