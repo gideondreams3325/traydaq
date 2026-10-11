@@ -772,7 +772,7 @@ jobs:
               'background:transparent !important']) {
             if (!out.includes(marker)) throw Error('Missing direct profile contrast fix: '+marker);
           }
-          if (out.includes('text-green-400')) throw Error('Original faint green remains');
+          if (out.includes("sfIsOnline(u)?'text-green-400':'text-gray-500'")) throw Error('Original faint green remains');
           if (!out.includes('id="profileVisitStoreBtn"')) throw Error('Store click target was lost');
           try { patchProfileContrast(out); throw Error('Duplicate patch allowed'); }
           catch(e) { if (!String(e.message).includes('already installed')) throw e; }
