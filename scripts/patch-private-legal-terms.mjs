@@ -15,7 +15,9 @@ export function legalPolicyText(legalHtml) {
     .replace(/&#39;|&apos;/g, "'").replace(/&nbsp;/g, ' ')
     .replace(/&lt;/g, '<').replace(/&gt;/g, '>')
     .replace(/[ \t]+\n/g, '\n')
-    .replace(/\n{3,}/g, '\n\n').trim();
+    .replace(/\n{3,}/g, '\n\n').trim()
+    // No legacy SellerFlow branding may appear in the visible Traydaq agreement.
+    .replace(/\bSellerFlow\b/g, 'Traydaq');
   for (const required of ['Traydaq', 'Music, sound recordings', 'Allow Creator Reuse',
     'copyright', 'Electronic Transactions Act', 'Advertising', 'privacy', 'Terms & Conditions']) {
     if (!decoded.toLowerCase().includes(required.toLowerCase())) {
@@ -48,9 +50,11 @@ export function patchTraydaqTerms(source, legalHtml) {
     'const TD_TRAYDAQ_LEGAL_POLICY_TEXT=' + JSON.stringify(policy) + ';',
     'const DEFAULT_TERMS=TD_TRAYDAQ_LEGAL_POLICY_TEXT;',
     'function tdTermsFromApp(value){',
-    '  const text=String(value||"");',
-    '  if(!text.trim() || /SellerFlow may be used only for lawful|Do not use SellerFlow for scams|SellerFlow Terms & Conditions/i.test(text))return TD_TRAYDAQ_LEGAL_POLICY_TEXT;',
-    '  return text;',
+    '  const text=String(value||"").trim();',
+    '  // Legacy text may be stored in Firebase or cached locally. Show it only when it contains every modern mandatory legal section.',
+    '  const requiredSections=["Traydaq","Terms & Conditions","Music, sound recordings","Allow Creator Reuse","Electronic Transactions Act","Advertising","privacy","copyright"];',
+    '  if(text && requiredSections.every(section=>text.toLowerCase().includes(section.toLowerCase())) && !/\\bSellerFlow\\b/i.test(text))return text;',
+    '  return TD_TRAYDAQ_LEGAL_POLICY_TEXT;',
     '}'
   ].join('\n');
   let updated = source.slice(0, start) + replacement + source.slice(end + 2);
