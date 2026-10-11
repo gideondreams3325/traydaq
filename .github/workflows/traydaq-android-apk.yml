@@ -1160,6 +1160,29 @@ jobs:
           console.log('PASS: White / green / gold confirmations added app-wide; blue check confirms with identity and audit reason.');
           JS
 
+      - name: Replace user-visible Admin titles with TRAYDAQ team branding
+        shell: bash
+        run: |
+          set -euo pipefail
+          base="https://raw.githubusercontent.com/gideondreams3325/traydaq/$GITHUB_SHA"
+          curl --fail --silent --show-error --location "$base/scripts/patch-private-team-branding.mjs" --output /tmp/traydaq-team-branding-patch.mjs
+          curl --fail --silent --show-error --location "$base/tests/traydaq-team-branding.test.mjs" --output /tmp/traydaq-team-branding.test.mjs
+          node --check /tmp/traydaq-team-branding-patch.mjs
+          TD_BRANDING_PATCH_FILE=/tmp/traydaq-team-branding-patch.mjs node /tmp/traydaq-team-branding.test.mjs
+          node /tmp/traydaq-team-branding-patch.mjs .
+          node --check admin/app.js
+          node --check translations.js
+          node --check auth-security.js
+          node --check creator-studio.js
+          node --check jobs-events.js
+          grep -Fq "TRAYDAQ Security Team" index.html
+          grep -Fq "TRAYDAQ Security Team" admin/index.html
+          grep -Fq "TRAYDAQ Security Team" translations.js
+          # Do not replace literal role keys, authenticated access checks, endpoints or selectors.
+          grep -Fq "'admin'" index.html
+          grep -Fq "role=" admin/app.js
+          echo 'PASS: TRAYDAQ Team naming applied across app screens, safety hub and translations.'
+
       - name: Install project dependencies
         run: npm install --no-audit --no-fund
 
