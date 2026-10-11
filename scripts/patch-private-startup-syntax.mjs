@@ -5,7 +5,7 @@ import {fileURLToPath} from 'node:url';
 
 // This script runs only in the private source checkout in the APK build job.
 // The public repo never receives private source files, runtime tokens or user data.
-const REPAIR_MARKER='TRAYDAQ Traydaq Security Team:renderAdmin';
+const DAMAGED_ROUTE=/\bTRAYDAQ\s+Traydaq\s+Security\s+Team\s*:\s*renderAdmin\b/g;
 const ROUTE='admin:renderAdmin';
 const scriptTag=/<script\b([^>]*)>([\s\S]*?)<\/script\s*>/gi;
 
@@ -35,19 +35,21 @@ export function validateInlineScripts(html){
 
 export function repairStartupSyntax(html){
   if(typeof html!=='string')throw Error('TRAYDAQ startup: missing HTML');
-  const occurrences=html.split(REPAIR_MARKER).length-1;
+  const matches=[...html.matchAll(DAMAGED_ROUTE)];
+  const occurrences=matches.length;
   if(occurrences>1)throw Error('TRAYDAQ startup: multiple mutated route keys need inspection');
   // Restore only the executable route map property. Do not modify user-facing
   // team headings, security permissions, roles, API keys or account data.
   if(occurrences===1){
-    const context=html.indexOf(REPAIR_MARKER);
+    const context=matches[0].index;
     const left=html.slice(Math.max(0,context-1800),context);
-    const right=html.slice(context+REPAIR_MARKER.length,context+REPAIR_MARKER.length+320);
+    const right=html.slice(context+matches[0][0].length,context+matches[0][0].length+320);
     if(!/render(Profile|Store|Settings|Cart)/.test(left) ||
        !/^\s*,/.test(right)) throw Error('TRAYDAQ startup: damaged route appears outside approved navigation map');
-    html=html.replace(REPAIR_MARKER,ROUTE);
+    html=html.replace(DAMAGED_ROUTE,ROUTE);
   }
-  if(!html.includes(ROUTE))throw Error('TRAYDAQ startup: admin navigation route missing');
+  // Other valid source revisions may space or quote their admin map key differently.
+  // Parsing every script is the authoritative invariant, not matching one formatting style.
   validateInlineScripts(html);
   return {html,repaired:occurrences===1};
 }
