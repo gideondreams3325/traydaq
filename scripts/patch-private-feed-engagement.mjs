@@ -150,7 +150,7 @@ export function installFeedEngagementGrouping() {
       return;
     }
     if (!target.closest('.td-reel-more-panel')) closeMenus();
-  });
+  }, true);
 
   document.addEventListener('keydown', event => {
     if (event.key !== 'Escape') return;
