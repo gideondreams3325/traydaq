@@ -2,6 +2,7 @@ name: Traydaq Android APK (Public Builder)
 
 on:
   workflow_dispatch:
+  # Fix Android event and vacancy publishing via confirmed Firebase RTDB writes (2026-10-11).
   # Refresh share-sheet branded colors and strip stray decorative glyphs (2026-10-11).
   # Allow the owner to start a single build by updating this workflow on main.
   # For You grouped engagement controls (October 11, 2026).
@@ -779,6 +780,7 @@ jobs:
           node --check creator-studio.js
           node --check jobs-events.js
           node tests/creator-jobs-services-events-links.test.js
+          node tests/android-native-listing-publish.test.js
           node --input-type=module <<'JS'
           import fs from 'node:fs';
           const studio=fs.readFileSync('creator-studio.js','utf8');
