@@ -28,6 +28,10 @@ assert.ok(css.includes('#reelFeed[data-td-feed-viewport'));
 assert.match(css, /--td-feed-viewport-height/);
 assert.match(css, /max-width: 900px/);
 assert.match(runtime, /largeEnough/);
+assert.match(runtime, /feed\.querySelectorAll\(CARD\)/);
+assert.match(runtime, /document\.visibilityState === 'hidden'/);
+assert.match(runtime, /if \(node === root \|\| node\.contains\(root\)/);
+assert.ok(!runtime.includes("document.addEventListener('click', schedule, true)"));
 assert.match(runtime, /EXCLUDED/); // Avatars, buttons and overlaid actions left alone.
 assert.ok(!runtime.includes('.play()')); // Do not double-play videos to measure them.
 assert.throws(() => patchAdaptiveFeed(output, css, runtime), /already installed/);
@@ -48,12 +52,15 @@ function smokeViewport(windowWidth, dockVisible) {
     hasAttribute: name => attributes.has(name),
     setAttribute: (name, value) => attributes.set(name, value),
     removeAttribute: name => attributes.delete(name),
-    contains: () => false
+    contains: () => false,
+    getClientRects: () => [{}],
+    querySelectorAll: selector => selector === '.reel-card' ? [card] : []
   };
   const video = {
     tagName: 'VIDEO',
     getBoundingClientRect: () => ({ width: windowWidth, height: 180 }),
     closest: selector => selector === '.reel-card' ? card : null,
+    hasAttribute: name => mediaAttributes.has(name),
     setAttribute: (name, value) => mediaAttributes.set(name, value)
   };
   const card = {
@@ -74,7 +81,7 @@ function smokeViewport(windowWidth, dockVisible) {
   };
   const win = {
     innerWidth: windowWidth, innerHeight: 810, visualViewport: null,
-    getComputedStyle: () => ({ visibility: 'visible', backgroundImage: 'none' }),
+    getComputedStyle: () => ({ display: 'block', visibility: 'visible', backgroundImage: 'none' }),
     addEventListener: () => {}
   };
   class FakeMutationObserver { observe() {} }
