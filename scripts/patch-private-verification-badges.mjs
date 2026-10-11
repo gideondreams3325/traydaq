@@ -19,7 +19,20 @@ export function patchVerificationBadges(source){
    '.td-blue-hub-row{min-width:0;background:#fff;border:1px solid #d9e8df;border-radius:15px;padding:12px}'+
    '.td-blue-hub-row button{padding:9px 13px;border-radius:10px;background:#17653c;color:white;font-weight:800;font-size:12px}'+
    '.td-blue-hub-row button[data-revoke]{background:#fff0e9;color:#8a341d;border:1px solid #ebc4ad}'+
-   '.td-blue-hub-row button:disabled{opacity:.5;cursor:not-allowed}</style>';
+   '.td-blue-hub-row button:disabled{opacity:1;cursor:not-allowed;background:#e9efeb!important;color:#345343!important;border:1px solid #b8cbbf!important}'+
+   '.td-blue-hub{color:#20372b}.td-blue-hub input#tdBlueHubSearch{background:#fff!important;color:#172f23!important;font-size:14px!important;font-weight:550!important;line-height:1.4!important;min-height:48px!important;min-width:0!important;flex:1 1 180px!important;border:1px solid #a3b8ab!important;border-radius:12px!important;padding:11px 13px!important;box-sizing:border-box!important}'+
+   '.td-blue-hub input#tdBlueHubSearch::placeholder{color:#4a6254!important;opacity:1!important;font-size:14px!important;font-weight:450!important}'+
+   '.td-blue-hub #tdBlueHubRefresh,.td-blue-hub #tdBlueHubMore{color:#16462e!important;background:#fff!important;border:1px solid #abc8b6!important;font-size:13px!important;font-weight:800!important;min-height:46px!important;border-radius:12px!important;box-shadow:none!important}'+
+   '.td-blue-hub #tdBlueHubRefresh:disabled{background:#e9efeb!important;color:#365744!important;opacity:1!important}'+
+   '.td-blue-hub-status{font-size:13px!important;line-height:1.5!important;font-weight:750!important;color:#225139!important;background:#eaf5ee!important;border:1px solid #c3ddcb!important;border-radius:10px;padding:11px 12px;overflow-wrap:anywhere}'+
+   '.td-blue-hub-status[data-state="offline"]{background:#fff4e7!important;border-color:#e8c58b!important;color:#714113!important}'+
+   '.td-blue-hub-row{display:flex!important;flex-direction:column!important;align-items:flex-start!important;gap:6px!important;padding:15px!important;border:1px solid #c8dcd0!important;box-shadow:0 3px 10px rgba(17,62,38,.05)!important}'+
+   '.td-blue-hub-row .td-badge-account{font-size:12px!important;line-height:1.5!important;color:#43584d!important;overflow-wrap:anywhere!important;word-break:break-word!important}'+
+   '.td-blue-hub-row .td-badge-status{font-size:12px!important;line-height:1.45!important;font-weight:800!important;color:#244333!important;margin:8px 0!important}'+
+   '.td-blue-hub-row button{min-height:44px!important;font-size:13px!important;padding:10px 14px!important;max-width:100%!important}'+
+   '.td-blue-hub button:focus-visible,.td-blue-hub input:focus-visible{outline:3px solid #a47c12!important;outline-offset:3px!important}'+
+   '@media(max-width:390px){.td-blue-hub #tdBlueHubRefresh{width:100%!important}.td-blue-hub #tdBlueHubSearch{flex-basis:100%!important}}'+
+   '</style>';
  source=once(source,'</head>',badgeCss+'\n</head>','badge CSS');
  const helper=[
   'const tdBlueBadgeEndpoint='+JSON.stringify(endpoint)+';',
@@ -134,26 +147,26 @@ export function patchVerificationBadges(source){
  '  function sfAdminBlueChecks(users){',
  '    const host=document.getElementById("adminWorkspace");',
  '    if(!host)return;',
- '    host.innerHTML=\'<div class="td-blue-hub space-y-4"><section class="card p-5 bg-white border border-[#dce9df] rounded-2xl"><h2 class="text-xl font-black text-[#17653c]">🔵 Official Blue Check Hub</h2><p class="text-sm text-gray-700 mt-2">Blue checks are awarded only by the Traydaq Security Team. Ordinary account verification earns 🆔 Verified, not a blue check. The official Traydaq admin account has a permanent blue check tied to Firebase Authentication.</p><div id="tdBlueHubStatus" class="text-xs text-gray-600 mt-3" role="status">Connecting to the official badge registry…</div></section><div class="flex gap-2 items-center flex-wrap"><input id="tdBlueHubSearch" aria-label="Search accounts" placeholder="Search users, emails or UID" class="min-w-0 flex-1 p-3 border rounded-xl text-sm" /><button id="tdBlueHubRefresh" type="button" class="td-admin-control">↻ Refresh</button></div><div id="tdBlueHubList" class="td-blue-hub-list"></div><button id="tdBlueHubMore" type="button" class="td-admin-control" hidden>Load more accounts</button></div>\';',
- '    const all=(users?.docs||[]).filter(d=>d?.id&&d.data);',
+ '    host.innerHTML=\'<div class="td-blue-hub space-y-4"><section class="card p-5 bg-white border border-[#dce9df] rounded-2xl"><h2 class="text-xl font-black text-[#17653c]">🔵 Official Blue Check Hub</h2><p class="text-sm text-gray-700 mt-2">Blue checks are awarded only by the Traydaq Security Team. Ordinary account verification earns 🆔 Verified, not a blue check. The official Traydaq admin account has a permanent blue check tied to Firebase Authentication.</p><div id="tdBlueHubStatus" class="td-blue-hub-status mt-3" role="status" aria-live="polite" aria-atomic="true">Connecting to the official badge registry…</div></section><div class="flex gap-2 items-center flex-wrap"><input id="tdBlueHubSearch" aria-label="Search accounts" placeholder="Search users, emails or UID" class="min-w-0 flex-1 p-3 border rounded-xl text-sm" autocomplete="off" spellcheck="false" /><button id="tdBlueHubRefresh" type="button" class="td-admin-control">↻ Refresh</button></div><div id="tdBlueHubList" class="td-blue-hub-list"></div><button id="tdBlueHubMore" type="button" class="td-admin-control" hidden>Load more accounts</button></div>\';',
+ '    const all=(users?.docs||[]).filter(d=>d?.id&&typeof d.data==="function");',
  '    let shown=24;',
- '    const showStatus=()=>{const el=document.getElementById("tdBlueHubStatus");if(el)el.textContent=window.sfBlueBadgeRegistryOnline?"Live badge registry connected · "+window.sfBlueBadgeUidSet.size+" blue checks":"Badge registry unavailable — awarding is disabled until it reconnects.";};',
+ '    const showStatus=()=>{const el=document.getElementById("tdBlueHubStatus");if(!el)return;const online=window.sfBlueBadgeRegistryOnline===true;el.dataset.state=online?"online":"offline";el.textContent=online?"Registry connected · "+window.sfBlueBadgeUidSet.size+" official blue checks":"Badge service unavailable. Grants and revokes are paused for safety. Tap Refresh to retry.";};',
  '    function showRows(){',
  '      const list=document.getElementById("tdBlueHubList"),more=document.getElementById("tdBlueHubMore");',
  '      if(!list)return;',
  '      list.replaceChildren();',
  '      const q=String(document.getElementById("tdBlueHubSearch")?.value||"").toLowerCase().trim();',
- '      const filtered=all.filter(d=>{const u=d.data();return !q||[u.name,u.username,u.email,d.id].some(v=>String(v||"").toLowerCase().includes(q));});',
+ '      const filtered=all.filter(d=>{const u=d.data();return !q||[u.name,u.displayName,u.username,u.email,d.id].some(v=>String(v||"").toLowerCase().includes(q));});',
  '      if(!filtered.length){const p=document.createElement("p");p.textContent="No matching accounts.";list.append(p);}',
  '      for(const d of filtered.slice(0,shown)){',
  '        const u=d.data(),uid=d.id,active=window.sfBlueBadgeUidSet?.has(uid)===true,official=uid===window.sfOfficialTraydaqUid;',
  '        const card=document.createElement("article");card.className="td-blue-hub-row";',
  '        const name=document.createElement("div");name.className="font-black text-gray-900 break-words";name.textContent=String(u.name||u.username||"User");',
- '        const account=document.createElement("div");account.className="text-xs text-gray-600 mt-1 break-all";account.textContent=String(u.email||"")+" · "+uid;',
- '        const status=document.createElement("div");status.className="text-xs font-bold my-3";status.textContent=official?"🔵 Official Traydaq account · permanent blue check":active?"🔵 Blue check active":sfAccountVerified(u)?"🆔 Account verified · No blue check":"Account not ID verified · No blue check";',
+ '        const account=document.createElement("div");account.className="td-badge-account";account.textContent=String(u.email||"")+" · "+uid;',
+ '        const status=document.createElement("div");status.className="td-badge-status";status.textContent=official?"🔵 Official Traydaq account · permanent blue check":!window.sfBlueBadgeRegistryOnline?"Blue-check status unavailable · Retry connection":active?"🔵 Blue check active":sfAccountVerified(u)?"🆔 Account verified · No blue check":"Account not ID verified · No blue check";',
  '        const btn=document.createElement("button");btn.type="button";btn.textContent=official?"Permanent official badge":active?"Revoke blue check":"Grant blue check";',
  '        if(active)btn.setAttribute("data-revoke","true");',
- '        btn.disabled=official||!window.sfBlueBadgeRegistryOnline;',
+ '        btn.disabled=official||!window.sfBlueBadgeRegistryOnline;btn.title=official?"Permanent official badge":!window.sfBlueBadgeRegistryOnline?"Reconnect to the badge service to manage this account":"";',
  '        btn.addEventListener("click",async()=>{',
  '          const action=active?"revoke":"grant";',
  '          if(!window.confirm((active?"Revoke":"Award")+" official blue check for "+String(u.name||u.username||uid)+"?"))return;',
@@ -165,7 +178,7 @@ export function patchVerificationBadges(source){
  '            const signedIn=auth?.currentUser;',
  '            if(!signedIn||typeof signedIn.getIdToken!=="function")throw Error("Administrator sign-in required");',
  '            const token=await signedIn.getIdToken(true);',
- '            const res=await fetch(tdBlueBadgeEndpoint,{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+token},body:JSON.stringify({uid,action,reason:reason.trim()}),cache:"no-store"});',
+ '            const res=await fetch(tdBlueBadgeEndpoint,{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+token},body:JSON.stringify({uid,action,reason:reason.trim()}),cache:"no-store",signal:(typeof AbortSignal!=="undefined"&&typeof AbortSignal.timeout==="function")?AbortSignal.timeout(12000):undefined});',
  '            const result=await res.json();',
  '            if(!res.ok||!result.success)throw Error(result.error||"Action failed");',
  '            await sfRefreshBlueBadges(true);',
@@ -179,8 +192,8 @@ export function patchVerificationBadges(source){
  '    }',
  '    document.getElementById("tdBlueHubSearch")?.addEventListener("input",()=>{shown=24;showRows();});',
  '    document.getElementById("tdBlueHubMore")?.addEventListener("click",()=>{shown+=24;showRows();});',
- '    document.getElementById("tdBlueHubRefresh")?.addEventListener("click",async()=>{await sfRefreshBlueBadges(true);showStatus();showRows();});',
- '    sfRefreshBlueBadges(true).then(()=>{if(document.getElementById("tdBlueHubList")){showStatus();showRows();}});',
+ '    document.getElementById("tdBlueHubRefresh")?.addEventListener("click",async()=>{const b=document.getElementById("tdBlueHubRefresh");if(b){b.disabled=true;b.textContent="Refreshing…";}try{await sfRefreshBlueBadges(true);}finally{if(b){b.disabled=false;b.textContent="↻ Refresh";}showStatus();showRows();}});',
+ '    showStatus();showRows();sfRefreshBlueBadges(true).then(()=>{if(document.getElementById("tdBlueHubList")){showStatus();showRows();}}).catch(()=>{showStatus();showRows();});',
  '  }',
  ''
  ].join('\n');
