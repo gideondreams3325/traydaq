@@ -158,6 +158,7 @@ async function auditAppEvidence(candidateUids) {
 async function audit() {
   let cursor, total = 0, suspected = 0, protectedCount = 0;
   const candidates = new Set();
+  const namedOnly = new Set();
   const evidence = {
     flaggedEmailVerified: 0,
     flaggedGoogleProvider: 0,
@@ -187,8 +188,8 @@ async function audit() {
         suspected++;
         candidates.add(user.uid);
         const family=identifiedTestPrefix(user);
-        if (family==='PLAIN_USER') evidence.namedPlain++;
-        else if(family==='PERS_USER') evidence.namedPers++;
+        if (family==='PLAIN_USER') { evidence.namedPlain++; namedOnly.add(user.uid); }
+        else if(family==='PERS_USER') { evidence.namedPers++; namedOnly.add(user.uid); }
         else evidence.otherPrefixes++;
         if (reason === 'test-style email prefix') evidence.flaggedEmailPrefix++;
         if (reason === 'test-style display name') evidence.flaggedDisplayName++;
@@ -223,7 +224,10 @@ async function audit() {
     ' USER_CONFIRMED_TEST_PREFIX_PERS_USER=' + evidence.namedPers +
     ' OTHER_TEST_STYLE_PREFIXES=' + evidence.otherPrefixes);
   console.log('These signals do not identify fake accounts or establish lack of app activity.');
-  if (present('--redact')) await auditAppEvidence(candidates);
+  if (present('--redact')) {
+    console.log('RTDB_SCOPE=USER_CONFIRMED_PLAIN_AND_PERS_PREFIXES ONLY_COUNT='+namedOnly.size);
+    await auditAppEvidence(namedOnly);
+  }
   if (redact) console.log('Public report is aggregate-only. To select accounts, review Firebase Console privately; do not copy UIDs into public logs or workflow inputs.');
   console.log('No accounts were deleted. Select only UIDs you personally confirm are test accounts.');
 }
