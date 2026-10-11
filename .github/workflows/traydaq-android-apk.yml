@@ -3,6 +3,7 @@ name: Traydaq Android APK (Public Builder)
 on:
   workflow_dispatch:
   # Allow the owner to start a single build by updating this workflow on main.
+  # Rebuild requested October 11, 2026 at 06:54 UTC (no build logic changes).
   # Pull requests and commits to other files do not trigger private source checkout.
   push:
     branches: [main]
