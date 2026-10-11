@@ -4,13 +4,7 @@ import path from 'node:path';
 // Public APK-build patch. Private source and media records stay private.
 // tdAdminPlayableVideo2026 is a build marker, not a user-data migration.
 const MARKER = 'tdAdminPlayableVideo2026';
-const DECLARATIONS = [
-  { re: /\bfunction\s+adminPostCard\s*\(/g, replace: 'function tdAdminOriginalPostCard(' },
-  { re: /\b(?:const|let)\s+adminPostCard\s*=\s*(?:async\s*)?function\s*\(/g,
-    replace: match => match.replace('adminPostCard', 'tdAdminOriginalPostCard') },
-  { re: /\b(?:const|let)\s+adminPostCard\s*=\s*(?:async\s*)?\(/g,
-    replace: match => match.replace('adminPostCard', 'tdAdminOriginalPostCard') }
-];
+// Calls are wrapped without modifying the original card renderer.
 
 function tdAdminSafeVideoUrl(input) {
   if (typeof input !== 'string') return '';
@@ -34,8 +28,8 @@ function tdAdminVideoPostSource(post) {
   return (/video|reel|clip/.test(kind) || videoFile) ? source : '';
 }
 
-function adminPostCard(id, post) {
-  const html = tdAdminOriginalPostCard(id, post);
+function tdAdminPlayablePostCard(id, post) {
+  const html = adminPostCard(id, post);
   if (typeof html !== 'string') return html;
   const source = tdAdminVideoPostSource(post);
   if (!source) return html;
@@ -82,35 +76,37 @@ export function patchAdminPlayableVideos(html) {
   if (typeof html !== 'string' || html.includes(MARKER)) {
     throw new Error('Admin playable-video source already patched or invalid');
   }
-  const found = [];
-  for (const definition of DECLARATIONS) {
-    for (const match of html.matchAll(definition.re)) found.push({ ...definition, match });
+  // Keep the existing renderer intact. Wrap card calls in the overview,
+  // review queue and Posts management screens with our video enhancement.
+  let count = 0;
+  html = html.replace(/\badminPostCard\s*\(/g, (match, index) => {
+    const before = html.slice(Math.max(0, index - 90), index);
+    if (/\bfunction\s+$/.test(before) || /[.\w]$/.test(before)) return match;
+    count += 1;
+    return 'tdAdminPlayablePostCard(';
+  });
+  if (count < 1 || !html.includes('tdAdminPlayablePostCard(x.id, x.data)')) {
+    throw new Error('Expected admin post-card rendering calls not found');
   }
-  if (found.length !== 1) {
-    throw new Error('Expected one adminPostCard definition; found ' + found.length);
-  }
-  const { match, replace } = found[0];
-  const renamed = typeof replace === 'function' ? replace(match[0]) : replace;
+  const at = html.indexOf('  function sfAdminOverview(users, posts');
+  if (at < 0) throw new Error('Admin renderer insertion point changed');
   const runtime = '// ' + MARKER + '\n' +
-    [tdAdminSafeVideoUrl, tdAdminVideoPostSource, adminPostCard].map(fn => fn.toString()).join('\n\n');
-  const i = match.index;
-  const next = html.slice(0, i) + runtime + '\n' + renamed +
-    html.slice(i + match[0].length);
-  if (!next.includes('function adminPostCard(id, post)') ||
-      !next.includes('tdAdminOriginalPostCard(')) {
-    throw new Error('Original moderation renderer not preserved');
-  }
-  return next;
+    [tdAdminSafeVideoUrl, tdAdminVideoPostSource, tdAdminPlayablePostCard].map(fn => fn.toString()).join('\n\n');
+  return html.slice(0, at) + runtime + '\n' + html.slice(at);
 }
 
 export function selfTest() {
   const stub = '<html><script>function adminPostCard(id,p) {' +
     'return "<article><img class=\\"w-full object-cover\\" src=\\"poster.jpg\\"></article>";' +
-    '}</script></html>';
+    '} function useCard(){ return adminPostCard(1, {mediaType:"video",mediaUrl:"https://example.com/a.mp4"}); }' +
+    '\n  function sfAdminOverview(users, posts){return adminPostCard(posts[0].id, posts[0].data);}' +
+    '\n  function load(){ return adminPostCard(x.id, x.data); }' +
+    '</script></html>';
   const patched = patchAdminPlayableVideos(stub);
   const script = patched.slice(patched.indexOf('<script>') + 8, patched.indexOf('</script>'));
   new Function(script);
-  if (!patched.includes('player.controls = true') ||
+  if (!patched.includes('tdAdminPlayablePostCard(x.id, x.data)') ||
+      !patched.includes('player.controls = true') ||
       !patched.includes('player.playsInline = true') ||
       !patched.includes("player.preload = 'metadata'")) {
     throw new Error('Video controls or inline playback missing');
