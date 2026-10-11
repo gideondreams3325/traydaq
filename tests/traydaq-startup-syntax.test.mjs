@@ -27,6 +27,34 @@ test('repairs all known Team-name navigation variants',()=>{
     assert.doesNotThrow(()=>validateInlineScripts(fixed.html));
   }
 });
+test('repairs broken branded DOM selectors without changing team-facing copy',()=>{
+  const source=make('admin:renderAdmin',
+    '<div data-TRAYDAQ Traydaq Security Team-takedown-reel="post"></div>'+
+    '<h1>TRAYDAQ Security Team</h1>'+
+    '<script id="feed-selectors">const selector="[data-TRAYDAQ Traydaq Security Team-takedown-reel]";'+
+    'document.querySelectorAll(selector);</script>');
+  assert.throws(()=>validateInlineScripts(source),/admin data-\* selector/);
+  const fixed=repairStartupSyntax(source);
+  assert.equal(fixed.repaired,true);
+  assert.equal(fixed.selectorRepairs,2);
+  assert.match(fixed.html,/data-admin-takedown-reel="post"/);
+  assert.match(fixed.html,/\[data-admin-takedown-reel\]/);
+  assert.match(fixed.html,/<h1>TRAYDAQ Security Team<\/h1>/);
+  assert.doesNotThrow(()=>validateInlineScripts(fixed.html));
+  assert.equal(repairStartupSyntax(fixed.html).repaired,false);
+});
+test('repairs every observed technical team-name variant while preserving other selectors',()=>{
+  for(const label of ['TRAYDAQ Security Team','Traydaq Security Team',
+    'Security Team','TRAYDAQ Team','TRAYDAQ Traydaq Security Team']){
+    const html=make('admin:renderAdmin',
+      '<script id="selectors">document.querySelectorAll("[data-'+label+'-takedown-reel]");'+
+      'document.querySelectorAll("[data-user-delete-reel]");</script>');
+    const fixed=repairStartupSyntax(html);
+    assert.equal(fixed.selectorRepairs,1,label);
+    assert.match(fixed.html,/\[data-admin-takedown-reel\]/);
+    assert.match(fixed.html,/\[data-user-delete-reel\]/);
+  }
+});
 test('rejects other syntax mistakes instead of shipping a blank app',()=>{
  assert.throws(()=>repairStartupSyntax(make('admin:renderAdmin',
  '<script id="bad">const = broken;</script>')),/invalid inline script/);
