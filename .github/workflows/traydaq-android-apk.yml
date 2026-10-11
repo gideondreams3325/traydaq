@@ -1146,6 +1146,7 @@ jobs:
             if(!html.includes(token))throw Error('Missing shared-dialog contract: '+token);
           }
           if(html.includes('if(!window.confirm((active?"Revoke":"Award")'))throw Error('Native Blue Check popup still exists.');
+          if(html.includes('alert("Blue-check update failed: "+String(error?.message||"Unknown issue"))'))throw Error('Native badge failure alert still exists.');
           const creator=fs.readFileSync('creator-studio.js','utf8');
           const support=fs.readFileSync('support-center.js','utf8');
           if(!creator.includes('await window.customConfirm({title:"Discard Creator Studio changes?"') ||
