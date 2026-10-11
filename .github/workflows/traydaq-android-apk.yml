@@ -13,6 +13,7 @@ on:
   # Verify profile video view counter refresh regression (2026-10-11).
   # Verify Firebase RTDB OAuth scope repair for blue-check registry (2026-10-11).
   # Include authenticated, unique video playback views in Traydaq APK (2026-10-11).
+  # Build profile-linked comments, live UID-owned likes and safe legacy comment hearts (2026-10-11).
   # Pull requests and commits to other files do not trigger private source checkout.
   push:
     branches: [main]
@@ -1270,6 +1271,8 @@ jobs:
           grep -q 'tdCommentProfiles2026Runtime' index.html
           grep -q 'data-td-comment-post-id=' index.html
           grep -q 'data-comment-react=' index.html
+          grep -Fq "ref('commentLikes/' + key).set(next)" index.html
+          grep -q 'window.openUserProfile(uid' index.html
           echo 'PASS: Comment authors link to real profile UIDs; unique comment likes handled separately from post edits.'
 
       - name: Install project dependencies
