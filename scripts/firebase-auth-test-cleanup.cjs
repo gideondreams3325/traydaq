@@ -79,7 +79,7 @@ async function auditAppEvidence(candidateUids) {
     return;
   }
   if (!db) db = getDatabase(app);
-  const paths = ['users','publicProfiles','posts','stores','products','orders','jobs','events','following','conversations'];
+  const paths = ['users','publicProfiles','identityVerifications','buyerKycRecords','posts','stores','products','orders','jobs','events','following','conversations','messages','comments','likes','savedPosts','jobApplications','eventRegistrations'];
   const owners = ['uid','userId','userUid','ownerUid','ownerId','sellerUid','sellerId',
     'storeOwnerUid','storeOwnerId','creatorUid','creatorId','authorUid','authorId',
     'posterId','postedBy','createdByUid','createdBy','buyerUid','buyerId','hostUid',
