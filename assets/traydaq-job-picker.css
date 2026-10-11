@@ -1,0 +1,112 @@
+/* Full-field tappable dropdowns for the vacancy/service posting modal. */
+#postJobModal .td-job-picker-holder { position: relative; width: 100%; min-width: 0; }
+#postJobModal .td-job-picker-holder > select.td-job-native-select {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+#postJobModal .td-job-picker-trigger {
+  appearance: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  min-height: 58px;
+  padding: 13px 16px;
+  background: #fff;
+  border: 1.5px solid #bacfc1;
+  border-radius: 15px;
+  color: #173522;
+  font-size: 16px;
+  font-weight: 650;
+  line-height: 1.35;
+  text-align: left;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: rgba(19,104,55,.13);
+}
+#postJobModal .td-job-picker-trigger:focus-visible {
+  outline: 3px solid #207648;
+  outline-offset: 2px;
+}
+#postJobModal .td-job-picker-trigger:disabled { opacity: .6; cursor: not-allowed; }
+#postJobModal .td-job-picker-current { min-width: 0; flex: 1; overflow-wrap: anywhere; }
+#postJobModal .td-job-picker-placeholder { color: #52695a; }
+#postJobModal .td-job-picker-chevron { color: #17653c; font-size: 27px; line-height: 1; flex: none; }
+#postJobModal .td-job-picker-label { cursor: pointer; touch-action: manipulation; }
+.td-job-picker-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483000;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgba(13,29,21,.65);
+  padding: 0;
+  overscroll-behavior: contain;
+}
+.td-job-picker-sheet {
+  width: min(100%, 640px);
+  max-height: min(78dvh, 680px);
+  max-height: min(78vh, 680px);
+  max-height: min(78dvh, 680px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #fff;
+  border-radius: 24px 24px 0 0;
+  box-shadow: 0 -12px 45px rgba(0,0,0,.25);
+  color: #173522;
+  padding-bottom: env(safe-area-inset-bottom, 12px);
+}
+.td-job-picker-header {
+  padding: 22px 20px 16px;
+  border-bottom: 1px solid #e0e9e2;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.td-job-picker-heading { margin: 0; font-size: 21px; font-weight: 850; line-height: 1.25; }
+.td-job-picker-hint { margin: 6px 0 0; font-size: 13px; line-height: 1.4; color: #607466; }
+.td-job-picker-close {
+  flex: none;
+  width: 44px; height: 44px;
+  border: 0;
+  border-radius: 50%;
+  background: #f2f5f3;
+  color: #274f37;
+  font-size: 20px;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.td-job-picker-list { padding: 12px 16px 18px; min-height: 0; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+.td-job-picker-option {
+  width: 100%;
+  min-height: 62px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  text-align: left;
+  padding: 13px 16px;
+  margin: 0 0 8px;
+  background: #fff;
+  border: 1.5px solid #d7e1da;
+  border-radius: 16px;
+  color: #172d1d;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.td-job-picker-option.is-selected { background: #eaf6ee; border-color: #17653c; }
+.td-job-picker-option:focus-visible { outline: 3px solid #17653c; outline-offset: 1px; }
+.td-job-picker-indicator { flex: 0 0 auto; width: 25px; height: 25px; border-radius: 50%; border: 2px solid #9db4a5; display: grid; place-items: center; font-size: 14px; color: #fff; }
+.td-job-picker-option.is-selected .td-job-picker-indicator { background: #17653c; border-color: #17653c; }
+@media (prefers-reduced-motion: no-preference) { .td-job-picker-sheet { animation: tdJobPickerRise .16s ease-out both; } @keyframes tdJobPickerRise { from { transform: translateY(16px); opacity:.92; } to { transform: translateY(0); opacity:1; } } }
