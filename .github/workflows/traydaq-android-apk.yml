@@ -837,6 +837,25 @@ jobs:
           grep -Fq 'td-share-brand-telegram' index.html
           grep -Fq 'td-share-brand-facebook' index.html
           echo 'PASS: Traydaq share sheet is upgraded; native share, direct social sharing, copy, download, and close handlers remain bound.'
+      - name: Enable playable videos in admin moderation cards
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Source remains private; only public patch instructions are downloaded.
+          mkdir -p /tmp/tdadmin/scripts /tmp/tdadmin/assets /tmp/tdadmin/tests
+          for patch_path in scripts/patch-private-admin-video-preview.mjs assets/traydaq-admin-video-preview.js assets/traydaq-admin-video-preview.css tests/traydaq-admin-video-preview.test.mjs; do
+            curl --fail --silent --show-error --location "https://raw.githubusercontent.com/gideondreams3325/traydaq/${GITHUB_SHA}/${patch_path}" --output "/tmp/tdadmin/${patch_path}"
+          done
+          node --check /tmp/tdadmin/scripts/patch-private-admin-video-preview.mjs
+          node --check /tmp/tdadmin/assets/traydaq-admin-video-preview.js
+          node --test /tmp/tdadmin/tests/traydaq-admin-video-preview.test.mjs
+          node /tmp/tdadmin/scripts/patch-private-admin-video-preview.mjs . /tmp/tdadmin/assets/traydaq-admin-video-preview.js /tmp/tdadmin/assets/traydaq-admin-video-preview.css
+          grep -Fq 'id="tdAdminVideoPreview2026"' index.html
+          grep -Fq 'video class="td-admin-video-player"' index.html
+          grep -Fq 'data-td-admin-play' index.html
+          grep -Fq 'data-admin-takedown-post' index.html
+          echo 'PASS: moderation videos are directly playable on Android with native controls.'
+
       - name: Restore consistent image and video previews across TRAYDAQ
         shell: bash
         run: |
