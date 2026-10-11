@@ -27,6 +27,8 @@
     let found = false;
     for (const element of media) {
       if (element.closest(EXCLUDED)) continue;
+      // Already classified media needs no more layout measurements on every tap.
+      if (element.hasAttribute('data-td-adaptive-feed-media')) { found = true; continue; }
       const belongsToCard = element.closest(CARD) === card;
       if (!belongsToCard) continue;
       const inStage = element.closest('.reel-media, .reel-bg, .reel-image, .reel-photo, .reel-video');
@@ -112,8 +114,15 @@
 
   function scan() {
     scheduled = false;
+    if (document.visibilityState === 'hidden') return;
+    const feed = document.getElementById('reelFeed');
+    if (!feed || !feed.isConnected) return;
+    const style = window.getComputedStyle(feed);
+    // Never measure every reel while navigating Marketplace, Vacancies or Inbox.
+    if (style.display === 'none' || style.visibility === 'hidden' ||
+        feed.getClientRects().length === 0) return;
     fitFeedViewport();
-    document.querySelectorAll(CARD).forEach(apply);
+    feed.querySelectorAll(CARD).forEach(apply);
   }
 
   function schedule() {
@@ -125,13 +134,18 @@
 
   function isFeedChange(record) {
     if (record.type === 'attributes') {
-      return !!(record.target.closest && record.target.closest(CARD));
+      return !!(record.target.closest && record.target.closest('#reelFeed ' + CARD));
     }
     if (record.type !== 'childList' || !record.addedNodes.length) return false;
+    const root = document.getElementById('reelFeed');
+    if (!root) return false;
+    // Media inserted into unrelated screens must not rescan the Home feed.
+    if (record.target === root || root.contains(record.target)) return true;
     for (const node of record.addedNodes) {
       if (node.nodeType !== 1) continue;
-      if (node.matches && node.matches(CARD + ',video,img,.reel-media,.reel-bg,.reel-image,.reel-photo')) return true;
-      if (node.querySelector && node.querySelector(CARD + ',video,img,.reel-media,.reel-bg,.reel-image,.reel-photo')) return true;
+      if (node === root || node.contains(root) ||
+          (node.matches && node.matches('#reelFeed')) ||
+          (node.querySelector && node.querySelector('#reelFeed'))) return true;
     }
     return false;
   }
@@ -152,7 +166,12 @@
     document.addEventListener('loadedmetadata', event => {
       if (event.target && event.target.closest && event.target.closest(CARD)) schedule();
     }, true);
-    document.addEventListener('click', schedule, true);
+    document.addEventListener('click', event => {
+      const target = event.target;
+      if (target && target.closest && target.closest(
+        '#reelFeed, #bottomNav, .bottom-nav, .bottom-navigation, .bottom-tab-bar, [role="navigation"], nav'
+      )) schedule();
+    }, true);
     document.addEventListener('visibilitychange', schedule);
     window.addEventListener('pageshow', schedule);
     if (window.visualViewport) window.visualViewport.addEventListener('resize', schedule, { passive: true });
