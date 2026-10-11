@@ -11,7 +11,9 @@ assert(source.includes('watchLiveReceivedLikes(database, owner, likesElement)'))
 assert(source.includes('watchLiveReceivedLikes(database, owner, panel.querySelector("#sfSocialLikes"))'));
 assert(html.includes('id="sfProfileReceivedLikes"'));
 assert(!html.includes('/profile-social-panels.js?v=20261009-1'));
-assert(html.includes('/profile-social-panels.js?v=20261011-live-likes-1'));
+assert(html.includes('/profile-social-panels.js?v=20261011-video-views-1'));
+assert(html.includes('id="tdProfileVideoMetrics2026"'));
+assert.equal(html.split('data-profile-metric=').length-1,2, 'Both profile galleries must render views for videos');
 
 const store=new Map([
  ['publicProfiles/creatorA',{followers:['viewerB'],following:[]}],
@@ -40,12 +42,14 @@ function emit(path,value){
 }
 const follower={isConnected:true,textContent:''},following={isConnected:true,textContent:''};
 const likes={isConnected:true,textContent:'stale'};
-const tileLikes={textContent:'❤️ 0'};
+const tileLikes={textContent:'❤️ 0',dataset:{},setAttribute(){}};
 const tile={dataset:{profilePost:'p1'},querySelector:s=>s==='.sf-tile-meta span:last-child'?tileLikes:null};
+const tileViews={textContent:'👁 0',dataset:{profileMetric:'views'},setAttribute(){}};
+const videoTile={dataset:{profilePost:'p3'},querySelector:s=>s==='.sf-tile-meta span:last-child'?tileViews:null};
 const document={
  querySelector:s=>s==='[data-profile-stat="followers"] span:first-child'?follower:s==='[data-profile-stat="following"] span:first-child'?following:null,
  getElementById:s=>s==='sfProfileReceivedLikes'?likes:null,
- querySelectorAll:s=>s==='[data-profile-post]'?[tile]:[]
+ querySelectorAll:s=>s==='[data-profile-post]'?[tile,videoTile]:[]
 };
 let viewer='viewerB';
 const window={
@@ -67,6 +71,14 @@ emit('posts',{p1:{sellerId:'creatorA',mediaUrl:'https://example.test/a.jpg'},p2:
 assert.equal(likes.textContent,'4','A new published post joins the profile live total');
 emit('posts',{p2:{sellerId:'creatorA',mediaUrl:'https://example.test/b.jpg'}});
 assert.equal(likes.textContent,'3','Removing a post removes its received likes');
+// Videos display their RTDB view count, not the live likes of that post.
+emit('posts',{p2:{sellerId:'creatorA',mediaUrl:'https://example.test/b.jpg'},p3:{sellerId:'creatorA',type:'video',mediaUrl:'https://example.test/c.mp4',viewCount:12}});
+emit('likes/p3',{viewerB:true,viewerC:true});
+assert.equal(tileViews.textContent,'👁 12','A video tile must use views instead of likes');
+emit('posts',{p2:{sellerId:'creatorA',mediaUrl:'https://example.test/b.jpg'},p3:{sellerId:'creatorA',type:'video',viewCount:15}});
+assert.equal(tileViews.textContent,'👁 15','Video view changes must update without reopening profile');
+assert.equal(tileLikes.textContent,'❤️ 1','Image tile keeps the heart metric');
+emit('posts',{p2:{sellerId:'creatorA',mediaUrl:'https://example.test/b.jpg'}});
 watch('creatorB');
 assert.equal(likes.textContent,'0','Switching to another creator does not retain prior likes');
 const old=likes.textContent;
