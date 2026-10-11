@@ -1,24 +1,40 @@
-/* TRAYDAQ event uploader: mobile first, white + green + gold. */
-.td-event-file-picker{width:100%;min-width:0;margin:8px 0 14px;color:#183527;font-family:inherit}
-.td-event-file-tap{position:relative;display:flex;align-items:center;gap:12px;width:100%;min-height:88px;padding:15px;border:2px dashed #afcbb8;border-radius:17px;background:#f5faf6;transition:border-color .15s,background .15s,box-shadow .15s;overflow:hidden}
-.td-event-file-tap:focus-within{border-color:#17653c;box-shadow:0 0 0 3px rgba(23,101,60,.15)}
-.td-event-file-tap:active{background:#edf7ef}
-.td-event-file-icon{width:45px;height:45px;display:flex;align-items:center;justify-content:center;flex:0 0 45px;border-radius:13px;background:#e0efe5;color:#17653c}
-.td-event-file-message{display:flex;flex-direction:column;gap:4px;min-width:0;flex:1;text-align:left;pointer-events:none}
-.td-event-file-message strong{font-size:15px;font-weight:800;color:#164b30;line-height:1.3}
-.td-event-file-message small{font-size:12px;color:#537264;line-height:1.35}
-.td-event-file-arrow{color:#ad8013;font-size:28px;font-weight:600;line-height:1;pointer-events:none}
-.td-event-file-tap input[type=file].td-event-file-native{display:block!important;visibility:visible!important;position:absolute!important;inset:0!important;width:100%!important;height:100%!important;max-width:none!important;padding:0!important;margin:0!important;opacity:0!important;z-index:2!important;cursor:pointer!important;font-size:100px!important;border:0!important;clip:auto!important;clip-path:none!important;transform:none!important}
-.td-event-file-selection{display:flex;align-items:center;flex-wrap:wrap;gap:11px;padding:12px;margin-top:10px;background:#fff;border:1px solid #dce8df;border-radius:14px;min-width:0}
-.td-event-file-selection[hidden]{display:none!important}
-.td-event-file-thumbnails{display:flex;gap:5px;flex:0 0 auto;max-width:116px}
-.td-event-file-thumbnails img,.td-event-file-thumbnails video,.td-event-file-document{width:54px;height:54px;border-radius:10px;object-fit:cover;background:#eaf3ee;border:1px solid #dde9df}
-.td-event-file-document{display:flex;align-items:center;justify-content:center;color:#17653c;font-size:11px;font-weight:900}
-.td-event-file-details{display:flex;flex:1 1 85px;min-width:0;flex-direction:column;gap:3px;text-align:left}
-.td-event-file-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#22392a;font-size:13px;font-weight:750}
-.td-event-file-info{color:#587064;font-size:12px;overflow-wrap:anywhere}
-.td-event-file-remove{border:1px solid #e2d4a9;border-radius:10px;color:#7d5411;background:#fff9e9;min-height:44px;padding:0 13px;font-size:13px;font-weight:750;cursor:pointer}
-.td-event-file-remove:focus-visible{outline:2px solid #17653c;outline-offset:2px}
-.td-event-file-picker:has(.td-event-file-native:disabled){opacity:.58}
-@media(max-width:380px){.td-event-file-tap{padding:12px}.td-event-file-icon{width:39px;height:39px;flex-basis:39px}.td-event-file-selection{gap:8px}}
-@media(prefers-reduced-motion:reduce){.td-event-file-tap{transition:none}}
+/* Shared Traydaq uploader — all file fields, single permanent white theme, green and gold. */
+.td-upload-card{display:flex!important;align-items:center!important;gap:12px!important;position:relative!important;
+  min-width:0!important;width:100%!important;min-height:82px!important;padding:14px 16px!important;
+  border:2px dashed #b0ccb9!important;border-radius:16px!important;background:#f5faf6!important;
+  color:#174c30!important;text-align:left!important;cursor:pointer!important;
+  box-shadow:none!important;transition:border-color .16s,background .16s,box-shadow .16s}
+.td-upload-card:active{background:#eaf6ed!important}
+.td-upload-card:focus-visible,.td-upload-card:focus-within{outline:2px solid #17653c!important;outline-offset:2px!important}
+.td-upload-card-icon{display:flex;align-items:center;justify-content:center;flex:0 0 45px;width:45px;height:45px;
+  background:#e1f0e6;color:#17653c;border-radius:13px}
+.td-upload-card-message{display:flex;flex:1;min-width:0;flex-direction:column;gap:5px}
+.td-upload-card-message strong{font-size:15px!important;font-weight:800!important;line-height:1.3!important;color:#164b30!important}
+.td-upload-card-message small{font-size:12px!important;color:#597669!important;line-height:1.35!important}
+.td-upload-card-arrow{font-size:28px;font-weight:600;line-height:1;color:#ad8013}
+input[type=file].td-upload-source{position:absolute!important;width:1px!important;height:1px!important;
+  opacity:0!important;margin:0!important;padding:0!important;border:0!important;overflow:hidden!important;
+  clip-path:inset(50%)!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important}
+.td-upload-existing-label{min-height:60px!important;font-size:14px!important;font-weight:800!important;
+  text-decoration:none!important;line-height:1.4!important;max-width:100%!important}
+.td-upload-modernized{flex-direction:column!important;align-items:stretch!important;width:100%!important}
+.td-upload-modernized > .td-form-file-name{align-self:flex-start}
+.td-upload-selected{display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:11px;
+  min-width:0;width:100%;margin:8px 0 4px;border:1px solid #dce8df;border-radius:13px;background:#fff}
+.td-upload-selected[hidden]{display:none!important}
+.td-upload-thumbs{display:flex;align-items:center;gap:5px;flex:0 0 auto;max-width:175px}
+.td-upload-thumbs img,.td-upload-thumbs video,.td-upload-file-type{width:54px;height:54px;object-fit:cover;border-radius:9px;background:#edf5ef;border:1px solid #d9e5dc}
+.td-upload-file-type{display:flex;align-items:center;justify-content:center;color:#17653c;font-size:10px;font-weight:850}
+.td-upload-file-details{flex:1 1 80px;min-width:0;display:flex;flex-direction:column;gap:3px}
+.td-upload-file-title{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#213929;font-size:13px;font-weight:750}
+.td-upload-file-size{font-size:12px;color:#607567;overflow-wrap:anywhere}
+.td-upload-remove{flex:0 0 auto;border-radius:10px!important;border:1px solid #e2d4a9!important;
+  background:#fff9e9!important;color:#7d5411!important;min-height:44px!important;padding:0 12px!important;
+  font-size:13px!important;font-weight:750!important;cursor:pointer}
+.td-upload-remove:focus-visible{outline:2px solid #17653c;outline-offset:2px}
+.td-upload-action{min-height:48px!important;padding:10px 16px!important;border-radius:12px!important;
+  border:1px solid #bedac7!important;background:#e9f5ec!important;color:#17653c!important;
+  font-weight:800!important;cursor:pointer!important}
+.td-upload-disabled{opacity:.55!important;pointer-events:none!important}
+@media(max-width:380px){.td-upload-card{padding:12px!important;gap:9px!important}.td-upload-card-icon{width:39px;height:39px;flex-basis:39px}}
+@media(prefers-reduced-motion:reduce){.td-upload-card{transition:none!important}}
