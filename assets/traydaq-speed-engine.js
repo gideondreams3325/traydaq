@@ -18,7 +18,9 @@
   var observed = new WeakSet(), imageSeen = new WeakSet();
   var visible = new Map(), current = null, scheduled = false, lazyScheduled = false;
   var stopped = false, connectionOrigins = new Set();
-  var bootAt = (window.performance && performance.now()) || Date.now();
+  // Performance API clock begins at navigation, not at the late-loaded engine.
+  // This is an observable startup metric, not a promise about network speed.
+  var bootAt = window.performance && typeof performance.now === 'function' ? 0 : Date.now();
   var stats = { firstMediaMs: null, longestTaskMs: 0, longTasks: 0,
     mediaPrioritized: 0, offscreenPaused: 0, lowDataMode: constrained,
     nearbyPrefetch: neighbors };
@@ -97,8 +99,33 @@
     }
     if (level === 2) stats.mediaPrioritized++;
   }
+  function pauseCurrent() {
+    if (!current) return;
+    var previous = current; current = null;
+    for (var el of stageMedia(previous)) {
+      if (el.tagName === 'VIDEO' && !el.paused) {
+        try { el.pause(); stats.offscreenPaused++; } catch (_) {}
+      }
+    }
+  }
+  function refreshBudget() {
+    var nextSaver = !!connection.saveData;
+    try { nextSaver = nextSaver || localStorage.getItem('sf_data_saver') === 'true'; } catch (_) {}
+    var limited = nextSaver || (memory > 0 && memory <= 3) ||
+      /(?:^|-)2g$/.test(String(connection.effectiveType || ''));
+    if (limited !== constrained) {
+      constrained = limited;
+      neighbors = constrained ? 1 : 2;
+      stats.lowDataMode = constrained;
+      stats.nearbyPrefetch = neighbors;
+    }
+  }
   function chooseCurrent() {
-    if (!feed || !feed.isConnected || !onScreen(feed) || doc.hidden) return;
+    refreshBudget();
+    if (!feed || !feed.isConnected || !onScreen(feed) || doc.hidden) {
+      pauseCurrent();
+      return;
+    }
     var candidates = Array.from(visible.entries()).filter(function(entry){
       return entry[0].isConnected && entry[1] > 0;
     });
@@ -129,6 +156,7 @@
     if (next !== feed) {
       if (feedObserver) feedObserver.disconnect();
       if (feedChanges) feedChanges.disconnect();
+      pauseCurrent();
       observed = new WeakSet(); visible.clear();
       feed = next; current = null; feedObserver = null; feedChanges = null;
       if (feed && typeof IntersectionObserver === 'function') {
@@ -146,6 +174,7 @@
       }
       if (feed && typeof MutationObserver === 'function') {
         feedChanges = new MutationObserver(function(records) {
+          for (var entry of visible.keys()) if (!entry.isConnected) visible.delete(entry);
           if (records.some(function(record) {
             return Array.from(record.addedNodes).some(function(n) {
               return n.nodeType === 1 && (n.matches?.('.reel-card') ||
@@ -206,11 +235,8 @@
       if (event.target && current && current.contains(event.target)) markFirstReady(event.target);
     }, true);
     doc.addEventListener('visibilitychange', function(){
-      if (doc.hidden && current) {
-        for (var item of stageMedia(current)) if (item.tagName === 'VIDEO' && !item.paused) {
-          try { item.pause(); stats.offscreenPaused++; } catch (_) {}
-        }
-      } else { queueFocus(); scheduleLazy(); }
+      if (doc.hidden) pauseCurrent();
+      else { queueFocus(); scheduleLazy(); }
     });
     doc.addEventListener('click', function(event) {
       if (event.target?.closest?.('nav,[role="navigation"],#bottomNav,.bottom-nav'))
@@ -218,6 +244,9 @@
     }, true);
     window.addEventListener('pageshow', function(){ queueScan(); scheduleLazy(); });
     window.addEventListener('resize', queueFocus, {passive:true});
+    if (connection && typeof connection.addEventListener === 'function') {
+      connection.addEventListener('change', function(){ refreshBudget(); queueFocus(); });
+    }
     if (typeof PerformanceObserver === 'function') {
       try {
         var longTaskObserver = new PerformanceObserver(function(list) {
