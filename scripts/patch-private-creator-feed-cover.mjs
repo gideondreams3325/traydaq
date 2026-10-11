@@ -28,8 +28,8 @@ export function patchFeed(html){
   let loader=result.slice(loadStart,loadEnd);
   loader=once(loader,
     "const fetchPromise = getDocs(query(collection(db,'posts'), limit(60)));",
-    "const fetchPromise = getDocs(query(collection(db,'posts'), orderBy('createdAt','desc'), limit(100)));",
-    'recent public post ordering');
+    "const fetchPromise = (async () => {\n          try {\n            if (typeof orderBy === 'function') {\n              const sorted = await getDocs(query(collection(db,'posts'), orderBy('createdAt','desc'), limit(100)));\n              if (!sorted.empty) return sorted;\n            }\n          } catch (error) {\n            console.warn('TRAYDAQ feed: ordered query unavailable, using safe fallback', error?.code || '');\n          }\n          return getDocs(query(collection(db,'posts'), limit(100)));\n        })();",
+    'recent public post ordering with fallback');
   loader=once(loader,
     "window._sfFeedHasMore = snap.docs.length >= 60;",
     "window._sfFeedHasMore = snap.docs.length >= 100;",
