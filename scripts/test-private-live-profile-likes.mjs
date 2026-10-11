@@ -75,7 +75,7 @@ assert.equal(likes.textContent,'3','Removing a post removes its received likes')
 emit('posts',{p2:{sellerId:'creatorA',mediaUrl:'https://example.test/b.jpg'},p3:{sellerId:'creatorA',type:'video',mediaUrl:'https://example.test/c.mp4',viewCount:12}});
 emit('likes/p3',{viewerB:true,viewerC:true});
 assert.equal(tileViews.textContent,'👁 12','A video tile must use views instead of likes');
-emit('posts',{p2:{sellerId:'creatorA',mediaUrl:'https://example.test/b.jpg'},p3:{sellerId:'creatorA',type:'video',viewCount:15}});
+emit('posts',{p2:{sellerId:'creatorA',mediaUrl:'https://example.test/b.jpg'},p3:{sellerId:'creatorA',type:'video',mediaUrl:'https://example.test/c.mp4',viewCount:15}});
 assert.equal(tileViews.textContent,'👁 15','Video view changes must update without reopening profile');
 assert.equal(tileLikes.textContent,'❤️ 1','Image tile keeps the heart metric');
 emit('posts',{p2:{sellerId:'creatorA',mediaUrl:'https://example.test/b.jpg'}});
