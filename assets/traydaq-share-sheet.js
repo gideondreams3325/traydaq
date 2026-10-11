@@ -62,6 +62,48 @@
       }
     });
   }
+  // A few legacy templates render stray Ghana-flag quotes and a separate "X"
+  // glyph alongside the actual action label. Hide only decorative leaf nodes;
+  // never remove a button, URL field, or handler-owned interactive element.
+  function hideDecorationLeaves(root, predicate) {
+    if (!root) return;
+    Array.from(root.querySelectorAll('span,p,small,b,i,em,strong,div')).forEach(node => {
+      if (node.children.length || node.closest('button') !== root && node.closest('a') !== root &&
+          node.closest('[role="button"]') !== root && root.matches('button,a,[role="button"]')) return;
+      const t = String(node.textContent || '').trim();
+      if (predicate(t)) node.classList.add('td-share-legacy-decoration');
+    });
+  }
+  function hideHeaderNoise(sheet, title, primary) {
+    if (!title || !primary) return;
+    const elements = Array.from(sheet.querySelectorAll('p,span,small,div,em,strong'));
+    let between = false;
+    const ordered = [title, ...elements.filter(el => !el.contains(title) && !el.contains(primary)), primary]
+      .sort((a,b) => a === b ? 0 : a.compareDocumentPosition(b) & 4 ? -1 : 1);
+    for (const el of ordered) {
+      if (el === title) { between = true; continue; }
+      if (el === primary) break;
+      if (!between || el.children.length || el.closest('button,a,[role="button"]')) continue;
+      const t = String(el.textContent || '').trim();
+      if (/^["'\u201c\u201d\u2018\u2019\s]*\u{1F1EC}\u{1F1ED}["'\u201c\u201d\u2018\u2019\s]*$/u.test(t) ||
+          /^["'\u201c\u201d\u2018\u2019\s]{1,5}$/u.test(t)) {
+        el.classList.add('td-share-legacy-decoration');
+      }
+    }
+  }
+  function cleanSocialNoise(row, items) {
+    if (!row) return;
+    // Preserve the full "X / Twitter" label; hide only an extra standalone X.
+    if (plain(row).includes('x / twitter') || plain(row).includes('x/twitter')) {
+      hideDecorationLeaves(row, t => /^x$/i.test(t.trim()) || /^[\u{1F1EC}\u{1F1ED}\s"'“”‘’]+$/u.test(t.trim()));
+    }
+    for (const item of items) {
+      if (!item) continue;
+      // Icons were replaced with locally bundled brand SVGs, and duplicate
+      // legacy X / emoji glyphs must not create extra rows or spacing.
+      hideDecorationLeaves(item, t => /^x$/i.test(t.trim()) || /^[📘✈📱💬]/u.test(t.trim()));
+    }
+  }
   function iconSpan(name, className) {
     const span = document.createElement('span');
     span.className = className;
@@ -83,6 +125,7 @@
         const t = plain(row);
         if (!t.includes('share via android apps') && !t.includes('save media') && !t.includes('copy')) {
           row.classList.add('td-share-social-row');
+          cleanSocialNoise(row, items);
         }
         break;
       }
@@ -122,8 +165,17 @@
     title.before(hero);
     title.classList.add('td-share-title');
     const subtitle = Array.from(sheet.querySelectorAll('p,span,div'))
-      .find(el => !el.children.length && plain(el).startsWith('share this traydaq post'));
-    if (subtitle) subtitle.classList.add('td-share-subtitle');
+      .find(el => !el.children.length && plain(el).includes('share this traydaq post') && plain(el).length > 20);
+    if (subtitle) {
+      subtitle.classList.add('td-share-subtitle');
+      subtitle.textContent = 'Share this Traydaq post with friends and followers.';
+    } else {
+      const caption = document.createElement('p');
+      caption.className = 'td-share-subtitle';
+      caption.textContent = 'Share this Traydaq post with friends and followers.';
+      title.after(caption);
+    }
+    hideHeaderNoise(sheet, title, found.trigger);
 
     const primary = found.trigger;
     primary.classList.add('td-share-primary');
@@ -146,6 +198,8 @@
       return item;
     });
     if (social.every(Boolean)) labelGroup(sheet, social);
+    // Drop leftover X-only caption and decorative emoji on older social tiles.
+    for (const item of social) if (item) cleanSocialNoise(item, [item]);
 
     styleLink(sheet, bestControl(sheet, t => t === 'copy' || t.endsWith(' copy')));
     const save = bestControl(sheet, t => t.includes('save media to device'));
