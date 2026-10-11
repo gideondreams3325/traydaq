@@ -126,7 +126,13 @@
     // This is important for CV uploads and other programmatic picker controls.
     const containingLabel = input.closest('label');
     const actionLabel = containingLabel && visible(containingLabel) ? containingLabel : labelFor(input);
-    const nativeVisible = visible(input);
+    const layout = input.getBoundingClientRect();
+    const style = getComputedStyle(input);
+    // Invisible overlay, clipped or tiny file inputs are often controlled by bespoke
+    // Creator Studio / verification buttons. Do not replace their interaction.
+    const nativeVisible = visible(input) && !input.hidden &&
+      layout.width >= 24 && layout.height >= 24 && Number(style.opacity) > 0.05 &&
+      style.clipPath !== 'inset(50%)' && style.clip !== 'rect(0px, 0px, 0px, 0px)';
     if (!nativeVisible && !actionLabel) return; // Preserve bespoke hidden upload flows.
 
     input.dataset.tdUniversalPicker = '1';
