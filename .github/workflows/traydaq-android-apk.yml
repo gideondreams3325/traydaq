@@ -1716,7 +1716,7 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
           import zipfile
-          apk=Path('release/Traydaq-debug.apk')
+          apk=Path('Traydaq-debug.apk')
           if not apk.is_file(): raise SystemExit('Missing signed APK')
           with zipfile.ZipFile(apk) as z:
               name='assets/public/index.html'
