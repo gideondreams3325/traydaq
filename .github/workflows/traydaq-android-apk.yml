@@ -317,6 +317,16 @@ jobs:
           fi
           echo 'PASS: Camera permission bridge, secure four-view capture and anti-spoof regression guards.'
 
+      - name: Restore Android verification live camera preview
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsSL "https://raw.githubusercontent.com/gideondreams3325/traydaq/${GITHUB_SHA}/scripts/patch-private-camera-preview.mjs" -o /tmp/td-preview-fix.mjs
+          node --check /tmp/td-preview-fix.mjs
+          node /tmp/td-preview-fix.mjs .
+          grep -Fq 'tdVisibleCameraFrame2026' index.html
+          grep -Fq 'tdStartVerificationCamera' index.html
+
       - name: Bundle secure FaceMesh tracker into Traydaq APK
         shell: bash
         run: |
