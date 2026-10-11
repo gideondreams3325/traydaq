@@ -1,0 +1,131 @@
+name: Traydaq Verification Rules (Manual Review)
+
+on:
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: "validate = compare live rules and prepare; deploy = publish after review"
+        required: true
+        type: choice
+        default: validate
+        options:
+          - validate
+          - deploy
+      confirmation:
+        description: "For deploy ONLY: APPROVE VERIFICATION RULES"
+        required: false
+        type: string
+        default: ""
+
+permissions:
+  contents: read
+
+concurrency:
+  group: traydaq-live-firebase-verification-rules
+  cancel-in-progress: false
+
+jobs:
+  verify-rules:
+    if: >-
+      github.repository == 'gideondreams3325/traydaq' &&
+      github.actor == 'gideondreams3325' &&
+      github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Validate owner request
+        shell: bash
+        env:
+          OPERATION: ${{ inputs.operation }}
+          CONFIRM: ${{ inputs.confirmation }}
+          SOURCE_TOKEN: ${{ secrets.SELLERFLOW_SOURCE_TOKEN }}
+          ADMIN_JSON: ${{ secrets.TRAYDAQ_FIREBASE_ADMIN_JSON }}
+        run: |
+          set -euo pipefail
+          if [ "$OPERATION" = deploy ] && [ "$CONFIRM" != 'APPROVE VERIFICATION RULES' ]; then
+            echo "::error::Live deployment requires exact confirmation. Nothing changed."
+            exit 1
+          fi
+          if [ "$OPERATION" != validate ] && [ "$OPERATION" != deploy ]; then
+            echo "::error::Unknown operation."; exit 1
+          fi
+          if [ -z "$SOURCE_TOKEN" ] || [ -z "$ADMIN_JSON" ]; then
+            echo "::error::Private source token and Firebase service credential secrets required."
+            exit 1
+          fi
+          umask 077
+          printf '%s' "$ADMIN_JSON" > "$RUNNER_TEMP/firebase-traydaq-admin.json"
+          node - "$RUNNER_TEMP/firebase-traydaq-admin.json" <<'JS'
+          const fs=require('node:fs');
+          const data=JSON.parse(fs.readFileSync(process.argv[2],'utf8'));
+          if(data.type!=='service_account'||data.project_id!=='sellerflow-efaab')throw Error('Firebase project mismatch');
+          console.log('Firebase target verified. No credentials printed.');
+          JS
+          echo "GOOGLE_APPLICATION_CREDENTIALS=$RUNNER_TEMP/firebase-traydaq-admin.json" >> "$GITHUB_ENV"
+
+      - name: Read private app rules (never published)
+        uses: actions/checkout@v4
+        with:
+          repository: gideondreams3325/sellerflow
+          token: ${{ secrets.SELLERFLOW_SOURCE_TOKEN }}
+          ref: main
+          persist-credentials: false
+
+      - name: Install isolated authentication utility
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Read-only live rules parity check BEFORE modification
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install --prefix "$RUNNER_TEMP/traydaq-rules-deps" --ignore-scripts --no-package-lock --no-audit --no-fund google-auth-library@9.15.1
+          node - "$RUNNER_TEMP/traydaq-rules-deps/node_modules/google-auth-library" <<'JS'
+          const fs=require('node:fs');
+          const {GoogleAuth}=require(process.argv[2]);
+          const sort=obj=>Array.isArray(obj)?obj.map(sort):(obj&&typeof obj==='object'?Object.fromEntries(Object.keys(obj).sort().map(k=>[k,sort(obj[k])])):obj);
+          async function go(){
+            const auth=new GoogleAuth({keyFile:process.env.GOOGLE_APPLICATION_CREDENTIALS,scopes:['https://www.googleapis.com/auth/firebase.database','https://www.googleapis.com/auth/cloud-platform']});
+            const client=await auth.getClient(),token=await client.getAccessToken();
+            if(!token.token)throw Error('Firebase credential cannot request access token');
+            const url='https://sellerflow-efaab-default-rtdb.firebaseio.com/.settings/rules.json?access_token='+encodeURIComponent(token.token);
+            const res=await fetch(url,{headers:{'Cache-Control':'no-store'}});
+            if(!res.ok)throw Error('Cannot read current Firebase security rules; no change made');
+            const live=await res.json(),source=JSON.parse(fs.readFileSync('database.rules.json','utf8'));
+            if(JSON.stringify(sort(live))!==JSON.stringify(sort(source)))throw Error('LIVE RULES DIFFER FROM PRIVATE SOURCE: refusing to overwrite. Reconcile manually first.');
+            console.log('PASS: live Firebase RTDB rules match exact private checkout baseline.');
+          }
+          go().catch(e=>{console.error('::error::'+e.message);process.exitCode=1;});
+          JS
+
+      - name: Stage and validate verification rules only
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --location \
+            "https://raw.githubusercontent.com/gideondreams3325/traydaq/${GITHUB_SHA}/scripts/patch-private-verification-rules.mjs" \
+            --output /tmp/traydaq-verification-rules-patch.mjs
+          node --check /tmp/traydaq-verification-rules-patch.mjs
+          node /tmp/traydaq-verification-rules-patch.mjs .
+          node - <<'JS'
+          const fs=require('node:fs'),r=JSON.parse(fs.readFileSync('database.rules.json','utf8')).rules;
+          for(const k of ['users','publicProfiles','identityVerifications','buyerKycRecords']){
+            if(!r[k]?.['$uid']?.['.write']?.includes('accountVerified'))throw Error('Verification rules missing: '+k);
+          }
+          if(r.blueBadgeGrants?.['.write']!==false||r.blueBadgeAudit?.['.write']!==false)throw Error('Badge permissions are not server-only');
+          console.log('PASS: Only selected verification rules prepared; no data was changed.');
+          JS
+
+      - name: Deploy hardened RTDB rules (explicit owner-approved mode ONLY)
+        if: inputs.operation == 'deploy'
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx --yes firebase-tools@14.19.1 deploy --only database --project sellerflow-efaab --non-interactive
+          echo "Firebase RTDB verification rules deployed after explicit owner confirmation."
+
+      - name: Remove admin key material
+        if: always()
+        shell: bash
+        run: rm -f "$RUNNER_TEMP/firebase-traydaq-admin.json"
