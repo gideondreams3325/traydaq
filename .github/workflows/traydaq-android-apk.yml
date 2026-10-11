@@ -1271,9 +1271,31 @@ jobs:
           grep -q 'tdCommentProfiles2026Runtime' index.html
           grep -q 'data-td-comment-post-id=' index.html
           grep -q 'data-comment-react=' index.html
-          grep -Fq "ref('commentLikes/' + key).set(next)" index.html
+          grep -q 'tdSupabaseCommentLikes2026' index.html
           grep -q 'window.openUserProfile(uid' index.html
-          echo 'PASS: Comment authors link to real profile UIDs; unique comment likes handled separately from post edits.'
+          if grep -Fq "ref('commentLikes/' + key).set(next)" index.html; then
+            echo "::error::Blocked Firebase comment-like writes remain in APK"
+            exit 1
+          fi
+          mkdir -p /tmp/tdcomment/{assets,scripts,edge/traydaq-comment-likes,tests}
+          cp /tmp/traydaq-comment-social.js /tmp/tdcomment/assets/traydaq-comment-social.js
+          cp /tmp/traydaq-comment-patch.mjs /tmp/tdcomment/scripts/patch-private-comment-social.mjs
+          root="https://raw.githubusercontent.com/gideondreams3325/traydaq/${GITHUB_SHA}"
+          for part in edge/traydaq-comment-likes/index.ts edge/traydaq-comment-likes/schema.sql tests/traydaq-comment-supabase.test.mjs; do
+            curl -fsSL "$root/$part" -o "/tmp/tdcomment/$part"
+          done
+          node --test /tmp/tdcomment/tests/traydaq-comment-supabase.test.mjs
+          endpoint="https://vvpwntehstjbccarqqzp.supabase.co/functions/v1/traydaq-comment-likes"
+          curl --fail --silent --show-error --max-time 22 "$endpoint/health" -o /tmp/td-comment-health.json
+          node -e "const a=require('/tmp/td-comment-health.json');if(a.success!==true||a.commentLikes!=='ready')throw Error('Comment backend unavailable');console.log('PASS: Supabase comment likes backend responds with healthy private ledger.');"
+          http=$(curl -sS -o /tmp/td-comment-unauth.json -w '%{http_code}' --max-time 22 \
+            -X POST "$endpoint" -H 'Content-Type: application/json' \
+            -d '{"postId":"samplePost","commentId":"sampleComment","liked":true}')
+          if [ "$http" != "401" ]; then
+            echo "::error::Unauthenticated comment like request did not return 401 ($http)"
+            exit 1
+          fi
+          echo 'PASS: Comment avatars, UID profiles and protected Supabase likes enabled; anonymous writes denied.'
 
       - name: Install project dependencies
         run: npm install --no-audit --no-fund
