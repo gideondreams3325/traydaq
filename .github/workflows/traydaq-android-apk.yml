@@ -1258,6 +1258,20 @@ jobs:
           grep -Fq 'class="reel-actions"' index.html
           echo 'PASS: photos and videos of every aspect ratio fit without cropping in both feed tabs.'
 
+      - name: Apply comment usernames, avatars and unique likes
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsSL "https://raw.githubusercontent.com/gideondreams3325/traydaq/${GITHUB_SHA}/scripts/patch-private-comment-social.mjs" -o /tmp/traydaq-comment-patch.mjs
+          curl -fsSL "https://raw.githubusercontent.com/gideondreams3325/traydaq/${GITHUB_SHA}/assets/traydaq-comment-social.js" -o /tmp/traydaq-comment-social.js
+          node --check /tmp/traydaq-comment-patch.mjs
+          node --check /tmp/traydaq-comment-social.js
+          node /tmp/traydaq-comment-patch.mjs . /tmp/traydaq-comment-social.js
+          grep -q 'tdCommentProfiles2026Runtime' index.html
+          grep -q 'data-td-comment-post-id=' index.html
+          grep -q 'data-comment-react=' index.html
+          echo 'PASS: Comment authors link to real profile UIDs; unique comment likes handled separately from post edits.'
+
       - name: Install project dependencies
         run: npm install --no-audit --no-fund
 
