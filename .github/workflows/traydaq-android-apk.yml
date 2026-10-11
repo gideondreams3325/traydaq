@@ -142,9 +142,9 @@ jobs:
             throw new Error('Identity label or authoritative blue badge registry missing');
           }
           const badgeBegin=h.indexOf('function sfAccountVerified(u){');
-          const badgeEnd=h.indexOf('window.sfRefreshBlueBadges=sfRefreshBlueBadges;',badgeBegin);
-          if(badgeBegin<0||badgeEnd<0)throw new Error('Missing badge validation functions.');
-          const isolate=new Function('window',h.slice(badgeBegin,badgeEnd)+';return tdTrustBadgeHtml;');
+          const trustEnd=h.indexOf('window.sfRefreshBlueBadges=sfRefreshBlueBadges;',badgeBegin);
+          if(badgeBegin<0||trustEnd<0)throw new Error('Missing badge validation functions.');
+          const isolate=new Function('window',h.slice(badgeBegin,trustEnd)+';return tdTrustBadgeHtml;');
           const noBlue=isolate({sfBlueBadgeUidSet:new Set()});
           if(!noBlue({uid:'testUidAlpha',accountVerified:true}).includes('🆔 Verified') ||
              noBlue({uid:'testUidAlpha',accountVerified:true}).includes('td-blue-badge') ||
