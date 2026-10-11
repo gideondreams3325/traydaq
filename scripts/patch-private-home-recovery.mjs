@@ -10,10 +10,10 @@ export function patchHomeRecovery(html,runtime,css){
   if(html.split('</head>').length!==2||html.split('</body>').length!==2||!html.includes('id="reelFeed"'))
     throw Error('TRAYDAQ feed root changed; inspect before patching');
   if(/<\/script/i.test(runtime))throw Error('Unexpected inline script terminator');
-  for(const name of ['tdInstallHomeRecovery','homeTabSelected','Retry Home','Reload app','reelFeed']){
+  for(const name of ['tdInstallHomeRecovery','homeTabSelected','renderLoading','resumeFeedAutomatically','reelFeed']){
     if(!runtime.includes(name))throw Error('TRAYDAQ feed recovery missing '+name);
   }
-  if(/<\/style/i.test(css)||!css.includes('.td-home-state'))throw Error('Invalid TRAYDAQ Home styles');
+  if(/<\/style/i.test(css)||!css.includes('.td-home-loading-hint'))throw Error('Invalid TRAYDAQ Home styles');
   new Function(runtime);
   return html.replace('</head>', '<style id="'+HOME_RECOVERY_MARKER+'Style">\n'+css+'\n</style>\n</head>')
     .replace('</body>',
@@ -27,7 +27,7 @@ export function main(root='.',file,cssFile){
   const after=patchHomeRecovery(before,fs.readFileSync(file,'utf8'),fs.readFileSync(cssFile,'utf8'));
   if(after===before)throw Error('TRAYDAQ Home recovery patch did not apply');
   fs.writeFileSync(location,after,'utf8');
-  console.log('PASS: Home feed has non-blocking retry/reload recovery instead of an indefinitely blank screen.');
+  console.log('PASS: no Retry Home or Reload app overlay; nonblocking Home loading and one automatic feed refresh.');
 }
 if(process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.url))
   main(process.argv[2]||'.',process.argv[3],process.argv[4]);
