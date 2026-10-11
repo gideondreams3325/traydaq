@@ -33,16 +33,16 @@ export function patchAdaptiveFeed(html, css, runtime) {
   ]) {
     if (!runtime.includes(token)) throw new Error('Missing feed adaptation logic: ' + token);
   }
-  if (/<\\/style/i.test(css) || /<\\/script/i.test(runtime)) {
+  if (css.toLowerCase().includes('</style') || runtime.toLowerCase().includes('</script')) {
     throw new Error('Unsafe inline stylesheet or script terminator');
   }
   new Function(runtime); // Detect syntax errors before changing any app source.
   return html.replace(
     '</head>',
-    '<style id="' + ADAPTIVE_FEED_MARKER + 'Style">\\n' + css + '\\n</style>\\n</head>'
+    '<style id="' + ADAPTIVE_FEED_MARKER + 'Style">\n' + css + '\n</style>\n</head>'
   ).replace(
     '</body>',
-    '<script id="' + ADAPTIVE_FEED_MARKER + '">\\n' + runtime + '\\n</script>\\n</body>'
+    '<script id="' + ADAPTIVE_FEED_MARKER + '">\n' + runtime + '\n</script>\n</body>'
   );
 }
 
