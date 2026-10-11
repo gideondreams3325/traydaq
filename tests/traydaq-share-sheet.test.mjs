@@ -36,3 +36,33 @@ test('refuses broken app markup or incomplete assets', () => {
   assert.throws(() => injectTraydaqShareSheet(fixture, '.td-share-panel{}', js), /incomplete/);
   assert.throws(() => injectTraydaqShareSheet(fixture, css, ''), /incomplete/);
 });
+
+
+test('fixes missing description and decorative duplicates without changing share handlers', () => {
+  for (const marker of [
+    'TRAYDAQ_SHARE_COLOR_REFINEMENT_2026', '#25d366', '#2aabee',
+    '#1877f2', '#080808', '#0b3b2d', 'linear-gradient(135deg',
+    '.td-share-social-item .td-share-brand-icon svg'
+  ]) assert.ok(css.includes(marker), 'Missing color treatment: ' + marker);
+  for (const marker of ['hideHeaderNoise', 'cleanSocialNoise', 'td-share-legacy-decoration',
+    "caption.textContent = 'Share this Traydaq post with friends and followers.'",
+    "labelGroup(sheet, social)"]) {
+    assert.ok(js.includes(marker), 'Missing UI cleanup: ' + marker);
+  }
+  // Reuse original button elements; never replace them with synthetic controls
+  // that would lose Android sharing, copy, or download click listeners.
+  assert.ok(js.includes("primary.classList.add('td-share-primary')"));
+  assert.ok(js.includes("copy.classList.add('td-share-copy')"));
+  assert.ok(js.includes("save.classList.add('td-share-save')"));
+  assert.ok(!js.includes('cloneNode('));
+  assert.ok(!js.includes('outerHTML ='));
+});
+
+test('validates caption and familiar app colors in the injected APK HTML', () => {
+  const html = injectTraydaqShareSheet(fixture, css, js);
+  assert.match(html, /Share this Traydaq post with friends and followers/);
+  assert.match(html, /background: #25d366 !important/);
+  assert.match(html, /background: #2aabee !important/);
+  assert.match(html, /background: #1877f2 !important/);
+  assert.match(html, /td-share-legacy-decoration/);
+});
