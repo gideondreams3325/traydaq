@@ -141,7 +141,21 @@ jobs:
              !h.includes('Blue checks are awarded separately')) {
             throw new Error('Identity label or authoritative blue badge registry missing');
           }
-          console.log('PASS: user account ID verification is distinct from official admin-granted blue checks.');
+          const badgeBegin=h.indexOf('function sfAccountVerified(u){');
+          const badgeEnd=h.indexOf('window.sfRefreshBlueBadges=sfRefreshBlueBadges;',badgeBegin);
+          if(badgeBegin<0||badgeEnd<0)throw new Error('Missing badge validation functions.');
+          const isolate=new Function('window',h.slice(badgeBegin,badgeEnd)+';return tdTrustBadgeHtml;');
+          const noBlue=isolate({sfBlueBadgeUidSet:new Set()});
+          if(!noBlue({uid:'testUidAlpha',accountVerified:true}).includes('🆔 Verified') ||
+             noBlue({uid:'testUidAlpha',accountVerified:true}).includes('td-blue-badge') ||
+             noBlue({uid:'testUidAlpha',role:'admin',isPro:true,verified:true}).includes('td-blue-badge')) {
+            throw new Error('KYC, PRO or admin status automatically grants blue check.');
+          }
+          const approved=isolate({sfBlueBadgeUidSet:new Set(['testUidAlpha'])});
+          if(!approved({uid:'testUidAlpha',accountVerified:true}).includes('td-blue-badge')) {
+            throw new Error('Server-approved blue checks are not rendered.');
+          }
+          console.log('PASS: ID-only users, PRO, admin and explicit official blue grants separated.');
           JS
 
       - name: Strip legacy local account and activity snapshots
