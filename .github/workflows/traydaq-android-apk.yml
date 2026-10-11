@@ -1431,6 +1431,12 @@ jobs:
           node --check /tmp/td-startup/scripts/patch-private-startup-syntax.mjs
           node --test /tmp/td-startup/tests/traydaq-startup-syntax.test.mjs
           node /tmp/td-startup/scripts/patch-private-startup-syntax.mjs .
+          # For You must retain the executable moderation selector, never a
+          # human-readable Security Team title inserted into a CSS query.
+          grep -Fq '[data-admin-takedown-reel]' index.html || {
+            echo "::error::For You takedown selector is missing or corrupted."
+            exit 1
+          }
           if grep -Eq '(TRAYDAQ[[:space:]]+|Traydaq[[:space:]]+){0,2}(Security[[:space:]]+Team|Team)[[:space:]]*:[[:space:]]*renderAdmin' index.html; then
             echo "::error::Broken JavaScript route key still exists."
             exit 1
