@@ -57,6 +57,30 @@
     }
     return Number(button.dataset.tdBaseCount) || 0;
   }
+  function installLegacyLikeButtons() {
+    // Some older comment cards contain no reaction button. Only add one when
+    // the post record, author UID and exact comment text identify ONE comment.
+    if (!activePanel || !activePanel.isConnected || !comments.length) return;
+    activePanel.querySelectorAll('[id^="commentItem_"]').forEach(row => {
+      if (row.querySelector('[data-comment-react]')) return;
+      const user = row.querySelector('[data-comment-profile]');
+      const uid = user && user.dataset.commentProfile;
+      const body = row.querySelector('.text-sm.mt-1');
+      if (!validId(uid) || !body) return;
+      const matches = comments.filter(c => String(c.uid) === uid &&
+        String(c.text || '').trim() === body.textContent.trim());
+      if (matches.length !== 1 || !validId(matches[0].id)) return;
+      const actions = row.querySelector('.flex-1');
+      if (!actions) return;
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'td-comment-fallback-like';
+      button.dataset.commentReact = matches[0].id;
+      button.innerHTML = '<span>♡</span><span>0</span>';
+      button.setAttribute('aria-label', 'Like comment');
+      actions.appendChild(button);
+    });
+  }
   function drawLikes() {
     if (!activePanel || !activePanel.isConnected) return;
     activePanel.querySelectorAll('[data-comment-react]').forEach(button => {
@@ -189,6 +213,8 @@
         value && typeof value === 'object'
           ? Object.entries(value).map(([id, c]) => c && typeof c === 'object' ? {id, ...c} : null).filter(Boolean)
           : [];
+      comments = comments.map((c,i) => ({...c,id:c.id || 'c_' + (c.createdAt || i) + '_' + i}));
+      installLegacyLikeButtons();
       drawLikes();
     }).catch(() => {});
   }
