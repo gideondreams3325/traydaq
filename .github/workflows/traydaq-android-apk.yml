@@ -1453,6 +1453,27 @@ jobs:
           grep -Fq 'tdPostDeepLinks2026' android/app/src/main/assets/public/index.html
           echo 'PASS: installed Traydaq receives shared post IDs on cold launch and app resume.'
 
+      - name: TRAYDAQ native splash cart wheel rotation
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Uses public patch/test scripts on this temporary private checkout only.
+          # Apply after capacitor sync and native patching, before Gradle assembles APK.
+          base="https://raw.githubusercontent.com/gideondreams3325/traydaq/${GITHUB_SHA}"
+          mkdir -p /tmp/td-splash/scripts /tmp/td-splash/tests
+          curl -fsSL "$base/scripts/patch-private-splash-wheels.mjs" \
+            -o /tmp/td-splash/scripts/patch-private-splash-wheels.mjs
+          curl -fsSL "$base/tests/traydaq-splash-wheels.test.mjs" \
+            -o /tmp/td-splash/tests/traydaq-splash-wheels.test.mjs
+          node --check /tmp/td-splash/scripts/patch-private-splash-wheels.mjs
+          node --test /tmp/td-splash/tests/traydaq-splash-wheels.test.mjs
+          node /tmp/td-splash/scripts/patch-private-splash-wheels.mjs .
+          grep -Fq '@drawable/traydaq_splash_animated' android/app/src/main/res/values-v31/styles.xml
+          grep -Fq 'android:name="tdWheelRear"' android/app/src/main/res/drawable/traydaq_splash_cart_vector.xml
+          grep -Fq 'android:name="tdWheelFront"' android/app/src/main/res/drawable/traydaq_splash_cart_vector.xml
+          grep -Fq 'android:repeatCount="infinite"' android/app/src/main/res/animator/traydaq_splash_wheel_spin.xml
+          echo 'PASS: APK will use the green-and-gold animated launch icon on Android 12+.'
+
       - name: Re-sanitize packaged account snapshots before Gradle
         shell: bash
         run: |
