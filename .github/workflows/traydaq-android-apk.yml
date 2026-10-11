@@ -1190,7 +1190,9 @@ jobs:
           const end=html.indexOf('window.isEligibleFeedPost = isEligibleFeedPost;',start);
           const src=html.slice(start,end);
           if(start<0||end<start||src.includes("un === 'gideonappiah'"))throw Error('Genuine profile still hidden on For You');
-          if(!html.includes("orderBy('createdAt','desc'), limit(100)"))throw Error('Recent posts still truncated by unordered feed query');
+          if(!html.includes("orderBy('createdAt','desc'), limit(100)")||
+             !html.includes("return getDocs(query(collection(db,'posts'), limit(100)))"))
+            throw Error('Recent posts and safe fallback query were not installed');
           const eligible=new Function('currentUser','isFollowingUser','isPostDeleted','isPostTakenDown',
             'isPostRemovedBySecurity',src+'\nreturn isEligibleFeedPost;')
             ({uid:'viewer-1'},()=>false,()=>false,()=>false,()=>false);
@@ -1373,6 +1375,22 @@ jobs:
           fi
           echo 'PASS: Comment avatars, UID profiles and protected Supabase likes enabled; anonymous writes denied.'
 
+      - name: Prevent blank Android Home after interrupted post loading
+        shell: bash
+        run: |
+          set -euo pipefail
+          base="https://raw.githubusercontent.com/gideondreams3325/traydaq/${GITHUB_SHA}"
+          mkdir -p /tmp/td-home-guard/{assets,scripts,tests}
+          for file in assets/traydaq-home-recovery.js scripts/patch-private-home-recovery.mjs tests/traydaq-home-recovery.test.mjs; do
+            curl --fail --silent --show-error --location "$base/$file" --output "/tmp/td-home-guard/$file"
+          done
+          node --check /tmp/td-home-guard/assets/traydaq-home-recovery.js
+          node --check /tmp/td-home-guard/scripts/patch-private-home-recovery.mjs
+          node --test /tmp/td-home-guard/tests/traydaq-home-recovery.test.mjs
+          node /tmp/td-home-guard/scripts/patch-private-home-recovery.mjs . /tmp/td-home-guard/assets/traydaq-home-recovery.js
+          grep -Fq 'id="tdHomeRecovery20261011"' index.html
+          echo 'PASS: Android Home can recover without removing tabs or account data.'
+
       - name: Install project dependencies
         run: npm install --no-audit --no-fund
 
@@ -1409,6 +1427,7 @@ jobs:
           node tests/traydaq-auth-screen-regression.test.mjs
           npm run build
           test -s dist/index.html
+          grep -Fq 'tdHomeRecovery20261011' dist/index.html
           node --input-type=module -e "import fs from 'node:fs';const html=fs.readFileSync('dist/index.html','utf8');if(!html.includes('class=\"text-[#17653c]\">Tray</span>')||html.includes('>Seller</span><span class=\"gold-gradient\">Flow'))process.exit(1);console.log('PASS: bundled Android login shows Traydaq, not SellerFlow.')"
 
       - name: Synchronize Android assets using the latest Firebase SDK config
