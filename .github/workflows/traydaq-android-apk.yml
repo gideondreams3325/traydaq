@@ -8,6 +8,7 @@ on:
   # Fix Android event and vacancy publishing via confirmed Firebase RTDB writes (2026-10-11).
   # Refresh share-sheet branded colors and strip stray decorative glyphs (2026-10-11).
   # Allow the owner to start a single build by updating this workflow on main.
+  # Hold animated cart splash until For You's first media frame is ready (bounded timeout).
   # Restore the animated green-and-gold cart splash with rotating wheels at launch (2026-10-11).
   # Fix blank mobile feed viewport, responsive reel height, and media letterboxing (October 11, 2026).
   # Aspect-safe For You / Following photos and videos; verified fit-regression test (October 11, 2026).
@@ -1427,6 +1428,22 @@ jobs:
           grep -Fq 'data-td-home-pending' index.html
           echo 'PASS: Android Home replaces stalled black viewport with light loading and recovery without removing posts.'
 
+      - name: Prepare first For You media behind animated splash
+        shell: bash
+        run: |
+          set -euo pipefail
+          base="https://raw.githubusercontent.com/gideondreams3325/traydaq/${GITHUB_SHA}"
+          mkdir -p /tmp/td-feed-ready/{assets,scripts,tests}
+          for file in assets/traydaq-feed-ready-splash.js scripts/patch-private-feed-ready-splash.mjs tests/traydaq-feed-ready-splash.test.mjs; do
+            curl -fsSL "$base/$file" -o "/tmp/td-feed-ready/$file"
+          done
+          node --check /tmp/td-feed-ready/assets/traydaq-feed-ready-splash.js
+          node --check /tmp/td-feed-ready/scripts/patch-private-feed-ready-splash.mjs
+          node --test /tmp/td-feed-ready/tests/traydaq-feed-ready-splash.test.mjs
+          node /tmp/td-feed-ready/scripts/patch-private-feed-ready-splash.mjs . /tmp/td-feed-ready/assets/traydaq-feed-ready-splash.js html
+          grep -Fq 'id="tdFeedReadySplash20261011"' index.html
+          echo 'PASS: first decoded For You media will release the animated Android launch gate.'
+
       - name: Repair and validate TRAYDAQ app startup JavaScript
         shell: bash
         run: |
@@ -1588,6 +1605,17 @@ jobs:
           grep -Fq 'android:duration="300"' android/app/src/main/res/animator/traydaq_splash_wheel_spin.xml
           test ! -e android/app/src/main/res/drawable/traydaq_splash_transparent.xml
           echo 'PASS: animated TRAYDAQ wheel-spinning cart restored; previous static launch icon removed.'
+
+      - name: Keep animated Android splash until For You media is ready
+        shell: bash
+        run: |
+          set -euo pipefail
+          node /tmp/td-feed-ready/scripts/patch-private-feed-ready-splash.mjs . "" native
+          grep -Fq 'TRAYDAQ_FEED_READY_SPLASH_20261011' android/app/src/main/java/com/sellerflow/app/MainActivity.java
+          grep -Fq 'SplashScreen.installSplashScreen(this)' android/app/src/main/java/com/sellerflow/app/MainActivity.java
+          grep -Fq 'TraydaqStartupGate' android/app/src/main/java/com/sellerflow/app/MainActivity.java
+          grep -Fq 'tdFeedReadySplash20261011' android/app/src/main/assets/public/index.html
+          echo 'PASS: Android keeps spinning wheels on screen until first loaded post, other route, or safety timeout.'
 
       - name: Re-sanitize packaged account snapshots before Gradle
         shell: bash
