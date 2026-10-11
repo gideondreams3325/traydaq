@@ -1,0 +1,179 @@
+/* TRAYDAQ discovery grids – responsive white, green and gold UI. */
+:root { --td-discovery-green:#16643c; --td-discovery-gold:#d6ad2b; --td-discovery-ink:#162c22; --td-discovery-line:#dfe8e1; }
+#marketProductsView, #marketStoresView,
+.sf-disc-jobs, .sf-disc-events { color:var(--td-discovery-ink); min-width:0; }
+#marketProductsView *, #marketStoresView *,
+.sf-disc-jobs *, .sf-disc-events * { box-sizing:border-box; }
+#marketProductsView > .card:first-child, #marketStoresView > .card:first-child {
+  border:1px solid var(--td-discovery-line);
+  border-radius:18px; box-shadow:0 5px 18px rgba(19,56,34,.045);
+  background:#fff; padding:12px; margin-bottom:14px;
+}
+#marketProductsView input#productSearch, #marketStoresView input#marketSearch {
+  min-width:0; width:100%; max-width:100%; height:46px; font-size:16px;
+  border:1px solid #cfded3; background:#f8fbf9; color:var(--td-discovery-ink);
+  border-radius:13px; padding-left:42px;
+}
+#marketProductsView input#productSearch:focus, #marketStoresView input#marketSearch:focus,
+.sf-disc-jobs :is(input,select):focus, .sf-disc-events :is(input,select):focus {
+  outline:2px solid #16643c; outline-offset:1px; border-color:#16643c;
+}
+#productFilterChips, #marketFilterChips {
+  display:flex; flex-wrap:nowrap; gap:8px; min-width:0; overflow-x:auto;
+  overscroll-behavior-x:contain; scrollbar-width:none; padding:4px 1px 7px;
+}
+#productFilterChips::-webkit-scrollbar, #marketFilterChips::-webkit-scrollbar,
+.sf-disc-tabs::-webkit-scrollbar { display:none; }
+#productFilterChips button, #marketFilterChips button,
+.sf-disc-jobs .listing-type-filter { flex:none; min-height:38px; font-size:12px; line-height:1.25; border-radius:999px; }
+#productFilterChips button.active, #marketFilterChips button.active,
+#productFilterChips button[aria-pressed="true"], #marketFilterChips button[aria-pressed="true"] {
+  background:var(--td-discovery-green)!important; color:white!important; border-color:var(--td-discovery-green)!important;
+}
+#productCount, #marketCount { font-weight:700; color:#53665a; }
+#productGrid, #storeGrid, #jobsListContainer, #eventsListContainer {
+  display:grid!important; grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  gap:11px!important; width:100%; max-width:100%; min-width:0; align-items:stretch;
+}
+#productGrid > *, #storeGrid > *, #jobsListContainer > *, #eventsListContainer > * {
+  min-width:0!important; max-width:100%; margin:0;
+}
+#productGrid > [id^="market-product-"], #storeGrid > [id^="market-store-"],
+#jobsListContainer > .td-job-card, #eventsListContainer > [data-event-card] {
+  background:#fff!important; color:var(--td-discovery-ink)!important;
+  border:1px solid var(--td-discovery-line)!important; border-radius:16px!important;
+  box-shadow:0 3px 12px rgba(18,47,30,.06)!important;
+  overflow:hidden; min-width:0; height:100%; transition:border-color .16s,box-shadow .16s;
+}
+#productGrid > [id^="market-product-"]:hover, #storeGrid > [id^="market-store-"]:hover,
+#jobsListContainer > .td-job-card:hover, #eventsListContainer > [data-event-card]:hover {
+  border-color:#b99a39!important; box-shadow:0 6px 20px rgba(27,67,41,.11)!important;
+}
+#productGrid > [id^="market-product-"] { padding:9px!important; display:flex; flex-direction:column; justify-content:space-between; }
+#productGrid > [id^="market-product-"] > div { min-width:0; }
+#productGrid [data-view-product].aspect-square {
+  aspect-ratio:1/1!important; width:100%; height:auto!important; min-height:0!important;
+  max-height:300px!important; position:relative; background:#f4f8f4; border-radius:12px;
+  contain:layout; overflow:hidden;
+}
+#productGrid [data-view-product].aspect-square > img {
+  position:absolute!important; inset:0; width:100%!important; height:100%!important;
+  max-width:100%!important; max-height:100%!important; display:block; object-fit:cover;
+}
+#productGrid [data-view-product].aspect-square > [data-edit-product] {
+  z-index:2; max-width:calc(100% - 12px); padding:6px 8px; font-size:10px;
+}
+#productGrid [data-view-product].aspect-square > span {
+  z-index:2; max-width:calc(100% - 12px); white-space:normal; text-align:right;
+}
+#productGrid [id^="market-product-"] .mt-2.pt-1\.5 { border-top-color:#ebf0eb!important; }
+#productGrid [id^="market-product-"] .flex.items-baseline.justify-between {
+  display:flex; flex-direction:column; align-items:flex-start; gap:2px;
+}
+#productGrid [id^="market-product-"] [data-view-product]:not(.aspect-square) {
+  white-space:normal; overflow-wrap:anywhere; line-height:1.28;
+  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;
+}
+#productGrid [id^="market-product-"] .gold { color:var(--td-discovery-green)!important; font-size:15px; font-weight:900; }
+#productGrid [id^="market-product-"] :is(button,span,p,b) { max-width:100%; overflow-wrap:anywhere; }
+#productGrid [data-add-cart], #productGrid [data-edit-product],
+#productGrid [data-delete-product] { min-height:35px; }
+#productGrid [data-add-cart]:not(:disabled) { background:var(--td-discovery-green)!important; color:#fff!important; }
+#productGrid [id^="market-product-"] .text-red-400 { color:#a52b38!important; }
+#productGrid input[type="number"] { max-width:35px; }
+#storeGrid > [id^="market-store-"] { padding:11px!important; }
+#storeGrid > [id^="market-store-"] .h-24 { height:110px!important; }
+#storeGrid > [id^="market-store-"] :is(h2,h3,p,span,b) { overflow-wrap:anywhere; }
+.sf-disc-module { max-width:1200px!important; min-width:0; padding-left:10px!important; padding-right:10px!important; }
+.sf-disc-module .sf-disc-heading { background:#fff; border-bottom:1px solid var(--td-discovery-line); padding:10px 2px 16px; }
+.sf-disc-module .sf-disc-heading h1 {
+  color:var(--td-discovery-ink)!important; font-size:clamp(19px,4.9vw,26px)!important;
+  line-height:1.25; letter-spacing:-.025em; overflow-wrap:anywhere;
+}
+.sf-disc-module .sf-disc-heading p { color:#607266!important; font-size:12px!important; line-height:1.55; }
+.sf-disc-module .sf-disc-heading img { width:29px; height:29px; }
+.sf-disc-module .sf-disc-tabs { gap:8px!important; padding:11px 0!important; border-color:#e6eee7; scrollbar-width:none; }
+.sf-disc-module .sf-disc-tabs :is(.jobs-tab,.events-tab) {
+  min-height:39px; padding:9px 12px!important; color:#415d4d!important; background:#f5faf6!important;
+  border:1px solid #d8e6db!important; border-radius:12px!important; white-space:nowrap;
+  font-size:12px!important; font-weight:750!important;
+}
+.sf-disc-module .sf-disc-tabs :is(.jobs-tab,.events-tab)[data-tab].active-tab {
+  color:#fff!important; background:var(--td-discovery-green)!important; border-color:var(--td-discovery-green)!important;
+}
+.sf-disc-module .sf-disc-tabs :is(.jobs-tab,.events-tab)[data-tab].active-tab span { color:#fff!important; }
+.sf-disc-module .sf-explore-pane {
+  display:flex; flex-direction:column; gap:13px; min-width:0;
+  padding:12px; border:1px solid var(--td-discovery-line);
+  border-radius:17px; background:#fff;
+}
+.sf-disc-module .sf-explore-pane :is(input, select) {
+  width:100%; max-width:100%; min-width:0; min-height:44px; border:1px solid #d2dfd5;
+  border-radius:12px; background:#f9fbf9; color:var(--td-discovery-ink); font-size:14px;
+}
+#jobsListContainer, #eventsListContainer { margin-top:2px; }
+#jobsListContainer > .td-job-card { padding:10px!important; display:flex; flex-direction:column; gap:10px; }
+#jobsListContainer > .td-job-card > div:first-child { display:flex; flex-direction:column; gap:9px; flex:1; }
+#jobsListContainer > .td-job-card > div:first-child > div:first-child { display:flex; flex-direction:column; align-items:stretch; gap:10px; }
+#jobsListContainer .td-job-card [data-view-job]:has(> img),
+#jobsListContainer .td-job-card [data-view-job]:not(button):has(+ .space-y-1) {
+  position:relative; width:100%!important; height:118px!important; min-width:0; max-width:100%;
+  border-radius:10px; overflow:hidden; flex-shrink:0; align-self:stretch; cursor:pointer;
+}
+#jobsListContainer .td-job-card [data-view-job] img { object-fit:cover; max-width:100%; }
+#jobsListContainer .td-job-card h3 { font-size:14px!important; line-height:1.3; overflow-wrap:anywhere; }
+#jobsListContainer .td-job-card .flex.items-center.gap-3.text-xs { gap:6px!important; }
+#jobsListContainer .td-job-card .flex.items-center.gap-2.shrink-0 {
+  display:grid; grid-template-columns:1fr; width:100%; gap:7px; align-self:stretch;
+}
+#jobsListContainer .td-job-card :is(button[data-view-job],button[data-apply-job],button[data-contact-entrepreneur]) {
+  width:100%; min-width:0; min-height:37px; padding:7px 8px!important; font-size:11px!important;
+  white-space:normal; border-radius:10px;
+}
+#jobsListContainer .td-job-card :is(button[data-apply-job],button[data-contact-entrepreneur]) {
+  background:var(--td-discovery-green)!important; color:#fff!important;
+}
+#jobsListContainer .td-job-card > p { margin:0; }
+#jobsListContainer .td-job-card > div:last-child { gap:5px; flex-wrap:wrap; line-height:1.45; }
+#eventsListContainer > [data-event-card] { display:flex; flex-direction:column; }
+#eventsListContainer > [data-event-card] > div:first-child[data-view-event] {
+  position:relative; height:120px!important; min-height:120px; background:#f2f6f1;
+}
+#eventsListContainer > [data-event-card] > div:first-child[data-view-event] img { width:100%;height:100%;object-fit:cover; }
+#eventsListContainer > [data-event-card] > div.p-4 { padding:10px!important; gap:8px; min-width:0; }
+#eventsListContainer [data-event-card] h3 { font-size:13px!important; line-height:1.35; overflow-wrap:anywhere; }
+#eventsListContainer [data-event-card] .pt-3.flex.items-center { display:grid; grid-template-columns:1fr 1fr; gap:6px; padding-top:7px; }
+#eventsListContainer [data-event-card] button { min-width:0; min-height:36px; padding:6px!important; white-space:normal; font-size:11px!important; }
+#eventsListContainer [data-event-card] [data-register-event] {
+  grid-column:1/-1; background:var(--td-discovery-green)!important; color:#fff!important; border-radius:10px;
+}
+#eventsListContainer [data-event-card] [data-event-comments] { min-width:0; }
+#eventsListContainer [data-event-card] .truncate { min-width:0; }
+#jobsListContainer > :is(.sf-jobs-empty-state,.text-center), #eventsListContainer > :is(.sf-events-empty-state,.text-center,.col-span-full),
+#productGrid > .col-span-full, #storeGrid > .col-span-full { grid-column:1/-1; justify-self:center; width:100%; }
+:is(#productGrid,#storeGrid,#jobsListContainer,#eventsListContainer) .td-image-failed { display:none!important; }
+:is(#productGrid,#storeGrid,#jobsListContainer,#eventsListContainer) .td-media-fallback {
+  position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  text-align:center; gap:6px; padding:10px; background:linear-gradient(145deg,#ecf4ee,#f8faf6); color:#476754;
+  font-size:11px; font-weight:700; line-height:1.35; z-index:1;
+}
+.td-media-fallback-icon { font-size:25px; line-height:1; }
+@media (min-width:600px) {
+  #productGrid, #storeGrid, #jobsListContainer, #eventsListContainer { grid-template-columns:repeat(3,minmax(0,1fr))!important; gap:15px!important; }
+  #jobsListContainer .td-job-card .flex.items-center.gap-2.shrink-0 { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  #eventsListContainer > [data-event-card] > div:first-child[data-view-event] { height:165px!important; }
+}
+@media (min-width:1000px) {
+  #productGrid, #storeGrid, #jobsListContainer, #eventsListContainer { grid-template-columns:repeat(4,minmax(0,1fr))!important; }
+}
+@media (max-width:370px) {
+  #productGrid, #storeGrid, #jobsListContainer, #eventsListContainer { gap:8px!important; }
+  #productGrid > [id^="market-product-"], #storeGrid > [id^="market-store-"],
+  #jobsListContainer > .td-job-card { padding:7px!important; }
+  #productGrid [id^="market-product-"] .gold { font-size:13px; }
+  #productGrid [data-view-product].aspect-square > span { font-size:9px!important; }
+  .sf-disc-module .sf-explore-pane { padding:8px; }
+}
+@media (prefers-reduced-motion:reduce) {
+  #productGrid *, #storeGrid *, #jobsListContainer *, #eventsListContainer * { transition:none!important; }
+}
