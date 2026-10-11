@@ -20,7 +20,7 @@ test('recovery safely patches the end of the main app only once',()=>{
   assert.ok(patched.includes('.td-home-state-fixed'));
   assert.ok(css.includes('background: #fbfcfa'));
   assert.ok(!runtime.includes('if(feed.querySelector(\'.reel-card\'))return true;'));
-  assert.ok(patched.indexOf('id="reelFeed"')<patched.indexOf(HOME_RECOVERY_MARKER));
+  assert.ok(patched.indexOf('id="reelFeed"')<patched.indexOf('<script id="'+HOME_RECOVERY_MARKER+'"'));
   assert.throws(()=>patchHomeRecovery(patched,runtime,css),/already present/);
   assert.throws(()=>patchHomeRecovery('<body></body>',runtime,css),/feed root changed/);
 });
