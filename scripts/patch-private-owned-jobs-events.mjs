@@ -9,6 +9,10 @@ function once(src, before, after, label){
   if(i<0||src.indexOf(before,i+before.length)!==-1)fail('missing/duplicate '+label);
   return src.slice(0,i)+after+src.slice(i+before.length);
 }
+function first(src,before,after,label){
+  const i=src.indexOf(before);if(i<0)fail('missing '+label);
+  return src.slice(0,i)+after+src.slice(i+before.length);
+}
 function region(src,begin,end,edit,label){
   const a=src.indexOf(begin);
   const b=src.indexOf(end,a+begin.length);
@@ -104,7 +108,7 @@ export function patchOwnedJobsEvents(source){
     s=s.slice(0,i)+"    for(const ma of tdOwnedCached('sf_my_job_applications','applications',viewerUid)){\n"+
       "      if(!seenAppIds.has(String(ma.id))){seenAppIds.add(String(ma.id));apps.push(ma);}\n"+
       "    }\n"+s.slice(j+end.length);
-    s=once(s,
+    s=first(s,
       "    const target = _$('jobsContentArea') || container;",
       "    if(viewerUid!==tdCurrentUid()||activeJobsTab!=='my_applications')return;\n    const target = _$('jobsContentArea') || container;",
       'applications account switch guard');
@@ -129,8 +133,8 @@ export function patchOwnedJobsEvents(source){
     const match=/          if \(j && j\.id && !seenJobIds\.has\(j\.id\)\) \{\n            const matches = [^\n]+;\n            if \(matches\) \{/;
     if(!match.test(s))fail('vacancy API wildcard filter');
     s=s.replace(match,
-      "          if(j?.id&&!seenJobIds.has(String(j.id))&&tdOwnedRow('jobs',j,viewerUid)){\n            if(true){");
-    s=once(s,
+      "          if(j?.id&&!seenJobIds.has(String(j.id))){\n            const matches=tdOwnedRow('jobs',j,viewerUid);\n            if(matches){");
+    s=first(s,
       "    const target = _$('jobsContentArea') || container;",
       "    if(viewerUid!==tdCurrentUid()||activeJobsTab!=='employer_desk')return;\n    const target = _$('jobsContentArea') || container;",
       'vacancy account switch guard');
@@ -186,7 +190,7 @@ export function patchOwnedJobsEvents(source){
     s=s.slice(0,i)+"    for(const sr of tdOwnedCached('sf_my_event_registrations','registrations',viewerUid)){\n"+
       "      if(!seenRegIds.has(String(sr.id))){seenRegIds.add(String(sr.id));regs.push(sr);}\n"+
       "    }\n"+s.slice(j+end.length);
-    s=once(s,"    const target = _$('eventsContentArea') || container;",
+    s=first(s,"    const target = _$('eventsContentArea') || container;",
       "    if(viewerUid!==tdCurrentUid()||activeEventsTab!=='my_registrations')return;\n    const target = _$('eventsContentArea') || container;",
       'tickets switch guard');
     return s;
@@ -209,8 +213,8 @@ export function patchOwnedJobsEvents(source){
     const match=/          if \(e && e\.id && !seenEventIds\.has\(e\.id\)\) \{\n            const matches = [^\n]+;\n            if \(matches\) \{/;
     if(!match.test(s))fail('event API wildcard filter');
     s=s.replace(match,
-      "          if(e?.id&&!seenEventIds.has(String(e.id))&&tdOwnedRow('events',e,viewerUid)){\n            if(true){");
-    s=once(s,"    const target = _$('eventsContentArea') || container;",
+      "          if(e?.id&&!seenEventIds.has(String(e.id))){\n            const matches=tdOwnedRow('events',e,viewerUid);\n            if(matches){");
+    s=first(s,"    const target = _$('eventsContentArea') || container;",
       "    if(viewerUid!==tdCurrentUid()||activeEventsTab!=='organizer_desk')return;\n    const target = _$('eventsContentArea') || container;",
       'events switch guard');
     return s;
