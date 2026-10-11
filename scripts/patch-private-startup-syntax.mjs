@@ -5,7 +5,7 @@ import {fileURLToPath} from 'node:url';
 
 // This script runs only in the private source checkout in the APK build job.
 // The public repo never receives private source files, runtime tokens or user data.
-const DAMAGED_ROUTE=/\bTRAYDAQ\s+Traydaq\s+Security\s+Team\s*:\s*renderAdmin\b/g;
+const DAMAGED_ROUTE=/\b(?:(?:TRAYDAQ|Traydaq)\s+){0,2}(?:Security\s+Team|Team)\s*:\s*renderAdmin\b/g;
 const ROUTE='admin:renderAdmin';
 const scriptTag=/<script\b([^>]*)>([\s\S]*?)<\/script\s*>/gi;
 
