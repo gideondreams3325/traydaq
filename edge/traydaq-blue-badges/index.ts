@@ -57,7 +57,7 @@ async function googleAccessToken(){
   method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},
   body:new URLSearchParams({grant_type:'urn:ietf:params:oauth:grant-type:jwt-bearer',assertion:unsigned+'.'+signature}).toString()
  });
- if(!result.ok)throw Error('CREDENTIAL_UNAVAILABLE');
+ if(!result.ok)throw Error('GOOGLE_OAUTH_HTTP_'+result.status);
  const json=await result.json();
  if(!json.access_token)throw Error('CREDENTIAL_UNAVAILABLE');
  CACHE.token=json.access_token;CACHE.expiresAt=Date.now()+Number(json.expires_in||3000)*1000;return CACHE.token;
@@ -70,8 +70,14 @@ async function dbRequest(path,method='GET',body){
   method,headers:{'Cache-Control':'no-store',...(body===undefined?{}:{'Content-Type':'application/json'})},
   ...(body===undefined?{}:{body:JSON.stringify(body)})
  });
- if(!res.ok)throw Error('RTDB_UNAVAILABLE');
+ if(!res.ok)throw Error('RTDB_HTTP_'+res.status);
  return res.json();
+}
+// Server-side diagnostic categories only: never log user tokens, keys or claims.
+function logBadgeFailure(area,error){
+ const msg=String(error?.message||'');
+ const known=/^(CREDENTIAL_UNAVAILABLE|GOOGLE_OAUTH_HTTP_\\d{3}|RTDB_HTTP_\\d{3}|OFFICIAL_AUTH_LOOKUP_HTTP_\\d{3}|AUTH_LOOKUP_HTTP_\\d{3}|OFFICIAL_IDENTITY_AMBIGUOUS)$/;
+ console.error('TRAYDAQ_BADGES_'+area+'_'+(known.test(msg)?msg:'UNEXPECTED_'+String(error?.name||'Error').replace(/[^A-Za-z]/g,'').slice(0,24)));
 }
 async function requireAdmin(req){
  const match=/^Bearer\s+(.+)$/i.exec(req.headers.get('authorization')||'');
@@ -94,7 +100,7 @@ async function officialAdminUid(){
   headers:{Authorization:'Bearer '+token,'Content-Type':'application/json','Cache-Control':'no-store'},
   body:JSON.stringify({email:[ADMIN_EMAIL]})
  });
- if(!res.ok)throw Error('OFFICIAL_AUTH_LOOKUP_UNAVAILABLE');
+ if(!res.ok)throw Error('OFFICIAL_AUTH_LOOKUP_HTTP_'+res.status);
  const info=await res.json();
  const candidates=(Array.isArray(info.users)?info.users:[]).filter(user=>
   UID.test(String(user?.localId||'')) &&
@@ -110,7 +116,7 @@ async function officialAdminUid(){
 async function userExists(uid){
  const token=await googleAccessToken();
  const res=await fetch(API,{method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json','Cache-Control':'no-store'},body:JSON.stringify({localId:[uid]})});
- if(!res.ok)throw Error('AUTH_LOOKUP_UNAVAILABLE');
+ if(!res.ok)throw Error('AUTH_LOOKUP_HTTP_'+res.status);
  const data=await res.json();
  return Array.isArray(data.users)&&data.users.some(u=>u.localId===uid&&!u.disabled);
 }
@@ -119,15 +125,28 @@ export async function handleBadgeRequest(req){
  if(origin&&!ALLOWED_ORIGINS.has(origin))return send({success:false,error:'Origin not allowed'},403);
  if(req.method==='OPTIONS')return new Response(null,{status:204,headers:headers(origin)});
  if(req.method==='GET'){
-  try{
-   const [rows, officialUid]=await Promise.all([dbRequest('blueBadgeGrants'),officialAdminUid()]);
-   const approved=new Set(Object.entries(rows&&typeof rows==='object'?rows:{})
-    .filter(([uid,r])=>UID.test(uid)&&r&&r.status==='active').map(([uid])=>uid));
-   // The official Traydaq account always has a blue check while its Firebase
-   // Auth email is verified and its account is active. No manual badge grant.
-   if(officialUid)approved.add(officialUid);
-   return send({success:true,blueVerifiedUids:[...approved],officialAdminUid:officialUid},200,origin);
-  }catch{return send({success:false,error:'Blue-check registry temporarily unavailable'},503,origin);}
+  // Resolve the official account independently of ordinary grants. A broken RTDB
+  // grant read must NEVER hide an authenticated, active official account.
+  const [grantResult, officialResult]=await Promise.allSettled([
+   dbRequest('blueBadgeGrants'),officialAdminUid()
+  ]);
+  const grantsAvailable=grantResult.status==='fulfilled';
+  const officialAvailable=officialResult.status==='fulfilled';
+  if(!grantsAvailable)logBadgeFailure('GRANTS',grantResult.reason);
+  if(!officialAvailable)logBadgeFailure('OFFICIAL_AUTH',officialResult.reason);
+  if(!grantsAvailable&&!officialAvailable)
+   return send({success:false,error:'Blue-check registry temporarily unavailable'},503,origin);
+  const rows=grantsAvailable?grantResult.value:null;
+  const officialUid=officialAvailable?officialResult.value:null;
+  const approved=new Set(Object.entries(rows&&typeof rows==='object'?rows:{})
+   .filter(([uid,r])=>UID.test(uid)&&r&&r.status==='active').map(([uid])=>uid));
+  // Firebase Auth identity, never a spoofable display name, is the authority.
+  if(officialUid)approved.add(officialUid);
+  return send({
+   success:true,blueVerifiedUids:[...approved],officialAdminUid:officialUid,
+   registryOnline:grantsAvailable&&officialAvailable,
+   officialLookupOnline:officialAvailable
+  },200,origin);
  }
  if(req.method!=='POST')return send({success:false,error:'Method not allowed'},405,origin);
  const admin=await requireAdmin(req);
