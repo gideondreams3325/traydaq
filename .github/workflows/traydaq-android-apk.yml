@@ -172,6 +172,28 @@ jobs:
 
           JS
 
+      - name: Stop Firebase availability lookups creating throwaway accounts
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --location \
+            "https://raw.githubusercontent.com/gideondreams3325/traydaq/${GITHUB_SHA}/scripts/patch-private-auth-availability.mjs" \
+            --output /tmp/traydaq-auth-availability-patch.mjs
+          node --check /tmp/traydaq-auth-availability-patch.mjs
+          node /tmp/traydaq-auth-availability-patch.mjs .
+          node --check server.js
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          const code=fs.readFileSync('server.js','utf8');
+          const begin=code.indexOf("app.post('/api/auth/check-availability'");
+          const end=code.indexOf("// 3. Check registeredEmails collection in Firestore",begin);
+          if(begin<0||end<begin||code.slice(begin,end).includes('accounts:signUp')||
+             !code.slice(begin,end).includes('getUserByEmail')) {
+            throw new Error('Email availability lookup still creates Firebase users');
+          }
+          console.log('PASS: Firebase account availability check is read-only.');
+          JS
+
       - name: Strip legacy local account and activity snapshots
         shell: bash
         run: |
