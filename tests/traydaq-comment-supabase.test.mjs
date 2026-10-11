@@ -1,0 +1,43 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import test from 'node:test';
+import path from 'node:path';
+const root=path.resolve(import.meta.dirname,'..');
+const runtime=fs.readFileSync(path.join(root,'assets/traydaq-comment-social.js'),'utf8');
+const api=fs.readFileSync(path.join(root,'edge/traydaq-comment-likes/index.ts'),'utf8');
+const schema=fs.readFileSync(path.join(root,'edge/traydaq-comment-likes/schema.sql'),'utf8');
+const patch=fs.readFileSync(path.join(root,'scripts/patch-private-comment-social.mjs'),'utf8');
+test('APK comment client saves likes via authenticated Supabase and refreshes',()=>{
+  new Function(runtime);
+  assert.ok(runtime.includes('tdSupabaseCommentLikes2026'));
+  assert.ok(runtime.includes('traydaq-comment-likes'));
+  assert.ok(runtime.includes('getIdToken()'));
+  assert.ok(runtime.includes('signal:AbortSignal.timeout'));
+  assert.ok(runtime.includes('commentId:cid,liked:next'));
+  assert.ok(runtime.includes('window.setInterval('));
+  assert.ok(runtime.includes('Math.max(0,old.count+(next?1:-1))'));
+  assert.ok(runtime.includes('openUserProfile(uid, { username:'));
+  assert.ok(runtime.includes('publicProfiles/'));
+  assert.ok(!runtime.includes("ref('commentLikes/' + key).set(next)"));
+  assert.ok(!runtime.includes("ref('commentLikes/' + postId).on("));
+});
+test('backend verifies Firebase identity and post and comment before recording',()=>{
+  assert.match(api,/jwtVerify\(match\[1\],JWKS/);
+  assert.match(api,/securetoken\.google\.com/);
+  assert.match(api,/if\(req\.method==='POST'&&!uid\)/);
+  assert.match(api,/if\(!await commentExists\(postId,commentId,post\)\)/);
+  assert.match(api,/return json\(\{success:false,error:'Post unavailable'\},404/);
+  assert.match(api,/on_conflict=post_id%2Ccomment_id%2Cviewer_uid/);
+  assert.match(api,/Prefer:'resolution=ignore-duplicates,return=minimal'/);
+  assert.match(api,/method:'DELETE'/);
+  assert.match(api,/p_viewer_uid:uid\|\|null/);
+  assert.doesNotMatch(api,/FIREBASE_SERVICE_ACCOUNT_JSON/);
+});
+test('Supabase ledger is strictly private and owner-only identities are server generated',()=>{
+  assert.match(schema,/primary key \(post_id,comment_id,viewer_uid\)/);
+  assert.match(schema,/enable row level security/);
+  assert.match(schema,/revoke all on public\.traydaq_comment_likes from public,anon,authenticated/);
+  assert.match(schema,/security invoker/);
+  assert.match(schema,/grant execute on function public\.traydaq_comment_like_snapshot\(text,text\) to service_role/);
+  assert.match(patch,/tdSupabaseCommentLikes2026/);
+});
