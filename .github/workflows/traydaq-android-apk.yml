@@ -632,6 +632,24 @@ jobs:
           node --check creator-studio.js
           # Only the temporary APK checkout is patched; no private source is published.
 
+      - name: Apply polished Traydaq post share sheet with real social icons
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Patch the temporary app source only; public repository contains UI enhancement assets.
+          mkdir -p /tmp/tdshare/scripts /tmp/tdshare/assets /tmp/tdshare/tests
+          for patch_path in scripts/patch-private-share-sheet.mjs assets/traydaq-share-sheet.css assets/traydaq-share-sheet.js tests/traydaq-share-sheet.test.mjs; do
+            curl --fail --silent --show-error --location "https://raw.githubusercontent.com/gideondreams3325/traydaq/${GITHUB_SHA}/${patch_path}" --output "/tmp/tdshare/${patch_path}"
+          done
+          node --check /tmp/tdshare/scripts/patch-private-share-sheet.mjs
+          node --check /tmp/tdshare/assets/traydaq-share-sheet.js
+          node --test /tmp/tdshare/tests/traydaq-share-sheet.test.mjs
+          node /tmp/tdshare/scripts/patch-private-share-sheet.mjs . /tmp/tdshare/assets/traydaq-share-sheet.css /tmp/tdshare/assets/traydaq-share-sheet.js
+          grep -Fq 'id="tdModernShareSheetRuntime2026"' index.html
+          grep -Fq 'td-share-brand-whatsapp' index.html
+          grep -Fq 'td-share-brand-telegram' index.html
+          grep -Fq 'td-share-brand-facebook' index.html
+          echo 'PASS: Traydaq share sheet is upgraded; native share, direct social sharing, copy, download, and close handlers remain bound.'
       - name: Install project dependencies
         run: npm install --no-audit --no-fund
 
