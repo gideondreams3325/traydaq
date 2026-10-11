@@ -53,8 +53,10 @@ try {
   fs.mkdirSync(path.join(root, 'admin'));
   fs.writeFileSync(path.join(root, 'index.html'), markup);
   fs.writeFileSync(path.join(root, 'admin', 'app.js'), js);
+  fs.writeFileSync(path.join(root, 'translations.js'), 'const langs={en:{nav_admin:"Admin"},tw:{nav_admin:"Panin Bea"}};');
   const first = patchTraydaqTeamBranding(root);
   assert.ok(first.includes('index.html') && first.includes('admin/app.js'));
+  assert.equal((fs.readFileSync(path.join(root, 'translations.js'), 'utf8').match(/nav_admin:"TRAYDAQ Security Team"/g) || []).length, 2);
   const snapshot = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
   assert.deepEqual(patchTraydaqTeamBranding(root), []);
   assert.equal(fs.readFileSync(path.join(root, 'index.html'), 'utf8'), snapshot);
