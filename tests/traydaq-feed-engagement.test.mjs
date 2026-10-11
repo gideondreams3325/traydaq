@@ -1,0 +1,22 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import { patchFeedEngagement, FEED_GROUP_MARKER } from '../scripts/patch-private-feed-engagement.mjs';
+
+const css = fs.readFileSync(new URL('../assets/traydaq-feed-engagement.css', import.meta.url), 'utf8');
+const old = '<html><head></head><body><div class="reel-actions"><button data-post-action="repost"></button><button data-post-action="options"></button><button data-user-delete-reel="post"></button><button data-admin-takedown-reel="post"></button></div></body></html>';
+const next = patchFeedEngagement(old, css);
+assert.equal(next.match(new RegExp('id="' + FEED_GROUP_MARKER + '"', 'g')).length, 1);
+assert.ok(next.includes('data-td-feed-more'));
+assert.ok(next.includes('aria-expanded'));
+assert.ok(next.includes('aria-haspopup'));
+assert.ok(next.includes('td-reel-more-panel'));
+assert.ok(next.includes('data-post-action="repost"'));
+assert.ok(next.includes('data-post-action="options"'));
+assert.ok(next.includes('data-user-delete-reel'));
+assert.ok(next.includes('data-admin-takedown-reel'));
+assert.throws(() => patchFeedEngagement(next, css), /already applied/);
+assert.throws(() => patchFeedEngagement('<html><head></head><body></body></html>', css), /expected For You/);
+const script = next.match(/<script id="tdGroupedEngagement2026Script">([\s\S]*?)<\/script>/);
+assert.ok(script);
+new Function(script[1]);
+console.log('PASS: grouped actions are accessible, maintain existing handlers and patch exactly once.');
