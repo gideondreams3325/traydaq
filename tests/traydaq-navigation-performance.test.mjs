@@ -15,6 +15,8 @@ for(const [name,code] of [['feed',feedJS],['selects',selectJS],['previews',media
   assert.doesNotThrow(()=>new Function(code),name+' runtime syntax');
 }
 assert.match(feedJS,/feed\.querySelectorAll\(CARD\)/);
+assert.match(feedJS,/data-td-adaptive-classified/);
+assert.doesNotMatch(feedJS,/'#reelFeed, #bottomNav/);
 assert.doesNotMatch(feedJS,/document\.querySelectorAll\(CARD\)/);
 assert.match(feedJS,/document\.visibilityState === 'hidden'/);
 assert.match(feedJS,/target\.closest && target\.closest/);
@@ -30,6 +32,10 @@ assert.match(mediaJS,/thumbnailObserver\.observe\(video\)/);
 assert.match(mediaJS,/rootMargin:'300px 0px'/);
 assert.match(mediaJS,/img\.loading = 'lazy'/);
 assert.match(mediaJS,/video\.preload = thumbnailObserver \? 'none' : 'metadata'/);
+assert.match(mediaJS,/feedVideoObserver\.observe\(video\)/);
+assert.match(mediaJS,/video\.pause\(\)/);
+assert.match(mediaJS,/Math\.min\(cursor \+ 64, descendants\.length\)/);
+assert.match(mediaJS,/!isThumbnail && !isFeedVideo/);
 const html='<html><head></head><body><div id="reelFeed"><div class="reel-card"></div></div>'+
   '<script>const cover = x.post.coverUrl || x.post.thumbnailUrl;</script></body></html>';
 const result=patchMediaPreviews(patchGlobalDropdowns(
