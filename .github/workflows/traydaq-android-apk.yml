@@ -1278,6 +1278,23 @@ jobs:
       - name: Install project dependencies
         run: npm install --no-audit --no-fund
 
+      - name: Recheck deleted artist songs in older posts and saved sounds
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Fetch only the public patch. Private app source stays in this runner.
+          curl --fail --silent --show-error --location \
+            "https://raw.githubusercontent.com/gideondreams3325/traydaq/${GITHUB_SHA}/scripts/patch-private-music-withdrawal.mjs" \
+            --output /tmp/traydaq-music-withdrawal-patch.mjs
+          node --check /tmp/traydaq-music-withdrawal-patch.mjs
+          node /tmp/traydaq-music-withdrawal-patch.mjs .
+          node --check music-withdrawal-sync.js
+          grep -Fq 'TRAYDAQ_MUSIC_WITHDRAWAL_REFRESH_20261011' music-withdrawal-sync.js
+          grep -Fq 'return !artistLinked' music-withdrawal-sync.js
+          grep -Fq 'window.setInterval(recheckVisibleWithdrawnMusic, 60000)' music-withdrawal-sync.js
+          node tests/music-withdrawal-sync.test.js
+          echo 'PASS: older posts retain their media, but withdrawn audio cannot be reused; foreground refresh enabled.'
+
       - name: Verify owned music delete and removed-sound safeguards
         shell: bash
         run: |
