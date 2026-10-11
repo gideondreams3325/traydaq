@@ -37,8 +37,12 @@ export function patchTraydaqTerms(source, legalHtml) {
   const end = source.indexOf(String.fromCharCode(96) + ';', start + 'const DEFAULT_TERMS='.length + 1);
   if (end < 0 || end - start > 20000) throw new Error('Cannot safely bound legacy terms.');
   const original = source.slice(start, end + 2);
-  if (!original.includes('SellerFlow') || !original.includes('3. Lawful use')) {
-    throw new Error('Legacy terms were not recognized; refusing unrelated replacement.');
+  // The private app may already use Traydaq branding and may have updated its
+  // section numbering. The uniquely named DEFAULT_TERMS literal and the
+  // separately validated modal/hydration call-sites are the safety anchors.
+  if (!/\b(?:SellerFlow|Traydaq)\b|Terms\s*&?\s*Conditions/i.test(original) ||
+      !/\b(?:terms|conditions|platform|account|content|lawful|conduct|user)\b/i.test(original)) {
+    throw new Error('Existing app terms literal is not recognizable; refusing unrelated replacement.');
   }
   const replacement = [
     'const TD_TRAYDAQ_LEGAL_POLICY_TEXT=' + JSON.stringify(policy) + ';',
