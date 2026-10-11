@@ -1,0 +1,201 @@
+/* Traydaq professional share sheet — white, evergreen green and gold. */
+.td-share-panel {
+  box-sizing: border-box !important;
+  width: min(100%, 560px) !important;
+  max-height: min(92dvh, 920px) !important;
+  overflow-y: auto !important;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  margin-inline: auto !important;
+  padding: 20px clamp(16px, 4.5vw, 28px) calc(20px + env(safe-area-inset-bottom, 0px)) !important;
+  background: #fff !important;
+  color: #092f25 !important;
+  border-radius: 32px 32px 0 0 !important;
+  box-shadow: 0 -18px 65px rgba(3, 32, 25, .14) !important;
+}
+.td-share-panel * { box-sizing: border-box; }
+.td-share-panel .td-share-hero {
+  display: grid !important;
+  place-items: center !important;
+  width: 64px !important;
+  height: 64px !important;
+  margin: 8px auto 14px !important;
+  border-radius: 22px !important;
+  background: #e8f5ef !important;
+  color: #075637 !important;
+}
+.td-share-panel .td-share-hero svg { width: 32px; height: 32px; }
+.td-share-panel .td-share-title {
+  color: #062e23 !important;
+  font-family: inherit !important;
+  font-size: clamp(28px, 6.1vw, 36px) !important;
+  font-weight: 800 !important;
+  line-height: 1.15 !important;
+  letter-spacing: -.045em !important;
+  text-align: center !important;
+  margin: 4px auto 10px !important;
+}
+.td-share-panel .td-share-subtitle {
+  color: #68747a !important;
+  text-align: center !important;
+  line-height: 1.5 !important;
+  font-size: clamp(13px, 3.4vw, 15px) !important;
+  font-weight: 400 !important;
+  margin: 0 auto 22px !important;
+  max-width: 34rem !important;
+}
+.td-share-panel .td-share-primary {
+  display: flex !important;
+  width: 100% !important;
+  min-height: 62px !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 12px !important;
+  padding: 12px 18px !important;
+  margin: 0 0 22px !important;
+  background: #d5aa28 !important;
+  color: #fff !important;
+  border: 0 !important;
+  border-radius: 20px !important;
+  box-shadow: 0 8px 18px rgba(174, 126, 17, .18) !important;
+  font-size: clamp(14px, 4vw, 17px) !important;
+  font-weight: 750 !important;
+  line-height: 1.25 !important;
+  text-decoration: none !important;
+  white-space: normal !important;
+}
+.td-share-panel .td-share-primary:active { transform: scale(.99); }
+.td-share-panel .td-share-primary .td-share-action-icon {
+  display: inline-flex;
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+}
+.td-share-panel .td-share-primary .td-share-action-icon svg { width: 100%; height: 100%; }
+.td-share-panel .td-share-social-row {
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  gap: clamp(5px, 2vw, 14px) !important;
+  align-items: start !important;
+  width: 100% !important;
+  margin: 0 0 24px !important;
+  padding: 0 !important;
+}
+.td-share-panel .td-share-social-item {
+  border: 0 !important;
+  background: transparent !important;
+  color: #143d32 !important;
+  min-width: 0 !important;
+  width: 100% !important;
+  padding: 5px 1px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  gap: 7px !important;
+  text-align: center !important;
+  font-family: inherit !important;
+  font-weight: 650 !important;
+  font-size: clamp(10px, 2.7vw, 12px) !important;
+  line-height: 1.3 !important;
+  overflow-wrap: anywhere;
+  text-decoration: none !important;
+}
+.td-share-panel .td-share-brand-icon {
+  display: grid !important;
+  place-items: center !important;
+  order: -1 !important;
+  width: clamp(49px, 13vw, 62px) !important;
+  height: clamp(49px, 13vw, 62px) !important;
+  margin: 0 auto 2px !important;
+  flex: 0 0 auto !important;
+  border-radius: 50% !important;
+  border: 4px solid #f2f6f7 !important;
+  box-shadow: 0 3px 9px rgba(0, 0, 0, .045);
+  color: white !important;
+}
+.td-share-panel .td-share-brand-icon svg { width: 70%; height: 70%; fill: currentColor; }
+.td-share-panel .td-share-brand-whatsapp { background: #16c765 !important; }
+.td-share-panel .td-share-brand-telegram { background: #229ed9 !important; }
+.td-share-panel .td-share-brand-x { background: #080a0d !important; }
+.td-share-panel .td-share-brand-facebook { background: #166bdf !important; }
+.td-share-panel .td-share-legacy-icon { display: none !important; }
+.td-share-panel .td-share-link-card {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  width: 100% !important;
+  padding: 12px !important;
+  margin: 0 0 12px !important;
+  border: 1px solid #e2ebea !important;
+  border-radius: 20px !important;
+  background: #f7faf9 !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+}
+.td-share-panel .td-share-link-card > * { min-width: 0; }
+.td-share-panel .td-share-link-card :is(input,[type="text"],code,p,span):not(button *) {
+  text-overflow: ellipsis;
+  overflow: hidden;
+  max-width: 100%;
+}
+.td-share-panel .td-share-copy {
+  flex: 0 0 auto !important;
+  min-height: 46px !important;
+  margin-left: auto !important;
+  border: 0 !important;
+  padding: 10px 17px !important;
+  border-radius: 15px !important;
+  background: #d5aa28 !important;
+  color: #102820 !important;
+  font-weight: 750 !important;
+  font-size: 14px !important;
+  box-shadow: 0 4px 8px rgba(174, 126, 17, .12);
+}
+.td-share-panel .td-share-save {
+  display: flex !important;
+  width: 100% !important;
+  min-height: 64px !important;
+  gap: 12px !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 14px 16px !important;
+  margin: 0 0 17px !important;
+  border-radius: 18px !important;
+  border: 1px solid #e2ebea !important;
+  background: #f9fbfa !important;
+  color: #0a3c2d !important;
+  font-size: 15px !important;
+  font-weight: 700 !important;
+}
+.td-share-panel .td-share-save .td-share-action-icon { color: #075b3b; width: 23px; height: 23px; }
+.td-share-panel .td-share-save .td-share-action-icon svg { width: 100%; height: 100%; }
+.td-share-panel .td-share-close {
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  width: 100% !important;
+  min-height: 53px !important;
+  padding: 12px 16px !important;
+  margin-top: 7px !important;
+  border: 0 !important;
+  border-radius: 18px !important;
+  background: #eff4f3 !important;
+  color: #092f25 !important;
+  font-weight: 750 !important;
+  font-size: 16px !important;
+}
+.td-share-panel :is(button,a,[role="button"]):focus-visible {
+  outline: 3px solid #0b6941 !important;
+  outline-offset: 3px !important;
+}
+@media (max-width: 360px) {
+  .td-share-panel { padding-inline: 12px !important; }
+  .td-share-panel .td-share-link-card { gap: 6px !important; }
+  .td-share-panel .td-share-copy { padding-inline: 12px !important; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .td-share-panel *, .td-share-panel *::before, .td-share-panel *::after {
+    transition: none !important; animation: none !important;
+  }
+}
