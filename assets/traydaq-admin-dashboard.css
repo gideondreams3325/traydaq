@@ -174,3 +174,25 @@
 /* Progressive management records: avoid 948-card Android WebView freezes. */
 .td-admin-shell .td-admin-load-more{display:block!important;width:100%;min-height:45px;margin:14px auto 6px;padding:12px 15px;border:1px solid #cddfcf!important;border-radius:13px;background:#ecf7ef!important;color:#195c38!important;font-size:12px;font-weight:800;cursor:pointer;grid-column:1/-1;text-align:center;box-shadow:0 3px 11px rgba(21,87,50,.05)}
 .td-admin-shell .td-admin-load-more:active{background:#d9efe0!important}
+
+/* Native Android/WebView playback inside Posts & Moderation cards. */
+.td-admin-shell #adminWorkspace video.td-admin-inline-video,
+.td-admin-shell video.td-admin-inline-video {
+  display:block!important;
+  width:100%!important;
+  height:100%!important;
+  min-height:180px;
+  object-fit:contain!important;
+  background:#0b1913!important;
+  pointer-events:auto!important;
+  touch-action:manipulation;
+  position:relative;
+  z-index:1;
+}
+.td-admin-shell video.td-admin-inline-video:focus-visible {
+  outline:3px solid #c8a433;
+  outline-offset:-3px;
+}
+@media(max-width:470px){
+  .td-admin-shell video.td-admin-inline-video { min-height:165px; }
+}
