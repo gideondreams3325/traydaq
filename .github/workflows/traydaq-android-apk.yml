@@ -1431,7 +1431,7 @@ jobs:
           node --check /tmp/td-startup/scripts/patch-private-startup-syntax.mjs
           node --test /tmp/td-startup/tests/traydaq-startup-syntax.test.mjs
           node /tmp/td-startup/scripts/patch-private-startup-syntax.mjs .
-          if grep -Eq 'TRAYDAQ[[:space:]]+Traydaq[[:space:]]+Security[[:space:]]+Team[[:space:]]*:[[:space:]]*renderAdmin' index.html; then
+          if grep -Eq '(TRAYDAQ[[:space:]]+|Traydaq[[:space:]]+){0,2}(Security[[:space:]]+Team|Team)[[:space:]]*:[[:space:]]*renderAdmin' index.html; then
             echo "::error::Broken JavaScript route key still exists."
             exit 1
           fi
@@ -1478,7 +1478,7 @@ jobs:
           import {validateInlineScripts} from '/tmp/td-startup/scripts/patch-private-startup-syntax.mjs';
           const html=fs.readFileSync('dist/index.html','utf8');
           const count=validateInlineScripts(html);
-          if(/TRAYDAQ\s+Traydaq\s+Security\s+Team\s*:\s*renderAdmin/.test(html))
+          if(/\b(?:(?:TRAYDAQ|Traydaq)\s+){0,2}(?:Security\s+Team|Team)\s*:\s*renderAdmin\b/.test(html))
             throw Error('Fatal damaged admin navigation route survived into dist');
           console.log('PASS: production HTML bundle has '+count+' syntactically valid startup scripts.');
           JS
@@ -1728,7 +1728,7 @@ jobs:
           import {validateInlineScripts} from '/tmp/td-startup/scripts/patch-private-startup-syntax.mjs';
           const html=fs.readFileSync('/tmp/td-packaged-index.html','utf8');
           const count=validateInlineScripts(html);
-          if(/TRAYDAQ\s+Traydaq\s+Security\s+Team\s*:\s*renderAdmin/.test(html))
+          if(/\b(?:(?:TRAYDAQ|Traydaq)\s+){0,2}(?:Security\s+Team|Team)\s*:\s*renderAdmin\b/.test(html))
             throw Error('Invalid Home startup/navigation script would ship in APK');
           console.log('PASS: signed TRAYDAQ APK includes '+count+' valid inline startup scripts.');
           JS
