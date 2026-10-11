@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {patchSharedConfirmations} from './traydaq-confirmation-patch.mjs';
+import {patchSharedConfirmations,patchAdditionalConfirmationCallers} from './traydaq-confirmation-patch.mjs';
 
 const fixture = '<!doctype html><html><head></head><body><div id="customDialogRoot"></div><script>\n'+
  'function customAlert(opts = {}){ oldAlert(); }\nwindow.customAlert = customAlert;\n'+
@@ -25,3 +25,15 @@ assert.ok(!result.includes('alert("Enter a reason between 10 and 220 characters.
 assert.throws(()=>patchSharedConfirmations(result,css,js),/patch applied twice/);
 assert.throws(()=>patchSharedConfirmations(fixture.replace('window.prompt("Administrative reason','window.prompt("Other reason'),css,js),/native prompt/);
 console.log('PASS: shared app confirmations, prompts and alerts, badge grant/revoke and drift detection.');
+
+const creator='closeBtn.onclick = () => {\n'+
+  "if (confirm('Discard your changes and close creator studio?')) {window.closeModal();}\n";
+const support="else alert('Sign in before reporting an app issue.');";
+const extra=patchAdditionalConfirmationCallers(creator,support);
+assert.ok(extra.creatorJs.includes('closeBtn.onclick = async () => {'));
+assert.ok(extra.creatorJs.includes('await window.customConfirm({'));
+assert.ok(extra.creatorJs.includes('Keep editing'));
+assert.ok(!extra.creatorJs.includes("if (confirm("));
+assert.ok(extra.supportJs.includes('window.customAlert({'));
+assert.ok(!extra.supportJs.includes('else alert('));
+console.log('PASS: Creator Studio discard confirmation and support sign-in alert use shared dialog.');
