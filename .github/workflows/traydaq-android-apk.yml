@@ -267,6 +267,25 @@ jobs:
           console.log("PASS: Traydaq in-app terms include music licensing, uploads and Ghanaian law.");
           JS
 
+      - name: Synchronize received likes on public and personal profiles
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Read the pinned public-only patch. The actual app remains checked out privately.
+          curl --fail --silent --show-error --location \
+            "https://raw.githubusercontent.com/gideondreams3325/traydaq/${GITHUB_SHA}/scripts/patch-private-live-profile-likes.mjs" \
+            --output /tmp/traydaq-live-likes-patch.mjs
+          curl --fail --silent --show-error --location \
+            "https://raw.githubusercontent.com/gideondreams3325/traydaq/${GITHUB_SHA}/scripts/test-private-live-profile-likes.mjs" \
+            --output /tmp/traydaq-live-likes-test.mjs
+          node --check /tmp/traydaq-live-likes-patch.mjs
+          node --check /tmp/traydaq-live-likes-test.mjs
+          node /tmp/traydaq-live-likes-patch.mjs .
+          node /tmp/traydaq-live-likes-test.mjs
+          # Also run the preexisting content and profile activity safeguards.
+          node tests/profile-social-activity.test.mjs
+          node tests/post-engagement-following.test.js
+
       - name: Strip legacy local account and activity snapshots
         shell: bash
         run: |
