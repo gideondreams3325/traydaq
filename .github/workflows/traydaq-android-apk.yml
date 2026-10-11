@@ -239,6 +239,34 @@ jobs:
           console.log("PASS: Traydaq in-app terms include music licensing, uploads and Ghanaian law.");
           JS
 
+      - name: Remove phone recovery from Traydaq Account Security
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --location \
+            "https://raw.githubusercontent.com/gideondreams3325/traydaq/${GITHUB_SHA}/scripts/patch-private-email-only-recovery.mjs" \
+            --output /tmp/traydaq-email-only-recovery-patch.mjs
+          node --check /tmp/traydaq-email-only-recovery-patch.mjs
+          node /tmp/traydaq-email-only-recovery-patch.mjs .
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          const html=fs.readFileSync('index.html','utf8');
+          const start=html.indexOf('<script id="tdEmailOnlyRecovery">');
+          const end=html.indexOf('</script>',start);
+          if(start<0||end<=start||!html.includes('Recovery Email')||
+             !html.includes('Managed by Google')) {
+            throw new Error('Email-only recovery is missing, or original email/Google account controls are gone.');
+          }
+          const code=html.slice(start+'<script id="tdEmailOnlyRecovery">'.length,end);
+          new Function(code);
+          for(const marker of ['removePhoneCard','Recovery Phone Number',
+            'Add a recovery email to protect your account',
+            'MutationObserver']) {
+            if(!code.includes(marker))throw new Error('Phone-recovery removal guard missing: '+marker);
+          }
+          console.log('PASS: Recovery phone UI is removed on all account-security mounts; email and Google settings remain.');
+          JS
+
       - name: Strip legacy local account and activity snapshots
         shell: bash
         run: |
