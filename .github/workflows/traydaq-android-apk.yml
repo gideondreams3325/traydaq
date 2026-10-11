@@ -529,6 +529,8 @@ jobs:
             /tmp/td-event-upload/traydaq-event-file-picker.js
           node --input-type=module <<'JS'
           import fs from 'node:fs';
+          import assert from 'node:assert/strict';
+          import { patchEventFilePicker } from '/tmp/td-event-upload/patch-private-event-file-picker.mjs';
           const html = fs.readFileSync('index.html','utf8');
           for (const value of ['id="tdUniversalPickerStyle2026"',
             'id="tdUniversalPickerRuntime2026"','td-upload-card',
@@ -539,7 +541,17 @@ jobs:
           const runtime = html.split('<script id="tdUniversalPickerRuntime2026">\n')[1]?.split('\n</script>')[0];
           if (!runtime) throw Error('Shared file picker runtime not found');
           new Function(runtime);
-          console.log('PASS: all visible native file inputs and associated file labels receive consistent touch-friendly upload UI.');
+          const css = fs.readFileSync('/tmp/td-event-upload/traydaq-event-file-picker.css','utf8');
+          const js = fs.readFileSync('/tmp/td-event-upload/traydaq-event-file-picker.js','utf8');
+          const source = '<!doctype html><html><head></head><body>' +
+            '<form><input type="file" id="upload" name="upload" accept="image/*" multiple capture="environment" required>' +
+            '<button type="submit">Publish</button></form></body></html>';
+          const patched = patchEventFilePicker(source, css, js);
+          assert.ok(patched.includes('<input type="file" id="upload" name="upload" accept="image/*" multiple capture="environment" required>'));
+          assert.ok(patched.includes('<button type="submit">Publish</button>'));
+          assert.ok(patched.includes('tdUniversalPickerRuntime2026'));
+          assert.throws(() => patchEventFilePicker(patched, css, js), /already injected/);
+          console.log('PASS: shared picker preserves upload fields, accepted media, camera capture and submit buttons.');
           JS
 
       - name: Modernize Marketplace, Vacancies and Events as responsive card grids
