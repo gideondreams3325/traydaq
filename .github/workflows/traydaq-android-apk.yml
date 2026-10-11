@@ -3,7 +3,7 @@ name: Traydaq Android APK (Public Builder)
 on:
   workflow_dispatch:
   # Allow the owner to start a single build by updating this workflow on main.
-  # Rebuild official admin blue-check resilience after syntax correction (October 11, 2026).
+  # Rebuild with validated Inbox RTDB references (October 11, 2026).
   # Pull requests and commits to other files do not trigger private source checkout.
   push:
     branches: [main]
