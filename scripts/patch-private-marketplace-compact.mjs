@@ -21,9 +21,9 @@ export function patchMarketplaceCompact(html, css, js) {
     throw new Error('TRAYDAQ marketplace: incomplete compact control assets');
   new Function(js);
   const style = '<style id="' + MARKETPLACE_COMPACT_ID + 'Style">\n' +
-    css.replace(/<\\/style/gi, '<\\/style') + '\n</style>\n';
+    css + '\n</style>\n';
   const script = '<script id="' + MARKETPLACE_COMPACT_ID + 'Script">\n' +
-    js.replace(/<\\/script/gi, '<\\/script') + '\n</script>\n';
+    js + '\n</script>\n';
   return html.replace('</head>', style + '</head>')
     .replace('</body>', script + '</body>');
 }
