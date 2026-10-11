@@ -10,6 +10,8 @@
     x: '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18.901 1.153h3.68L14.54 10.34 24 22.846h-7.406l-5.8-7.584-6.64 7.584H.47l8.6-9.828L0 1.154h7.594l5.243 6.932zM17.61 20.644h2.039L6.486 3.24H4.298z"/></svg>',
     facebook: '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M15.7 8.36h-2.23V6.94c0-.53.35-.65.6-.65h1.6V3.4l-2.19-.01c-2.43 0-3.65 1.52-3.65 3.51v1.46H7.95v3.1h1.88V21h3.64v-9.54h2.45l.34-3.1z"/></svg>',
     share: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.7 10.5 6.6-3.8M8.7 13.5l6.6 3.8"/></svg>',
+    link: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.07 0l3-3a5 5 0 0 0-7.07-7.07l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.07 0l-3 3A5 5 0 0 0 11 21.07l1.7-1.7"/></svg>',
+    copy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></svg>',
     download: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m-4-4 4 4 4-4"/><path d="M4 17v3h16v-3"/></svg>'
   };
   const plain = el => String(el && el.textContent || '').replace(/\s+/g, ' ').trim().toLowerCase();
@@ -90,12 +92,15 @@
   function styleLink(sheet, copy) {
     if (!copy) return;
     copy.classList.add('td-share-copy');
+    removeOldIcons(copy);
+    copy.prepend(iconSpan('copy', 'td-share-action-icon'));
     let parent = copy.parentElement;
     while (parent && parent !== sheet) {
       const str = plain(parent);
       if ((/https?:\/\/|:\/\/post\/|com\.sellerflow\.app|traydaq\./i.test(str) || str.includes('share link')) &&
           str.length < 550) {
         parent.classList.add('td-share-link-card');
+        parent.prepend(iconSpan('link', 'td-share-link-badge'));
         break;
       }
       parent = parent.parentElement;
