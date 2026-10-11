@@ -66,9 +66,8 @@ function privileged(data) {
 async function getProfiles(uid) {
   // If one check fails, abort deletion; we must not guess about account safety.
   if (!db) db = getDatabase(app);
-  const { ref, get } = require('firebase-admin/database');
   const nodes = ['users','accounts','publicProfiles','identityVerifications','buyerKycRecords'];
-  const snapshots = await Promise.all(nodes.map(n => get(ref(db, n + '/' + uid))));
+  const snapshots = await Promise.all(nodes.map(n => db.ref(n + '/' + uid).get()));
   return Object.fromEntries(nodes.map((n, i) => [n, snapshots[i].val()]));
 }
 
@@ -79,7 +78,6 @@ async function auditAppEvidence(candidateUids) {
     console.log('RTDB_EVIDENCE_NO_CANDIDATES=true');
     return;
   }
-  const { ref, get } = require('firebase-admin/database');
   if (!db) db = getDatabase(app);
   const paths = ['users','publicProfiles','posts','stores','products','orders','jobs','events','following','conversations'];
   const owners = ['uid','userId','userUid','ownerUid','ownerId','sellerUid','sellerId',
@@ -95,7 +93,7 @@ async function auditAppEvidence(candidateUids) {
       // Each query is one collection-level read, rather than 906 individual
       // requests. If slow or unavailable, mark the evidence incomplete.
       const snapshot = await Promise.race([
-        get(ref(db, path)),
+        db.ref(path).get(),
         new Promise((_, reject) => setTimeout(() => reject(Error('TIME_LIMIT')), 15000))
       ]);
       const contents = snapshot.val();
@@ -124,11 +122,14 @@ async function auditAppEvidence(candidateUids) {
   }
   let both = 0;
   for (const uid of profileUids) if (activityUids.has(uid)) both++;
+  const noMatch = incomplete.length === 0
+    ? String([...candidateUids].filter(uid => !profileUids.has(uid) && !activityUids.has(uid)).length)
+    : 'UNKNOWN';
   console.log('RTDB_CANDIDATES_WITH_PROFILE=' + profileUids.size +
     ' WITH_LINKED_ACTIVITY=' + activityUids.size + ' WITH_BOTH=' + both +
-    ' WITH_NO_MATCH_IN_CHECKED_PATHS=' +
-      [...candidateUids].filter(uid => !profileUids.has(uid) && !activityUids.has(uid)).length +
+    ' WITH_NO_MATCH_IN_CHECKED_PATHS=' + noMatch +
     ' INCOMPLETE_PATHS=' + incomplete.length);
+  if (incomplete.length) console.log('RTDB_EVIDENCE_INCOMPLETE=true DO_NOT_INFER_NO_ACTIVITY=true');
   console.log('RTDB evidence is non-exhaustive. No matching record does NOT prove an account is fake. Firestore, nested social activity, and other paths are not fully audited.');
 }
 
