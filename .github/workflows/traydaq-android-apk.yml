@@ -5,6 +5,7 @@ on:
   # Fix Android event and vacancy publishing via confirmed Firebase RTDB writes (2026-10-11).
   # Refresh share-sheet branded colors and strip stray decorative glyphs (2026-10-11).
   # Allow the owner to start a single build by updating this workflow on main.
+  # Manual Android APK rebuild requested 2026-10-11: verify sharp launcher icon and animated cart splash.
   # Fix blank mobile feed viewport, responsive reel height, and media letterboxing (October 11, 2026).
   # Aspect-safe For You / Following photos and videos; verified fit-regression test (October 11, 2026).
   # For You grouped engagement controls (October 11, 2026).
