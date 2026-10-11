@@ -73,3 +73,17 @@
   .td-easy-sheet { animation:tdEasyRise .16s ease-out both; }
   @keyframes tdEasyRise { from { transform:translateY(14px); opacity:.94; } to { transform:translateY(0); opacity:1; } }
 }
+
+/* Dismiss the option sheet by tapping outside or swiping down (Android touch). */
+.td-easy-drag-handle {
+  display: block;
+  flex: none;
+  width: 46px;
+  height: 5px;
+  margin: 11px auto 0;
+  border-radius: 100px;
+  background: #c3ccc6;
+  pointer-events: none;
+}
+.td-easy-sheet { touch-action: pan-y; }
+.td-easy-header { touch-action: pan-y; }
