@@ -112,7 +112,7 @@ export function main(root='.') {
     ['community-feedback.js',patchFeedbackClient],
     ['supabase/functions/sellerflow-api/community-feedback.mjs',patchFeedbackEdge]
   ]){
-    const file=root.replace(/\\/$/,'')+'/'+path;
+    const file=root.replace(/\/$/,'')+'/'+path;
     const source=fs.readFileSync(file,'utf8');
     const revised=patch(source);
     if(revised===source)throw Error('Traydaq reviews patch made no change to '+path);
