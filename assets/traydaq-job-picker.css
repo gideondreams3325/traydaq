@@ -110,3 +110,17 @@
 .td-job-picker-indicator { flex: 0 0 auto; width: 25px; height: 25px; border-radius: 50%; border: 2px solid #9db4a5; display: grid; place-items: center; font-size: 14px; color: #fff; }
 .td-job-picker-option.is-selected .td-job-picker-indicator { background: #17653c; border-color: #17653c; }
 @media (prefers-reduced-motion: no-preference) { .td-job-picker-sheet { animation: tdJobPickerRise .16s ease-out both; } @keyframes tdJobPickerRise { from { transform: translateY(16px); opacity:.92; } to { transform: translateY(0); opacity:1; } } }
+
+/* Dismiss the option sheet by tapping outside or swiping down (Android touch). */
+.td-job-picker-drag-handle {
+  display: block;
+  flex: none;
+  width: 46px;
+  height: 5px;
+  margin: 11px auto 0;
+  border-radius: 100px;
+  background: #c3ccc6;
+  pointer-events: none;
+}
+.td-job-picker-sheet { touch-action: pan-y; }
+.td-job-picker-header { touch-action: pan-y; }
