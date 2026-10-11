@@ -711,6 +711,33 @@ jobs:
           console.log('PASS: accessible green-and-gold discovery grids, compact images, and preserved card actions.');
           JS
 
+      - name: Compact Marketplace filters and product action buttons
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Public, audited patch assets are applied only to the temporary private checkout.
+          base="https://raw.githubusercontent.com/gideondreams3325/traydaq/${GITHUB_SHA}"
+          mkdir -p /tmp/td-marketplace/{assets,scripts,tests}
+          for part in scripts/patch-private-marketplace-compact.mjs assets/traydaq-marketplace-compact.css assets/traydaq-marketplace-compact.js tests/traydaq-marketplace-compact.test.mjs; do
+            curl --fail --silent --show-error --location "$base/$part" --output "/tmp/td-marketplace/$part"
+          done
+          node --check /tmp/td-marketplace/scripts/patch-private-marketplace-compact.mjs
+          node --check /tmp/td-marketplace/assets/traydaq-marketplace-compact.js
+          node --test /tmp/td-marketplace/tests/traydaq-marketplace-compact.test.mjs
+          node /tmp/td-marketplace/scripts/patch-private-marketplace-compact.mjs . \
+            /tmp/td-marketplace/assets/traydaq-marketplace-compact.css \
+            /tmp/td-marketplace/assets/traydaq-marketplace-compact.js
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          const html=fs.readFileSync('index.html','utf8');
+          for (const item of ['tdMarketplaceCompact2026Style','tdMarketplaceCompact2026Script',
+                              '.td-mp-filter-panel[hidden]','.td-mp-manage-panel[hidden]',
+                              'panel.append(edit, del)','items.slice(2)']) {
+            if (!html.includes(item)) throw new Error('Marketplace compact patch missing: '+item);
+          }
+          console.log('PASS: compact Marketplace buttons and original cart, edit and delete actions integrated.');
+          JS
+
       - name: Keep Creator Studio Music Library browse-only
         shell: bash
         run: |
