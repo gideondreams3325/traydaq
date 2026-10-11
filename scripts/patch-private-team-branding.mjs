@@ -22,6 +22,7 @@ function looksLikeCopy(text) {
   if (!ADMIN_WORD.test(text)) return false;
   const s = text.trim();
   if (!s || s === 'admin') return false; // authentication role value
+  if (/\[\s*data-[^\]]+\]/i.test(s)) return false; // CSS selectors are executable, never display copy
   if (/^(?:\/|https?:|wss?:|[.#]|data-|aria-|sf-|td-)/i.test(s)) return false;
   if (/^(?:admin|administrator)[_./-][\w./-]+$/i.test(s)) return false;
   if (/[\w./-]+[_./-](?:admin|administrator)(?:[_./-]|$)/i.test(s) && !/\s/.test(s)) return false;
