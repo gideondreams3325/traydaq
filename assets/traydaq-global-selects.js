@@ -37,7 +37,7 @@
     const state = enhanced.get(select);
     if (!state || !select.isConnected) return;
     const chosen = currentOption(select);
-    const placeholder = !select.value || !chosen || chosen.disabled;
+    const placeholder = (!select.value && select.required) || !chosen || chosen.disabled;
     const displayed = chosen?.textContent?.trim() || 'Choose an option';
     if (state.value.textContent !== displayed) state.value.textContent = displayed;
     state.value.classList.toggle('td-easy-select-empty', placeholder);
@@ -87,7 +87,7 @@
     if (!select.isConnected || select.disabled) return;
     dismiss(false);
     refresh(select);
-    const available = [...select.options].filter(option => !option.disabled && option.value !== '');
+    const available = [...select.options].filter(option => !option.disabled);
     if (!available.length) return;
 
     const overlay = document.createElement('div');
