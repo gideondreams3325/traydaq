@@ -33,4 +33,63 @@ assert.ok(!runtime.includes('.play()')); // Do not double-play videos to measure
 assert.throws(() => patchAdaptiveFeed(output, css, runtime), /already installed/);
 assert.throws(() => patchAdaptiveFeed('<html><head></head><body></body></html>', css, runtime), /reel markup/);
 assert.throws(() => patchAdaptiveFeed(html, css, 'invalid'), /Missing feed adaptation logic/);
+
+/* Simulate the Android WebView bounds without loading private application data. */
+function smokeViewport(windowWidth, dockVisible) {
+  const values = new Map(), attributes = new Map(), mediaAttributes = new Map();
+  const feed = {
+    isConnected: true,
+    style: {
+      getPropertyValue: key => values.get(key) || '',
+      setProperty: (key, value) => values.set(key, value),
+      removeProperty: key => values.delete(key)
+    },
+    getBoundingClientRect: () => ({ top: 90, width: windowWidth, height: 320 }),
+    hasAttribute: name => attributes.has(name),
+    setAttribute: (name, value) => attributes.set(name, value),
+    removeAttribute: name => attributes.delete(name),
+    contains: () => false
+  };
+  const video = {
+    tagName: 'VIDEO',
+    getBoundingClientRect: () => ({ width: windowWidth, height: 180 }),
+    closest: selector => selector === '.reel-card' ? card : null,
+    setAttribute: (name, value) => mediaAttributes.set(name, value)
+  };
+  const card = {
+    isConnected: true,
+    getBoundingClientRect: () => ({ width: windowWidth, height: 320 }),
+    querySelectorAll: () => [video]
+  };
+  const dock = {
+    getBoundingClientRect: () => ({ top: 740, bottom: 806, width: windowWidth, height: 66 })
+  };
+  const doc = {
+    readyState: 'complete',
+    body: {},
+    getElementById: () => feed,
+    querySelectorAll: selector => selector === '.reel-card' ? [card] :
+      (selector.startsWith('nav,') && dockVisible ? [dock] : []),
+    addEventListener: () => {}
+  };
+  const win = {
+    innerWidth: windowWidth, innerHeight: 810, visualViewport: null,
+    getComputedStyle: () => ({ visibility: 'visible', backgroundImage: 'none' }),
+    addEventListener: () => {}
+  };
+  class FakeMutationObserver { observe() {} }
+  new Function('window', 'document', 'MutationObserver', 'requestAnimationFrame', runtime)(
+    win, doc, FakeMutationObserver, callback => callback()
+  );
+  return { values, attributes, mediaAttributes };
+}
+const mobile = smokeViewport(380, true);
+assert.equal(mobile.values.get('--td-feed-viewport-height'), '648px');
+assert.equal(mobile.attributes.get('data-td-feed-viewport'), 'true');
+assert.equal(mobile.mediaAttributes.get('data-td-adaptive-feed-media'), 'true');
+const fallback = smokeViewport(380, false);
+assert.ok(Number.parseInt(fallback.values.get('--td-feed-viewport-height'), 10) > 580);
+const desktop = smokeViewport(1100, true);
+assert.equal(desktop.values.has('--td-feed-viewport-height'), false);
+
 console.log('PASS: adaptive aspect ratio media runtime is syntactically valid, targets reels only and is idempotent.');
