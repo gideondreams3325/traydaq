@@ -522,7 +522,7 @@ jobs:
           console.log('PASS: Full-field tap, full-row option selection, validation, dismiss, label tap and updated form values.');
           JS
 
-      - name: Modernize every file chooser across all Traydaq forms
+      - name: Modernize file pickers and Tap to Choose controls app-wide
         shell: bash
         run: |
           set -euo pipefail
