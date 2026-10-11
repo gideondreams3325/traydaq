@@ -23,6 +23,8 @@ assert(!js.includes('caches.open('));
 assert(js.includes('pauseCurrent()'), 'Leaving Home must pause its video');
 assert(js.includes('refreshBudget()'), 'Data Saver changes must update the preload budget');
 assert(js.includes("connection.addEventListener('change'"), 'Network changes must update budgets');
+assert(js.includes('setTimeout(queueFocus, 0)'), 'Page changes must trigger a media pause check');
+assert(js.includes("window.addEventListener('popstate'"), 'Back navigation must check hidden feed');
 console.log('PASS: safe app patch, preloading cap, startup instrumentation, lazy discovery images, no private data caching.');
 
 
