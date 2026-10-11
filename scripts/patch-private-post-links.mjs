@@ -54,7 +54,7 @@ export function patchPostLinkActivity(java) {
     '                // TRAYDAQ_POST_DEEP_LINK_2026: expose only the validated launch post ID.',
     '                webView.addJavascriptInterface(new Object() {',
     '                    @android.webkit.JavascriptInterface public String currentPostId() {',
-    '                        return tdCurrentPostId(getIntent());',
+    '                        return tdCurrentPostId(MainActivity.this.getIntent());',
     '                    }',
     '                }, "TraydaqPostLinks");',
     '',
@@ -83,7 +83,7 @@ export function patchPostLinkActivity(java) {
     '        } catch (Throwable ignored) {}',
     '    }',
   ].join('\n');
-  const existing = /protected\s+void\s+onNewIntent\s*\(\s*(?:android\.content\.)?Intent\s+([A-Za-z_]\w*)\s*\)\s*\{/.exec(java);
+  const existing = /(?:public|protected)\s+void\s+onNewIntent\s*\(\s*(?:android\.content\.)?Intent\s+([A-Za-z_]\w*)\s*\)\s*\{/.exec(java);
   if (existing) {
     // Respect existing plugin handlers; run after Capacitor handles the intent.
     const start = existing.index + existing[0].length;
