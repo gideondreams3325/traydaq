@@ -828,6 +828,7 @@ jobs:
           const end=html.indexOf('window.isEligibleFeedPost = isEligibleFeedPost;',start);
           const src=html.slice(start,end);
           if(start<0||end<start||src.includes("un === 'gideonappiah'"))throw Error('Genuine profile still hidden on For You');
+          if(!html.includes("orderBy('createdAt','desc'), limit(100)"))throw Error('Recent posts still truncated by unordered feed query');
           const eligible=new Function('currentUser','isFollowingUser','isPostDeleted','isPostTakenDown',
             'isPostRemovedBySecurity',src+'\nreturn isEligibleFeedPost;')
             ({uid:'viewer-1'},()=>false,()=>false,()=>false,()=>false);
