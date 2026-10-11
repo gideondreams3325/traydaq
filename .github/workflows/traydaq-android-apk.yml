@@ -1163,6 +1163,16 @@ jobs:
       - name: Install project dependencies
         run: npm install --no-audit --no-fund
 
+      - name: Verify owned music delete and removed-sound safeguards
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check music-management.js
+          node --check creator-studio.js
+          node tests/music-owner-delete.test.js
+          node tests/music-catalog-sync.test.js
+          echo 'PASS: Music owner deletion, private catalog and removed-sound safeguards.'
+
       - name: Check account switching, authentication screen and build app assets
         run: |
           node tests/android-account-switch.test.mjs
