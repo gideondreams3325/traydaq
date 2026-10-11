@@ -73,6 +73,67 @@ export function fixAndroidCameraPreview(html) {
       '      if (faceMeshInstance && (now - lastFrameTime > 60)) {'
     ].join('\n'),
     'blank camera detection');
+
+  html = swap(html,
+    '<!-- Camera flash disabled to protect native video visibility. -->',
+    [
+      '<div id="tdCameraStartPanel" style="position:absolute;inset:0;z-index:35;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;background:#172b24;color:#fff;text-align:center;padding:24px">',
+      '  <span style="font-size:34px" aria-hidden="true">📷</span>',
+      '  <strong style="font-size:19px">Live verification camera</strong>',
+      '  <p style="font-size:12px;line-height:1.6;max-width:250px;color:#e2eee5">Start your front camera. You must see yourself clearly before face tracking begins.</p>',
+      '  <button type="button" id="tdStartVerificationCamera" style="padding:13px 25px;border-radius:999px;background:#d7ac38;color:#18281e;font-weight:900">Start Camera</button>',
+      '  <small style="font-size:11px;color:#e2eee5">Camera is used only during this check.</small>',
+      '</div>'
+    ].join('\n'),
+    'start panel');
+
+  html = swap(html,
+    '  initLivenessDetection(kycData);\n}\n\nasync function tdCameraFix2026()',
+    [
+      "  $('tdStartVerificationCamera')?.addEventListener('click',async()=>{",
+      "    const button=$('tdStartVerificationCamera');",
+      "    if(button.disabled)return;",
+      "    button.disabled=true;button.textContent='Opening camera…';",
+      "    try{await initLivenessDetection(kycData);}",
+      "    catch(error){",
+      "      console.warn('Camera preview start error:',error?.name||'unknown');",
+      "      $('tdCameraStartPanel')?.classList.add('hidden');",
+      "      if($('livenessFaceStatusText'))$('livenessFaceStatusText').textContent='Camera failed. Tap Retry camera.';",
+      "      $('retryCameraBtn')?.classList.remove('hidden');",
+      "    }",
+      "  });",
+      "}",
+      "",
+      "async function tdCameraFix2026()"
+    ].join('\n'),
+    'camera explicit start');
+
+  html = swap(html,
+    '<span id="livenessFaceStatusText">Initializing camera…</span>',
+    '<span id="livenessFaceStatusText">Tap Start Camera to begin.</span>',
+    'camera initial status');
+
+  html = swap(html,
+    '    if(faceStatusText)faceStatusText.textContent="Camera active. Preparing face tracker…";',
+    '    if(faceStatusText)faceStatusText.textContent="Camera active. Checking picture…";\n    $("tdCameraStartPanel")?.classList.add("hidden");',
+    'reveal camera when connected');
+
+  html = swap(html,
+    '    if(faceStatusText)faceStatusText.textContent=message;\n    if(faceStatusPill)',
+    '    $("tdCameraStartPanel")?.classList.add("hidden");\n    if(faceStatusText)faceStatusText.textContent=message;\n    if(faceStatusPill)',
+    'reveal camera failure');
+
+  html = swap(html,
+    'function stopLivenessCamera() {\n  if (activeLivenessAnimId) {',
+    [
+      'function stopLivenessCamera() {',
+      '  window._tdCameraSession=(window._tdCameraSession||0)+1;',
+      "  const video=document.getElementById('livenessVideo');",
+      '  if(video){try{video.pause();video.srcObject=null;}catch(_){}}',
+      '  if (activeLivenessAnimId) {'
+    ].join('\n'),
+    'camera release');
+
   return html;
 }
 
