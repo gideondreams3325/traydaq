@@ -488,6 +488,32 @@ jobs:
           node tests/supabase-edge-comments.test.mjs
           # Only APK build inputs are patched. Live server deployment is managed separately.
 
+      - name: Restore Creator Studio owned jobs, services and events
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --location \
+            "https://raw.githubusercontent.com/gideondreams3325/traydaq/${GITHUB_SHA}/scripts/patch-private-creator-listing-sync.mjs" \
+            --output /tmp/traydaq-creator-listing-sync.mjs
+          node --check /tmp/traydaq-creator-listing-sync.mjs
+          node /tmp/traydaq-creator-listing-sync.mjs .
+          node --check creator-studio.js
+          node --check jobs-events.js
+          node tests/creator-jobs-services-events-links.test.js
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          const studio=fs.readFileSync('creator-studio.js','utf8');
+          const jobs=fs.readFileSync('jobs-events.js','utf8');
+          for(const marker of ['tdCreatorSyncCatalog2026','creatorUnsyncedJobs','readOwnedCreatorRowsOnline'])
+            if(!studio.includes(marker))throw Error('Creator listings recovery absent: '+marker);
+          for(const marker of ['tdCreatorPublishingVerified2026','Not published online:',
+            'acceptedStatus','acceptedReviewStatus'])
+            if(!jobs.includes(marker))throw Error('Verified listing publication missing: '+marker);
+          if((jobs.match(/Not published online:/g)||[]).length!==2)
+            throw Error('Both vacancy/service and event publication must reject online failure.');
+          console.log('PASS: job, service, event linking catalog and server-confirmed posting.');
+          JS
+
       - name: Install project dependencies
         run: npm install --no-audit --no-fund
 
