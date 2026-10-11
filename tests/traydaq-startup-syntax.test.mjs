@@ -19,6 +19,14 @@ test('repairs route-key parse error observed in published APK without changing u
  assert.doesNotThrow(()=>validateInlineScripts(html));
  assert.equal(repairStartupSyntax(html).repaired,false);
 });
+test('repairs all known Team-name navigation variants',()=>{
+  for(const label of ['TRAYDAQ Security Team','Traydaq Security Team','Security Team','TRAYDAQ Team']){
+    const source=make(label+':renderAdmin');
+    const fixed=repairStartupSyntax(source);
+    assert.equal(fixed.repaired,true,label);
+    assert.doesNotThrow(()=>validateInlineScripts(fixed.html));
+  }
+});
 test('rejects other syntax mistakes instead of shipping a blank app',()=>{
  assert.throws(()=>repairStartupSyntax(make('admin:renderAdmin',
  '<script id="bad">const = broken;</script>')),/invalid inline script/);
