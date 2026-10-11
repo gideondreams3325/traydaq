@@ -25,7 +25,7 @@
     mediaPrioritized: 0, offscreenPaused: 0, lowDataMode: constrained,
     nearbyPrefetch: neighbors };
   var raf = window.requestAnimationFrame ?
-    function(fn){ return requestAnimationFrame(fn); } :
+    function(fn){ return window.requestAnimationFrame(fn); } :
     function(fn){ return setTimeout(fn, 16); };
   function idle(fn) {
     if (typeof window.requestIdleCallback === 'function')
