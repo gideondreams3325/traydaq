@@ -30,7 +30,7 @@ export function patchVerificationBadges(source){
   '  if(!force&&Date.now()-tdBlueBadgeUpdatedAt<60000)return window.sfBlueBadgeUidSet;',
   '  tdBlueBadgeFetch=(async()=>{',
   '    try{',
-  '      const res=await fetch(tdBlueBadgeEndpoint,{method:"GET",cache:"no-store"});',
+  '      const res=await fetch(tdBlueBadgeEndpoint,{method:"GET",cache:"no-store",signal:(typeof AbortSignal!=="undefined"&&typeof AbortSignal.timeout==="function")?AbortSignal.timeout(7000):undefined});',
   '      if(!res.ok)throw Error("Registry unavailable");',
   '      const data=await res.json();',
   '      if(!data.success||!Array.isArray(data.blueVerifiedUids))throw Error("Invalid registry");',
@@ -62,7 +62,7 @@ export function patchVerificationBadges(source){
  source=source.slice(0,vfStart)+helper+'function verifyBadge(s){return tdTrustBadgeHtml(s);}\n'+source.slice(vfEnd);
  const old='function sfIsVerifiedBadgeActive(u) {\n  if (!u) return false;\n  if (u.role === \'admin\' || u.isAdmin === true) return true;\n  const isPro = (u.subscription === \'PRO\' || u.plan === \'PRO\' || u.isPro === true);\n  const isAccountVerified = (u.accountVerificationStatus === \'VERIFIED\' || u.accountVerified === true || u.verificationStatus === \'approved\');\n  return isPro && isAccountVerified;\n}';
  source=once(source,old,'function sfIsVerifiedBadgeActive(u) {\n  return !!(u?.uid && window.sfBlueBadgeUidSet?.has(u.uid));\n}','official badge determination');
- source=once(source,'async function loadPublicProfiles(){','async function loadPublicProfiles(){\n  await sfRefreshBlueBadges().catch(()=>{});','hydrate authoritative badges');
+ source=once(source,'async function loadPublicProfiles(){','async function loadPublicProfiles(){\n  sfRefreshBlueBadges().catch(()=>{});','hydrate authoritative badges');
  // User/creator badge ternaries which formerly treated legacy verified flags as official blue checks.
  const rawBadge=/\$\{\s*([A-Za-z_]\w*)\??\.verified\s*\?\s*([\x27`])\s*<span class="verified-badge[^\n]*?>✓<\/span>\s*\2\s*:\s*\x27\x27\s*\}/g;
  let basic=0;
