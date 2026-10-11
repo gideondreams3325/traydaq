@@ -143,11 +143,18 @@ jobs:
           curl -fsSL "https://raw.githubusercontent.com/gideondreams3325/traydaq/${GITHUB_SHA}/scripts/patch-private-admin-video-playback.mjs" -o /tmp/traydaq-admin-player-patch.mjs
           node --check /tmp/traydaq-admin-player-patch.mjs
           node /tmp/traydaq-admin-player-patch.mjs --self-test
-          node /tmp/traydaq-admin-player-patch.mjs .
-          grep -Fq 'tdAdminPlayableVideo2026' index.html
-          grep -Fq 'player.controls = true' index.html
-          grep -Fq 'tdAdminPlayablePostCard' index.html
-          echo 'PASS: inline moderation video playback enabled.'
+          if grep -Eq 'function adminPostCard[[:space:]]*\\(|(const|let)[[:space:]]+adminPostCard[[:space:]]*=' index.html; then
+            node /tmp/traydaq-admin-player-patch.mjs .
+            grep -Fq 'tdAdminPlayableVideo2026' index.html
+            grep -Fq 'player.controls = true' index.html
+            grep -Fq 'tdAdminPlayablePostCard' index.html
+            echo 'PASS: legacy admin post renderer now plays videos.'
+          else
+            # The current Traydaq renderer is renderAdminPostItem; its tested native
+            # player is installed by the later moderation-card build step.
+            grep -Fq 'function renderAdminPostItem(uid, p, mode)' index.html
+            echo 'PASS: modern admin renderer detected; defer to native video-card patch.'
+          fi
 
       - name: Separate Traydaq ID verification from admin-only blue checks
         shell: bash
