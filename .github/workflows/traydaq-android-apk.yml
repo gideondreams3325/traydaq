@@ -585,6 +585,37 @@ jobs:
           console.log('PASS: both management tabs show only listings owned by the currently signed-in UID.');
           JS
 
+      - name: Keep Creator Studio video playback stable while editing
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --location \
+            "https://raw.githubusercontent.com/gideondreams3325/traydaq/${GITHUB_SHA}/scripts/patch-private-video-editor-preview.mjs" \
+            --output /tmp/traydaq-video-editor-preview.mjs
+          node --check /tmp/traydaq-video-editor-preview.mjs
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          import {pathToFileURL} from 'node:url';
+          const {patchEditor,patchStudioLoader}=await import(pathToFileURL('/tmp/traydaq-video-editor-preview.mjs').href);
+          const original=fs.readFileSync('video-editor-pro.js','utf8');
+          const patched=patchEditor(original);
+          const studio=patchStudioLoader(fs.readFileSync('creator-studio.js','utf8'));
+          for(const required of ['tdStableVideoPreview2026','waitForFrame','video.onwaiting','previewWatchdog',
+            'webkit-playsinline preload="auto"','video.style.filter=filterCss()','ctx.filter=filterCss()']){
+            if(!patched.includes(required))throw Error('Video preview patch missing: '+required);
+          }
+          if(patched.includes('Unable to preview video.'))throw Error('Unrecovered preview exception remains.');
+          if(!studio.includes("video-editor-pro.js?v=20261011-preview1"))throw Error('Video module cache not refreshed.');
+          new Function(patched.replace(/^export /gm,''));
+          try{patchEditor(patched);throw Error('Double patch was incorrectly allowed.');}
+          catch(error){if(!String(error.message).includes('already patched'))throw error;}
+          console.log('PASS: editor keeps one source for live filters, framing, audio, and text; seeking and stalled playback recover.');
+          JS
+          node /tmp/traydaq-video-editor-preview.mjs .
+          node --check video-editor-pro.js
+          node --check creator-studio.js
+          # Only the temporary APK checkout is patched; no private source is published.
+
       - name: Install project dependencies
         run: npm install --no-audit --no-fund
 
