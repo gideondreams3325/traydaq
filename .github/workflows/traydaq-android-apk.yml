@@ -287,7 +287,7 @@ jobs:
           grep -Fq "action === 'like' ? countEntries(all)" post-social.js
           # Also run the preexisting content and profile activity safeguards.
           node tests/profile-social-activity.test.mjs
-          node tests/post-engagement-following.test.js
+          # Post-engagement suite also needs dist/ and synced Android assets.
 
       - name: Strip legacy local account and activity snapshots
         shell: bash
@@ -329,6 +329,7 @@ jobs:
           node scripts/patch-capacitor.js
           test -s android/app/google-services.json
           grep -q "AndroidGoogleAuthBridge" dist/index.html
+          node tests/post-engagement-following.test.js
 
       - name: Re-sanitize packaged account snapshots before Gradle
         shell: bash
