@@ -1419,6 +1419,25 @@ jobs:
           grep -Fq 'id="tdHomeRecovery20261011"' index.html
           echo 'PASS: Android Home can recover without removing tabs or account data.'
 
+      - name: Repair and validate TRAYDAQ app startup JavaScript
+        shell: bash
+        run: |
+          set -euo pipefail
+          base="https://raw.githubusercontent.com/gideondreams3325/traydaq/${GITHUB_SHA}"
+          mkdir -p /tmp/td-startup/{scripts,tests}
+          for part in scripts/patch-private-startup-syntax.mjs tests/traydaq-startup-syntax.test.mjs; do
+            curl -fsSL "$base/$part" -o "/tmp/td-startup/$part"
+          done
+          node --check /tmp/td-startup/scripts/patch-private-startup-syntax.mjs
+          node --test /tmp/td-startup/tests/traydaq-startup-syntax.test.mjs
+          node /tmp/td-startup/scripts/patch-private-startup-syntax.mjs .
+          grep -Fq 'admin:renderAdmin' index.html
+          if grep -Fq 'TRAYDAQ Traydaq Security Team:renderAdmin' index.html; then
+            echo "::error::Broken JavaScript route key still exists."
+            exit 1
+          fi
+          echo 'PASS: all app entry scripts parse; Home shell will not be broken by the Team-branding route.'
+
       - name: Install project dependencies
         run: npm install --no-audit --no-fund
 
@@ -1455,6 +1474,15 @@ jobs:
           node tests/traydaq-auth-screen-regression.test.mjs
           npm run build
           test -s dist/index.html
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          import {validateInlineScripts} from '/tmp/td-startup/scripts/patch-private-startup-syntax.mjs';
+          const html=fs.readFileSync('dist/index.html','utf8');
+          const count=validateInlineScripts(html);
+          if(!html.includes('admin:renderAdmin')||html.includes('TRAYDAQ Traydaq Security Team:renderAdmin'))
+            throw Error('Fatal damaged admin navigation route survived into dist');
+          console.log('PASS: production HTML bundle has '+count+' syntactically valid startup scripts.');
+          JS
           grep -Fq 'tdHomeRecovery20261011' dist/index.html
           node --input-type=module -e "import fs from 'node:fs';const html=fs.readFileSync('dist/index.html','utf8');if(!html.includes('class=\"text-[#17653c]\">Tray</span>')||html.includes('>Seller</span><span class=\"gold-gradient\">Flow'))process.exit(1);console.log('PASS: bundled Android login shows Traydaq, not SellerFlow.')"
 
@@ -1681,6 +1709,31 @@ jobs:
           print("SUCCESS: APK is signed using the permanent Traydaq debug keystore.")
           print("Verified SHA-1:", expected_sha1)
           PY
+
+      - name: Check JavaScript inside final Android APK before publication
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import zipfile
+          apk=Path('release/Traydaq-debug.apk')
+          if not apk.is_file(): raise SystemExit('Missing signed APK')
+          with zipfile.ZipFile(apk) as z:
+              name='assets/public/index.html'
+              if name not in z.namelist(): raise SystemExit('Packaged Android startup page missing')
+              Path('/tmp/td-packaged-index.html').write_bytes(z.read(name))
+          PY
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          import {validateInlineScripts} from '/tmp/td-startup/scripts/patch-private-startup-syntax.mjs';
+          const html=fs.readFileSync('/tmp/td-packaged-index.html','utf8');
+          const count=validateInlineScripts(html);
+          if(!html.includes('admin:renderAdmin')||
+             html.includes('TRAYDAQ Traydaq Security Team:renderAdmin'))
+            throw Error('Invalid Home startup/navigation script would ship in APK');
+          console.log('PASS: signed TRAYDAQ APK includes '+count+' valid inline startup scripts.');
+          JS
 
       - name: Ensure no legacy account records are packaged
         shell: bash
