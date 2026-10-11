@@ -21,6 +21,7 @@ on:
   # Verify Firebase RTDB OAuth scope repair for blue-check registry (2026-10-11).
   # Include authenticated, unique video playback views in Traydaq APK (2026-10-11).
   # Build profile-linked comments, live UID-owned likes and safe legacy comment hearts (2026-10-11).
+  # Final tested Speed Engine update: visible reel priority, low RAM budget, route pause and APK markers (2026-10-11).
   # Pull requests and commits to other files do not trigger private source checkout.
   push:
     branches: [main]
