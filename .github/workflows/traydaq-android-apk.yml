@@ -800,6 +800,47 @@ jobs:
             echo "::error::Unsecured Firebase video claim remains active."
             exit 1
           fi
+      - name: Restore legitimate For You posts and reject black Creator Studio covers
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --location \
+            "https://raw.githubusercontent.com/gideondreams3325/traydaq/${GITHUB_SHA}/scripts/patch-private-creator-feed-cover.mjs" \
+            --output /tmp/td-creator-feed-cover.mjs
+          node --check /tmp/td-creator-feed-cover.mjs
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          import {pathToFileURL} from 'node:url';
+          const {patchFeed,patchCreator}=await import(pathToFileURL('/tmp/td-creator-feed-cover.mjs').href);
+          const originalHtml=fs.readFileSync('index.html','utf8');
+          const originalCreator=fs.readFileSync('creator-studio.js','utf8');
+          const html=patchFeed(originalHtml),studio=patchCreator(originalCreator);
+          const start=html.indexOf('const isEligibleFeedPost = (p) => {');
+          const end=html.indexOf('window.isEligibleFeedPost = isEligibleFeedPost;',start);
+          const src=html.slice(start,end);
+          if(start<0||end<start||src.includes("un === 'gideonappiah'"))throw Error('Genuine profile still hidden on For You');
+          const eligible=new Function('currentUser','isFollowingUser','isPostDeleted','isPostTakenDown',
+            'isPostRemovedBySecurity',src+'\nreturn isEligibleFeedPost;')
+            ({uid:'viewer-1'},()=>false,()=>false,()=>false,()=>false);
+          const real={id:'post-1',sellerId:'real-uid',sellerUsername:'gideonappiah',
+            mediaUrl:'https://example.com/clip.mp4',mediaType:'video/mp4',status:'published',
+            privacy:'public',reviewStatus:'pending_security_review',safeContent:true,liveOnForYou:true};
+          if(!eligible(real)||eligible({...real,hidden:true})||eligible({...real,privacy:'private'}))
+            throw Error('For You privacy or new-post eligibility regression');
+          if(!studio.includes('window._sfCachedPosts.set(newPost.id, newPost)')||
+            !studio.includes("window.navigate('feed', published.ref.id)")||
+            !studio.includes('Video frame is black')||!studio.includes('requestVideoFrameCallback'))
+            throw Error('Creator cover or publish recovery missing');
+          try{patchCreator(studio);throw Error('Double patch was incorrectly allowed');}
+          catch(e){if(!String(e.message).includes('already patched'))throw e;}
+          console.log('PASS: authentic public posts eligible, private/hidden excluded, black frames rejected, published reel opens in feed.');
+          JS
+          node /tmp/td-creator-feed-cover.mjs .
+          node --check creator-studio.js
+          grep -Fq 'tdCreatorFeedCover20261011' index.html
+          grep -Fq 'tdCreatorFeedCover20261011' creator-studio.js
+          # The fix is for the Android APK's local source and requires no website deployment.
+
       - name: Install project dependencies
         run: npm install --no-audit --no-fund
 
