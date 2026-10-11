@@ -399,6 +399,42 @@ jobs:
           console.log('PASS: mobile job-application fields, file-picker validation, sticky action area and shared styles.');
           JS
 
+      - name: Modernize Marketplace, Vacancies and Events as responsive card grids
+        shell: bash
+        run: |
+          set -euo pipefail
+          # The public repository contains only UI patch instructions.
+          # Apply to the temporary private checkout; do not publish private files.
+          curl --fail --silent --show-error --location \
+            "https://raw.githubusercontent.com/gideondreams3325/traydaq/${GITHUB_SHA}/scripts/patch-private-discovery-grids.mjs" \
+            --output /tmp/traydaq-discovery-grids.mjs
+          curl --fail --silent --show-error --location \
+            "https://raw.githubusercontent.com/gideondreams3325/traydaq/${GITHUB_SHA}/assets/traydaq-discovery-grids.css" \
+            --output /tmp/traydaq-discovery-grids.css
+          node --check /tmp/traydaq-discovery-grids.mjs
+          node /tmp/traydaq-discovery-grids.mjs . /tmp/traydaq-discovery-grids.css
+          node --check jobs-events.js
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          const html=fs.readFileSync('index.html','utf8');
+          const jobs=fs.readFileSync('jobs-events.js','utf8');
+          for(const marker of ['id="tdDiscoveryGrid2026"','id="tdDiscoveryMedia2026"',
+            '#productGrid, #storeGrid, #jobsListContainer, #eventsListContainer',
+            'grid-template-columns:repeat(2,minmax(0,1fr))!important',
+            'grid-template-columns:repeat(3,minmax(0,1fr))!important',
+            'grid-template-columns:repeat(4,minmax(0,1fr))!important']) {
+            if(!html.includes(marker))throw new Error('Discovery grid patch missing: '+marker);
+          }
+          if(!jobs.includes('class="td-job-card ') || !jobs.includes('data-event-card=')) {
+            throw new Error('Jobs and events cards missing after layout patch.');
+          }
+          const open='<script id="tdDiscoveryMedia2026">';
+          const start=html.indexOf(open),end=html.indexOf('</script>',start);
+          if(start<0||end<start)throw new Error('Missing product image recovery handler');
+          new Function(html.slice(start+open.length,end));
+          console.log('PASS: accessible green-and-gold discovery grids, compact images, and preserved card actions.');
+          JS
+
       - name: Strip legacy local account and activity snapshots
         shell: bash
         run: |
