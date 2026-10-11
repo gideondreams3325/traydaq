@@ -124,7 +124,13 @@ function enforceSubmission(source,kind){
  return source.slice(0,objStart)+obj+source.slice(objEnd);
 }
 export function patchJobs(source){
- if(source.includes('tdCreatorPublishingVerified2026'))throw Error('Already patched posting');
+ // Preserve the corrected Firebase-native publisher already in private source.
+ if(source.includes('tdCreatorPublishingVerified2026')){
+  if((source.match(/Not published online:/g)||[]).length!==2 ||
+     !source.includes('acceptedStatus') || !source.includes('acceptedReviewStatus'))
+   throw Error('Private native listing publisher is incomplete');
+  return source;
+ }
  return enforceSubmission(enforceSubmission(source,'job'),'event');
 }
 export function main(root='.'){
