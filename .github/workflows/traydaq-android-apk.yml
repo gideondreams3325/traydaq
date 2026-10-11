@@ -82,6 +82,23 @@ jobs:
           grep -q 'id="dashCardNotify"' index.html
           grep -q 'id="dashCardTerms"' index.html
           grep -q 'id="dashCardReports"' index.html
+      - name: Verify Traydaq admin overview navigation regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          const html = fs.readFileSync('index.html', 'utf8');
+          const backLink = "$('tdAdminBackOverview')?.addEventListener('click', () => setAdminTab('overview'));";
+          if (!html.includes(backLink)) {
+            throw new Error('Admin back-to-overview button is not connected to the local router.');
+          }
+          if (!html.includes('id="tdAdminDashboard"') || !html.includes('id="adminWorkspace"')) {
+            throw new Error('Security dashboard or page workspace is missing.');
+          }
+          console.log('PASS: Traydaq admin back navigation routes directly to Overview.');
+          JS
+
       - name: Prevent admin dashboard freezes on Android
         shell: bash
         run: |
