@@ -239,10 +239,15 @@
       else { queueFocus(); scheduleLazy(); }
     });
     doc.addEventListener('click', function(event) {
-      if (event.target?.closest?.('nav,[role="navigation"],#bottomNav,.bottom-nav'))
+      if (event.target?.closest?.('nav,[role="navigation"],#bottomNav,.bottom-nav')) {
         scheduleLazy();
+        // Route handlers may hide Home after the capture phase; check after navigation.
+        setTimeout(queueFocus, 0);
+      }
     }, true);
     window.addEventListener('pageshow', function(){ queueScan(); scheduleLazy(); });
+    window.addEventListener('popstate', queueFocus);
+    window.addEventListener('hashchange', queueFocus);
     window.addEventListener('resize', queueFocus, {passive:true});
     if (connection && typeof connection.addEventListener === 'function') {
       connection.addEventListener('change', function(){ refreshBudget(); queueFocus(); });
