@@ -16,6 +16,35 @@ function tdInstallEasyJobSelects(modal) {
     }
   }
 
+  // Swipe down from the sheet to close. Allow normal scrolling inside long option lists.
+  function installJobSheetDismiss(sheet, onClose) {
+    let start = null;
+    sheet.addEventListener('touchstart', event => {
+      if (event.touches.length !== 1) { start = null; return; }
+      const target = event.target;
+      if (target.closest?.('input, textarea, [contenteditable="true"]')) { start = null; return; }
+      const scrollArea = target.closest?.('.td-job-picker-list') || null;
+      if (scrollArea && scrollArea.scrollTop > 1) { start = null; return; }
+      const touch = event.touches[0];
+      start = { identifier: touch.identifier, x: touch.clientX, y: touch.clientY, scrollArea };
+    }, { passive: true });
+    sheet.addEventListener('touchend', event => {
+      if (!start) return;
+      const origin = start;
+      start = null;
+      const touch = Array.from(event.changedTouches).find(item => item.identifier === origin.identifier);
+      if (!touch) return;
+      const down = touch.clientY - origin.y;
+      const sideways = Math.abs(touch.clientX - origin.x);
+      if (down > 85 && down > sideways * 1.3 &&
+          (!origin.scrollArea || origin.scrollArea.scrollTop <= 1)) {
+        event.preventDefault(); // Prevent a swipe from also selecting an option.
+        onClose();
+      }
+    }, { passive: false });
+    sheet.addEventListener('touchcancel', () => { start = null; }, { passive: true });
+  }
+
   function handleKey(event) {
     if (!active) return;
     if (event.key === 'Escape') {
@@ -73,6 +102,10 @@ function tdInstallEasyJobSelects(modal) {
     heading.id = 'tdJobPickerHeading';
     sheet.setAttribute('aria-labelledby', heading.id);
 
+    const dragHandle = document.createElement('div');
+    dragHandle.className = 'td-job-picker-drag-handle';
+    dragHandle.setAttribute('aria-hidden', 'true');
+
     const header = document.createElement('div');
     header.className = 'td-job-picker-header';
     const headerText = document.createElement('div');
@@ -120,11 +153,12 @@ function tdInstallEasyJobSelects(modal) {
       optionButtons.push(choice);
     }
 
-    sheet.append(header, list);
+    sheet.append(dragHandle, header, list);
     overlay.appendChild(sheet);
     overlay.addEventListener('click', (event) => {
       if (event.target === overlay) closePicker();
     });
+    installJobSheetDismiss(sheet, () => closePicker());
     document.body.appendChild(overlay);
     active = { overlay, trigger };
     document.addEventListener('keydown', handleKey, true);
