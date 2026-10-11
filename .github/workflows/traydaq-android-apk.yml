@@ -215,7 +215,7 @@ jobs:
             !source.slice(start,end).includes('accountHandleFor')) {
             throw new Error('App-wide username renderer patch is missing.');
           }
-          new Function(source.slice(start+29,end));
+          new Function(source.slice(start + '<script id="tdActualUsernames">'.length,end));
           console.log('PASS: real username display logic is injected and syntactically valid.');
           JS
 
