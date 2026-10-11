@@ -85,6 +85,12 @@ export function patchVerificationBadges(source){
   'Account verification complete <span class="td-id-badge">🆔 Verified</span><div class="muted text-sm mt-1">Blue checks are awarded separately by the Traydaq Security Team.</div>',
   'verification explanatory state');
  source=once(source,'<div class="bg-white rounded-xl p-3 text-sm">✓ Trust badge</div>','<div class="bg-white rounded-xl p-3 text-sm">🆔 Verified label</div>','verification explainer');
+ source=once(source,
+  '${currentProfile.verified?\'<div class="font-bold mt-4 flex items-center gap-2 text-emerald-400"><span class="verified-badge">✓</span><span>Verified seller</span></div>\':',
+  '${sfAccountVerified(currentProfile)?\'<div class="font-bold mt-4 flex items-center gap-2 text-[#17653c]"><span class="td-id-badge">🆔 Verified</span><span>Account verified</span></div>\':','seller identity status');
+ source=once(source,
+  '${p.verified?\'<div class="text-sm font-bold mt-1 flex items-center gap-2"><span class="verified-badge">✓</span><span>Verified seller</span></div>\':\'\'}',
+  '${sfAccountVerified(p)?\'<div class="text-sm font-bold mt-1 flex items-center gap-2"><span class="td-id-badge">🆔 Verified</span><span>Account verified</span></div>\':\'\'}','profile identity status');
  const hub=[
  '  function sfAdminBlueChecks(users){',
  '    const host=document.getElementById("adminWorkspace");',
