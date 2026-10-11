@@ -14,6 +14,7 @@ export function patchVerificationBadges(source){
  const badgeCss = '<style id="tdBadgeSeparationStyles">'+
    '.td-id-badge{display:inline-flex;align-items:center;gap:3px;border:1px solid #dcc88a;background:#fff8df;color:#574415;border-radius:999px;padding:2px 7px;font-size:10px;font-weight:800;vertical-align:middle;white-space:nowrap}'+
    '.td-blue-badge{display:inline-flex;align-items:center;justify-content:center;border-radius:50%;width:18px;height:18px;background:#1d9bf0;color:#fff;font-size:12px;font-weight:900;vertical-align:middle;box-shadow:0 0 0 2px #e3f3ff;flex-shrink:0}'+
+   '.td-trust-badge-slot:empty{display:none}'+
    '.td-blue-hub section{max-width:100%}.td-blue-hub-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:10px}'+
    '.td-blue-hub-row{min-width:0;background:#fff;border:1px solid #d9e8df;border-radius:15px;padding:12px}'+
    '.td-blue-hub-row button{padding:9px 13px;border-radius:10px;background:#17653c;color:white;font-weight:800;font-size:12px}'+
@@ -39,7 +40,8 @@ export function patchVerificationBadges(source){
   '      window.sfOfficialTraydaqUid=(typeof data.officialAdminUid==="string"&&/^[A-Za-z0-9_-]{6,128}$/.test(data.officialAdminUid))?data.officialAdminUid:null;',
   '      if(window.sfOfficialTraydaqUid)window.sfBlueBadgeUidSet.add(window.sfOfficialTraydaqUid);',
   '      window.sfBlueBadgeRegistryOnline=true;',
-  '    }catch(_){window.sfBlueBadgeUidSet=new Set();window.sfOfficialTraydaqUid=null;window.sfBlueBadgeRegistryOnline=false;}',
+  '      tdRefreshVisibleTrustBadges();',
+  '    }catch(_){window.sfBlueBadgeUidSet=new Set();window.sfOfficialTraydaqUid=null;window.sfBlueBadgeRegistryOnline=false;tdRefreshVisibleTrustBadges();}',
   '    finally{tdBlueBadgeUpdatedAt=Date.now();tdBlueBadgeFetch=null;}',
   '    return window.sfBlueBadgeUidSet;',
   '  })();',
@@ -48,12 +50,26 @@ export function patchVerificationBadges(source){
   'function sfAccountVerified(u){',
   '  return !!u&&(u.accountVerificationStatus==="VERIFIED"||u.accountVerified===true||u.verificationStatus==="approved");',
   '}',
+  'function tdBadgeMarkup(uid,verified){',
+  '  if(uid&&window.sfBlueBadgeUidSet?.has(uid))return \'<span class="td-blue-badge" title="Official Traydaq blue check" aria-label="Official blue check">✓</span>\';',
+  '  if(verified)return \'<span class="td-id-badge" title="Traydaq account identity verified">🆔 Verified</span>\';',
+  '  return "";',
+  '}',
+  'function tdRefreshVisibleTrustBadges(){',
+  '  if(typeof document==="undefined")return;',
+  '  document.querySelectorAll("[data-td-trust-uid]").forEach(slot=>{',
+  '    const uid=slot.getAttribute("data-td-trust-uid");',
+  '    const verified=slot.getAttribute("data-td-account-verified")==="1";',
+  '    const html=tdBadgeMarkup(uid,verified);',
+  '    if(slot.innerHTML!==html)slot.innerHTML=html;',
+  '  });',
+  '}',
   'function tdTrustBadgeHtml(u){',
   '  if(!u)return "";',
   '  const uid=String(u.uid||u.userId||u.ownerUid||"");',
-  '  if(uid&&window.sfBlueBadgeUidSet?.has(uid))return \' <span class="td-blue-badge" title="Official Traydaq blue check — awarded by Security Team" aria-label="Official blue check">✓</span>\';',
-  '  if(sfAccountVerified(u))return \' <span class="td-id-badge" title="Traydaq account identity verified">🆔 Verified</span>\';',
-  '  return "";',
+  '  const verified=sfAccountVerified(u);',
+  '  if(!/^[A-Za-z0-9_-]{6,128}$/.test(uid))return tdBadgeMarkup("",verified);',
+  '  return \' <span class="td-trust-badge-slot" data-td-trust-uid="\'+uid+\'" data-td-account-verified="\'+(verified?"1":"0")+\'">\'+tdBadgeMarkup(uid,verified)+\'</span>\';',
   '}',
   'window.sfRefreshBlueBadges=sfRefreshBlueBadges;',
   'window.sfTrustBadgeHtml=tdTrustBadgeHtml;',
