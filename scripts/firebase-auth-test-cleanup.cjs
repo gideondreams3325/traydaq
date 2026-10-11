@@ -38,7 +38,7 @@ const app = initializeApp({
   databaseURL: 'https://sellerflow-efaab-default-rtdb.firebaseio.com',
 });
 const auth = getAuth(app);
-const db = getDatabase(app);
+let db = null; // Don't open RTDB sockets for read-only Authentication audits.
 
 const STRONG_TEST_EMAIL = /^(?:plain_user_|pers_user_|test[_+.-]|fake[_+.-]|fixture[_+.-]|seed[_+.-]|mock[_+.-]|demo[_+.-]|qa[_+.-])/i;
 const STRONG_TEST_NAME = /^(?:plain_user_|pers_user_|test[_+.-]|fake[_+.-]|fixture[_+.-]|seed[_+.-]|mock[_+.-]|demo[_+.-]|qa[_+.-])/i;
@@ -65,6 +65,7 @@ function privileged(data) {
 }
 async function getProfiles(uid) {
   // If one check fails, abort deletion; we must not guess about account safety.
+  if (!db) db = getDatabase(app);
   const { ref, get } = require('firebase-admin/database');
   const nodes = ['users','accounts','publicProfiles','identityVerifications','buyerKycRecords'];
   const snapshots = await Promise.all(nodes.map(n => get(ref(db, n + '/' + uid))));
@@ -72,6 +73,18 @@ async function getProfiles(uid) {
 }
 async function audit() {
   let cursor, total = 0, suspected = 0, protectedCount = 0;
+  const evidence = {
+    flaggedEmailVerified: 0,
+    flaggedGoogleProvider: 0,
+    flaggedPhoneLinked: 0,
+    flaggedOtherProvider: 0,
+    flaggedDisabled: 0,
+    flaggedNoLastSignIn: 0,
+    flaggedHasLastSignIn: 0,
+    flaggedAuthOnlyEvidence: 0,
+    flaggedEmailPrefix: 0,
+    flaggedDisplayName: 0
+  };
   console.log('READ-ONLY review for Firebase project ' + PROJECT);
   console.log('A flagged name is NOT proof of a fake account. Never bulk-delete by name.');
   do {
@@ -84,6 +97,17 @@ async function audit() {
       const reason = fixtureHint(user);
       if (reason) {
         suspected++;
+        if (reason === 'test-style email prefix') evidence.flaggedEmailPrefix++;
+        if (reason === 'test-style display name') evidence.flaggedDisplayName++;
+        if (user.emailVerified) evidence.flaggedEmailVerified++;
+        if (user.phoneNumber) evidence.flaggedPhoneLinked++;
+        if (user.disabled) evidence.flaggedDisabled++;
+        if (user.metadata?.lastSignInTime) evidence.flaggedHasLastSignIn++;
+        else evidence.flaggedNoLastSignIn++;
+        const providers = (user.providerData || []).map(p => p.providerId);
+        if (providers.includes('google.com')) evidence.flaggedGoogleProvider++;
+        if (providers.some(p => p && !['google.com', 'password'].includes(p))) evidence.flaggedOtherProvider++;
+        if (!user.emailVerified && !user.phoneNumber && !providers.includes('google.com')) evidence.flaggedAuthOnlyEvidence++;
         if (!redact) console.log('REVIEW_ONLY\t' + user.uid + '\t' + (user.email || '(no email)') + '\t' + reason +
           '\tcreated=' + (user.metadata.creationTime || '?') +
           '\tlastSignIn=' + (user.metadata.lastSignInTime || '?'));
@@ -92,6 +116,17 @@ async function audit() {
     cursor = page.pageToken;
   } while (cursor);
   console.log('TOTAL_AUTH=' + total + ' REVIEW_CANDIDATES=' + suspected + ' EXPLICIT_ADMIN_PROTECTED=' + protectedCount);
+  console.log('REVIEW_CANDIDATES_WITH_VERIFIED_EMAIL=' + evidence.flaggedEmailVerified +
+    ' WITH_GOOGLE_PROVIDER=' + evidence.flaggedGoogleProvider +
+    ' WITH_PHONE=' + evidence.flaggedPhoneLinked +
+    ' WITH_OTHER_PROVIDER=' + evidence.flaggedOtherProvider +
+    ' DISABLED=' + evidence.flaggedDisabled);
+  console.log('REVIEW_CANDIDATES_WITH_LAST_SIGN_IN=' + evidence.flaggedHasLastSignIn +
+    ' NO_RECORDED_LAST_SIGN_IN=' + evidence.flaggedNoLastSignIn);
+  console.log('REVIEW_CANDIDATES_EMAIL_PREFIX=' + evidence.flaggedEmailPrefix +
+    ' DISPLAY_NAME_ONLY=' + evidence.flaggedDisplayName +
+    ' AUTH_UNVERIFIED_NO_PHONE_GOOGLE=' + evidence.flaggedAuthOnlyEvidence);
+  console.log('These signals do not identify fake accounts or establish lack of app activity.');
   if (redact) console.log('Public report is aggregate-only. To select accounts, review Firebase Console privately; do not copy UIDs into public logs or workflow inputs.');
   console.log('No accounts were deleted. Select only UIDs you personally confirm are test accounts.');
 }
@@ -159,8 +194,13 @@ async function deletion() {
   console.log('DELETED=' + success + ' FAILED=' + failures + ' RTDB_UNCHANGED=true');
   if (failures) process.exitCode = 1;
 }
-(mode === 'audit' ? audit() : deletion()).catch(err => {
+// Firebase Admin may hold open sockets even when Authentication enumeration
+// has finished. Finalize after all asynchronous work has completed, so the
+// public GitHub audit is marked successful instead of timing out after 20 min.
+(mode === 'audit' ? audit() : deletion()).then(() => {
+  process.stdout.write('AUDIT_OR_CLEANUP_TASK_COMPLETE\n', () => process.exit(process.exitCode || 0));
+}).catch(err => {
   // Avoid dumping account data, access tokens, or full secret-bearing stack traces.
-  console.error('FAILED: ' + (redact ? (err.code || 'Firebase operation failed; details withheld from public logs.') : (err.code || err.message || 'unknown error')));
-  process.exitCode = 1;
+  const label = redact ? (err.code || 'Firebase operation failed; details withheld from public logs.') : (err.code || err.message || 'unknown error');
+  process.stderr.write('FAILED: ' + label + '\n', () => process.exit(1));
 });
