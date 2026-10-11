@@ -143,7 +143,12 @@ export function patchTraydaqTeamBranding(root) {
   const changed = [];
   for (const file of files) {
     const before = fs.readFileSync(file, 'utf8');
-    const after = file.endsWith('.html') ? rewriteHtml(before) : rewriteJavaScript(before);
+    let after = file.endsWith('.html') ? rewriteHtml(before) : rewriteJavaScript(before);
+    // The brand is a proper name: keep it consistent in every locale's admin nav key.
+    if (path.basename(file) === 'translations.js') {
+      after = after.replace(/\b(nav_admin\s*:\s*)(["'])([^"']*)\2/g,
+        (_, prefix, quote) => prefix + quote + 'TRAYDAQ Security Team' + quote);
+    }
     if (after !== before) {
       fs.writeFileSync(file, after, 'utf8');
       changed.push(path.relative(root, file));
