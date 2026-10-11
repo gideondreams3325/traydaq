@@ -543,6 +543,48 @@ jobs:
           console.log('PASS: job, service, event linking catalog and server-confirmed posting.');
           JS
 
+      - name: Isolate My Listings and hosted events by authenticated owner
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --location \
+            "https://raw.githubusercontent.com/gideondreams3325/traydaq/${GITHUB_SHA}/scripts/patch-private-my-listings-ownership.mjs" \
+            --output /tmp/traydaq-my-listings-owner.mjs
+          node --check /tmp/traydaq-my-listings-owner.mjs
+          node --input-type=module <<'JS'
+          import {tdListingBelongsToSignedInUid as owned} from '/tmp/traydaq-my-listings-owner.mjs';
+          const a='user_a',b='user_b';
+          const cases=[
+            [{id:'job-own',creatorId:a},a,true],
+            [{id:'job-other',creatorId:b},a,false],
+            [{id:'job-other-but-local',creatorId:'local_user',posterId:b},a,false],
+            [{id:'job-own-old',creatorId:'local_user',posterId:a},a,true],
+            [{id:'job-forged',creatorId:b,posterId:a},a,false],
+            [{id:'service-own',userId:a,listingType:'entrepreneur'},a,true],
+            [{id:'event-other',organizerId:b},a,false],
+            [{id:'unowned'},a,false],
+            [{id:'cached',creatorId:a},'',false]
+          ];
+          for(const [row,uid,shouldOwn] of cases) {
+            if(owned(row,uid)!==shouldOwn)throw Error('Ownership check failed for '+row.id);
+          }
+          console.log('PASS: owner/other-user/local_user/legacy/empty-owner regression cases.');
+          JS
+          node /tmp/traydaq-my-listings-owner.mjs .
+          node --check jobs-events.js
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          const s=fs.readFileSync('jobs-events.js','utf8');
+          if(!s.includes('tdOnlyActualListingOwner2026') ||
+             (s.match(/tdListingBelongsToSignedInUid\(row, ownerUid\)/g)||[]).length!==2 ||
+             (s.match(/tdListingBelongsToSignedInUid\((?:sj|se), ownerUid\)/g)||[]).length!==2 ||
+             (s.match(/const matches = tdListingBelongsToSignedInUid/g)||[]).length!==2 ||
+             (s.match(/String\(getActiveUser\(\)\?\.uid \|\| ""\) !== ownerUid/g)||[]).length!==2) {
+            throw Error('My Listings / hosted events ownership guards are incomplete.');
+          }
+          console.log('PASS: both management tabs show only listings owned by the currently signed-in UID.');
+          JS
+
       - name: Install project dependencies
         run: npm install --no-audit --no-fund
 
