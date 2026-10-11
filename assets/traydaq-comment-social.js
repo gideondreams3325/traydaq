@@ -72,10 +72,11 @@
       }
       const spans = button.querySelectorAll('span');
       if (spans.length >= 2) {
-        spans[0].textContent = on ? '❤️' : '♡';
-        spans[spans.length - 1].textContent = String(count);
+        if (spans[0].textContent !== (on ? '❤️' : '♡')) spans[0].textContent = on ? '❤️' : '♡';
+        if (spans[spans.length - 1].textContent !== String(count)) spans[spans.length - 1].textContent = String(count);
       } else {
-        button.textContent = (on ? '❤️ ' : '♡ ') + count;
+        const text = (on ? '❤️ ' : '♡ ') + count;
+        if (button.textContent !== text) button.textContent = text;
       }
       button.classList.toggle('td-comment-liked', on);
       button.setAttribute('aria-pressed', String(on));
@@ -106,7 +107,7 @@
       if (picture) {
         if (photo && picture.getAttribute('src') !== photo) picture.setAttribute('src', photo);
         picture.removeAttribute('data-view-image');
-      } else if (handle) {
+      } else if (handle && button.textContent.trim() !== '@' + handle) {
         button.textContent = '@' + handle;
       }
     });
