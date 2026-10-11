@@ -575,6 +575,80 @@ jobs:
           console.log('PASS: shared picker preserves upload fields, accepted media, camera capture and submit buttons.');
           JS
 
+      - name: Make every app dropdown easy to tap and swipe down to exit
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Generic global dropdowns are installed in the main + admin Android entry points.
+          # The private app source stays inside the runner, never in this public repo.
+          curl --fail --silent --show-error --location \
+            "https://raw.githubusercontent.com/gideondreams3325/traydaq/${GITHUB_SHA}/scripts/patch-private-global-dropdowns.mjs" \
+            --output /tmp/traydaq-global-dropdown-patch.mjs
+          curl --fail --silent --show-error --location \
+            "https://raw.githubusercontent.com/gideondreams3325/traydaq/${GITHUB_SHA}/assets/traydaq-global-selects.js" \
+            --output /tmp/traydaq-global-dropdown.js
+          curl --fail --silent --show-error --location \
+            "https://raw.githubusercontent.com/gideondreams3325/traydaq/${GITHUB_SHA}/assets/traydaq-global-selects.css" \
+            --output /tmp/traydaq-global-dropdown.css
+          node --check /tmp/traydaq-global-dropdown-patch.mjs
+          node --check /tmp/traydaq-global-dropdown.js
+          node /tmp/traydaq-global-dropdown-patch.mjs . /tmp/traydaq-global-dropdown.js /tmp/traydaq-global-dropdown.css
+          node --input-type=module <<'JS'
+          import assert from 'node:assert/strict';
+          import fs from 'node:fs';
+          for (const name of ['index.html','admin/index.html']) {
+            const h=fs.readFileSync(name,'utf8');
+            assert(h.includes('id="tdGlobalDropdownsStyle2026"'), name+' missing global dropdown styles');
+            assert(h.includes('id="tdGlobalDropdownsScript2026"'), name+' missing dynamic dropdown installer');
+            assert(h.includes('min-height:56px'), name+' missing large tap fields');
+            assert(h.includes('min-height:60px'), name+' missing large option rows');
+          }
+          const globalJs=fs.readFileSync('/tmp/traydaq-global-dropdown.js','utf8');
+          const jobJs=fs.readFileSync('/tmp/traydaq-job-picker.js','utf8');
+          for (const marker of [
+            "document.querySelectorAll('select')",
+            'new MutationObserver(',
+            'select.value = option.value',
+            "select.dispatchEvent(new Event('change'",
+            "select.addEventListener('invalid'",
+            "button.addEventListener('click'",
+            "event.target === overlay",
+            "select.closest('.td-job-picker-holder, .td-easy-select-wrap')",
+            'window.__tdEasySelects2026 = true',
+            'installEasySheetDismiss(sheet, () => dismiss())'
+          ]) assert(globalJs.includes(marker), 'Missing shared dropdown feature: '+marker);
+          new Function(globalJs);
+          new Function(jobJs);
+          // Simulate downward / short / sideways swipes and scrollable option lists.
+          for (const [src, name, nextFn, listClass] of [
+            [globalJs, 'installEasySheetDismiss', 'function onKeyDown(event)', 'td-easy-list'],
+            [jobJs, 'installJobSheetDismiss', 'function handleKey(event)', 'td-job-picker-list']
+          ]) {
+            const start=src.indexOf('  function '+name+'(');
+            const end=src.indexOf('  '+nextFn,start);
+            assert(start>=0 && end>start, 'Missing swipe handler: '+name);
+            const install=new Function(src.slice(start,end)+';return '+name+';')();
+            const listeners={};
+            let closed=0;
+            install({addEventListener(type,fn){listeners[type]=fn;}},()=>{closed++;});
+            const scrollArea={scrollTop:0};
+            const target={closest(sel){return sel==='.'+listClass?scrollArea:null;}};
+            const startSwipe=(y,x=0)=>listeners.touchstart({touches:[{identifier:1,clientX:x,clientY:y}],target});
+            const finishSwipe=(y,x=0)=>{
+              let prevented=false;
+              listeners.touchend({changedTouches:[{identifier:1,clientX:x,clientY:y}],preventDefault(){prevented=true;}});
+              return prevented;
+            };
+            startSwipe(100);assert(!finishSwipe(130)&&closed===0, 'Short touch closed sheet');
+            startSwipe(100);assert(!finishSwipe(200,180)&&closed===0,'Horizontal swipe closed sheet');
+            scrollArea.scrollTop=40;startSwipe(100);scrollArea.scrollTop=0;
+            assert(!finishSwipe(210)&&closed===0,'List scroll incorrectly dismissed sheet');
+            startSwipe(100);assert(finishSwipe(200)&&closed===1,'Downward swipe failed to dismiss');
+            assert(src.includes('event.target === overlay'), 'Backdrop tap does not dismiss');
+          }
+          console.log('PASS: All dropdowns open with large touch targets and close by backdrop tap / downward swipe.');
+          JS
+
       - name: Modernize Marketplace, Vacancies and Events as responsive card grids
         shell: bash
         run: |
