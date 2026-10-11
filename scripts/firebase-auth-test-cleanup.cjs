@@ -85,7 +85,7 @@ async function getProfiles(uid) {
 async function auditAppEvidence(candidateUids) {
   if (!candidateUids.size) {
     console.log('RTDB_EVIDENCE_NO_CANDIDATES=true');
-    return;
+    return { activityUids:new Set(), protectedUids:new Set(), complete:true };
   }
   if (!db) db = getDatabase(app);
   const paths = ['users','publicProfiles','identityVerifications','buyerKycRecords','posts','stores','products','orders','jobs','events','following','conversations','messages','comments','likes','savedPosts','jobApplications','eventRegistrations'];
@@ -95,6 +95,7 @@ async function auditAppEvidence(candidateUids) {
     'hostId','organizerUid','organizerId','employerId','merchantUid','merchantId'];
   const profileUids = new Set();
   const activityUids = new Set();
+  const protectedUids = new Set();
   const matchedByPath = {};
   const incomplete = [];
   for (const path of paths) {
@@ -111,7 +112,14 @@ async function auditAppEvidence(candidateUids) {
       for (const [key, record] of records) {
         if (!record || typeof record !== 'object') continue;
         if (path === 'users' || path === 'publicProfiles') {
-          if (candidateUids.has(key)) { matched.add(key); profileUids.add(key); }
+          if (candidateUids.has(key)) {
+            matched.add(key); profileUids.add(key);
+            if (privileged(record) || record.accountVerified === true ||
+                record.accountVerificationStatus === 'VERIFIED' ||
+                record.verificationStatus === 'approved' ||
+                ['postsCount','productsCount','ordersCount','followersCount','followingCount','likesCount']
+                  .some(f => Number(record[f] || 0)>0)) protectedUids.add(key);
+          }
           continue;
         }
         if (['following','identityVerifications','buyerKycRecords','savedPosts'].includes(path)
@@ -152,7 +160,9 @@ async function auditAppEvidence(candidateUids) {
     ' WITH_NO_MATCH_IN_CHECKED_PATHS=' + noMatch +
     ' INCOMPLETE_PATHS=' + incomplete.length);
   if (incomplete.length) console.log('RTDB_EVIDENCE_INCOMPLETE=true DO_NOT_INFER_NO_ACTIVITY=true');
+  console.log('RTDB_PROTECTED_PROFILE_FLAG_OR_COUNTER=' + protectedUids.size);
   console.log('RTDB evidence is non-exhaustive. No matching record does NOT prove an account is fake. Firestore, nested social activity, and other paths are not fully audited.');
+  return {activityUids, protectedUids, complete:incomplete.length===0};
 }
 
 async function audit() {
@@ -226,7 +236,13 @@ async function audit() {
   console.log('These signals do not identify fake accounts or establish lack of app activity.');
   if (present('--redact')) {
     console.log('RTDB_SCOPE=USER_CONFIRMED_PLAIN_AND_PERS_PREFIXES ONLY_COUNT='+namedOnly.size);
-    await auditAppEvidence(namedOnly);
+    const evidence = await auditAppEvidence(namedOnly);
+    const excluded = new Set([...evidence.activityUids,...evidence.protectedUids]);
+    const reviewable=[...namedOnly].filter(uid=>!excluded.has(uid)).length;
+    console.log('PREFIX_ONLY_PREVIEW_NO_KNOWN_ACTIVITY_OR_PROTECTED_PROFILE='+
+      (evidence.complete?reviewable:'UNKNOWN')+
+      ' HELD_FOR_ACTIVITY_OR_VERIFICATION='+excluded.size+
+      ' ALL_REMAIN_SUBJECT_TO_PRIVATE_REVIEW=true');
   }
   if (redact) console.log('Public report is aggregate-only. To select accounts, review Firebase Console privately; do not copy UIDs into public logs or workflow inputs.');
   console.log('No accounts were deleted. Select only UIDs you personally confirm are test accounts.');
