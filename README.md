@@ -44,3 +44,21 @@ Never commit the keystore, its Base64 representation, or the private source toke
 This workflow builds a **debug APK only**; it does not sign a Play Store release, publish the app, or deploy the backend. It runs manually, not from external pull requests, to protect the private repository token. Anyone who can view public Actions logs may see build status and a package fingerprint, but not the private source itself.
 
 If the build fails, open the failed step in the Actions log. Do not copy authentication token or keystore material into issue comments or screenshots.
+
+## Shared post links (Android)
+
+New post shares point to the public, non-media landing endpoint:
+
+\`https://vvpwntehstjbccarqqzp.supabase.co/functions/v1/traydaq-open-post?postId=<post-id>\`
+
+The endpoint never serves the original Supabase image/video bytes and does not require sign-in. It attempts to open \`traydaq://post/<post-id>\` on Android. Browsers may block automatic custom-app launches, so the page also has an explicit **Open in TRAYDAQ** button. People without the app see **Download TRAYDAQ APK**.
+
+The public APK builder adds the native \`VIEW\`/ \`BROWSABLE\` intent filter and a validated JavaScript bridge on both cold/warm launches. The app's existing \`navigate('feed', postId)\` opens the referenced post, and the share sheet exports the **post URL**, not a media-storage URL. Previously copied raw storage links cannot be converted retroactively.
+
+After the builder passes its signature and account-data safety checks, a separate GitHub Actions job publishes the **preview APK** at:
+
+https://github.com/gideondreams3325/traydaq/releases/download/traydaq-android-preview/Traydaq-debug.apk
+
+This is a **debug-signed preview build**, not a Play Store release. The release will only be available after a successful APK build and release job. Existing users must install the updated APK for deep links to work. Do not use a new signing key for updates.
+
+**Production Android App Links:** For verified, one-tap HTTPS opening without browser prompts, serve the share URL from an app-owned custom HTTPS domain with \`/.well-known/assetlinks.json\`, and register that domain in the native Android manifest. The Supabase \`*.supabase.co\` host does not currently provide such a verification file for this app; therefore this implementation uses Android custom-scheme intents with an explicit browser fallback.
