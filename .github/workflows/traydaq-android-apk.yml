@@ -155,7 +155,13 @@ jobs:
           if(!approved({uid:'testUidAlpha',accountVerified:true}).includes('td-blue-badge')) {
             throw new Error('Server-approved blue checks are not rendered.');
           }
-          console.log('PASS: ID-only users, PRO, admin and explicit official blue grants separated.');
+          const profileStart=h.indexOf('async function loadPublicProfiles(){');
+          if(profileStart<0 || h.slice(profileStart,profileStart+180).includes('await sfRefreshBlueBadges()') ||
+             !h.includes('AbortSignal.timeout(7000)')) {
+            throw new Error('Blue badge lookup must not block profile loading indefinitely.');
+          }
+          console.log('PASS: ID badge security, blue-check hub and nonblocking profile hydration.');
+
           JS
 
       - name: Strip legacy local account and activity snapshots
