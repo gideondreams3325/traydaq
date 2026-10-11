@@ -9,12 +9,13 @@ function changeOnce(source, before, after, label) {
   return source.slice(0,i)+after+source.slice(i+before.length);
 }
 const modules=[
+  ['Blue Check Hub','dashCardBlueChecks','blue_checks','🔵','Grant or revoke official blue checks','null'],
   ['Reports & Safety','dashCardReports','reports','🚩','Review community reports','reports.size'],
   ['Broadcast Center','dashCardNotify','notify','🔔','Message your community','null'],
   ['Policies & Terms','dashCardTerms','terms','📜','Manage platform rules','null']
 ];
 const destinationTitles={
-  overview:'Overview',users:'Users & Accounts',ghana_cards:'Identity Verifications',
+  overview:'Overview',users:'Users & Accounts',blue_checks:'Blue Check Hub',ghana_cards:'Identity Verifications',
   orders:'Order Security',posts:'Posts & Moderation',stores:'Stores',
   products:'Products',reports:'Community Reports',frauds:'Fraud Investigations',
   restoration:'Restoration Hub',jobs_events:'Jobs & Events',
@@ -83,7 +84,7 @@ export function patchTraydaqAdminUi(source,css) {
     '          <div><p class="td-admin-overline">MANAGEMENT CENTER</p>',
     '            <h2>Select a workspace</h2>',
     '            <p>Every card opens its own secure management section.</p></div>',
-    '          <span class="td-admin-section-count">12 workspaces</span>',
+    '          <span class="td-admin-section-count">13 workspaces</span>',
     '        </div>'
   ].join('\n'));
   region=region.trimEnd()+'\n      </section>\n\n';
@@ -164,6 +165,7 @@ export function patchTraydaqAdminUi(source,css) {
   }
   if(!source.includes("$('tdAdminBackOverview')?.addEventListener('click', () => setAdminTab('overview'));"))
     fail('back navigation must use local admin router');
+  if(!source.includes('id="dashCardBlueChecks"') || !source.includes("setAdminTab('blue_checks')")) fail('blue-check hub navigation missing');
   if(!source.includes('tdAdminBackOverview')||!source.includes('tdDashboard.hidden = !tdOverview'))
     fail('missing dedicated-workspace navigation');
   return source;
