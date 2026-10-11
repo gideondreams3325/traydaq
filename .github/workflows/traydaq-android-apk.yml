@@ -9,6 +9,7 @@ on:
   # Rebuild with corrected live profile fixture and shared media preview recovery.
   # Verify profile video view counter refresh regression (2026-10-11).
   # Verify Firebase RTDB OAuth scope repair for blue-check registry (2026-10-11).
+  # Include authenticated, unique video playback views in Traydaq APK (2026-10-11).
   # Pull requests and commits to other files do not trigger private source checkout.
   push:
     branches: [main]
