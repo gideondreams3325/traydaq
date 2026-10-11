@@ -1526,6 +1526,7 @@ jobs:
           node tests/traydaq-auth-screen-regression.test.mjs
           npm run build
           test -s dist/index.html
+          grep -Fq 'id="tdSpeedEngine20261011"' dist/index.html
           node --input-type=module <<'JS'
           import fs from 'node:fs';
           import {validateInlineScripts} from '/tmp/td-startup/scripts/patch-private-startup-syntax.mjs';
@@ -1637,7 +1638,8 @@ jobs:
           grep -Fq 'SplashScreen.installSplashScreen(this)' android/app/src/main/java/com/sellerflow/app/MainActivity.java
           grep -Fq 'TraydaqStartupGate' android/app/src/main/java/com/sellerflow/app/MainActivity.java
           grep -Fq 'tdFeedReadySplash20261011' android/app/src/main/assets/public/index.html
-          echo 'PASS: Android keeps spinning wheels on screen until first loaded post, other route, or safety timeout.'
+          grep -Fq 'id="tdSpeedEngine20261011"' android/app/src/main/assets/public/index.html
+          echo 'PASS: Android keeps spinning wheels on screen until first loaded post, other route, or safety timeout; speed engine packaged.'
 
       - name: Re-sanitize packaged account snapshots before Gradle
         shell: bash
@@ -1794,6 +1796,8 @@ jobs:
           import fs from 'node:fs';
           import {validateInlineScripts} from '/tmp/td-startup/scripts/patch-private-startup-syntax.mjs';
           const html=fs.readFileSync('/tmp/td-packaged-index.html','utf8');
+          if(!html.includes('id="tdSpeedEngine20261011"'))
+            throw Error('Speed engine missing from signed Android APK');
           const count=validateInlineScripts(html);
           if(/\b(?:(?:TRAYDAQ|Traydaq)\s+){0,2}(?:Security\s+Team|Team)\s*:\s*renderAdmin\b/.test(html))
             throw Error('Invalid Home startup/navigation script would ship in APK');
