@@ -122,7 +122,7 @@ export function patchTraydaqAdminUi(source,css) {
   source=source.slice(0,routeAnchor)+tabLogic+source.slice(routeAnchor+tabAnchor.length);
   source=changeOnce(source,
     "    $('adminRefreshBtn')?.addEventListener('click', renderAdmin);",
-    "    $('adminRefreshBtn')?.addEventListener('click', renderAdmin);\n    $('tdAdminBackOverview')?.addEventListener('click', () => window.setAdminTab?.('overview'));",
+    "    $('adminRefreshBtn')?.addEventListener('click', renderAdmin);\n    $('tdAdminBackOverview')?.addEventListener('click', () => setAdminTab('overview'));",
     'overview back navigation');
   const newBindings=modules.map(([,id,route])=>
     "    if($('"+id+"')) $('"+id+"').onclick = () => setAdminTab('"+route+"');"
@@ -162,6 +162,8 @@ export function patchTraydaqAdminUi(source,css) {
     'dashCardStores','dashCardProducts','dashCardFrauds','dashCardRestoration','dashCardJobsEvents']){
     if(!source.includes('id="'+id+'"')) fail('existing workspace lost: '+id);
   }
+  if(!source.includes("$('tdAdminBackOverview')?.addEventListener('click', () => setAdminTab('overview'));"))
+    fail('back navigation must use local admin router');
   if(!source.includes('tdAdminBackOverview')||!source.includes('tdDashboard.hidden = !tdOverview'))
     fail('missing dedicated-workspace navigation');
   return source;
