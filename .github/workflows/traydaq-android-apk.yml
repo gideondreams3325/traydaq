@@ -467,6 +467,7 @@ jobs:
             'id="studioCoverScrubPreview"', 'step=".05"',
             'generateStudioVideoCover(opening, true)', 'previewImage.hidden = true',
             'previewVideo.onloadedmetadata = seekPreview',
+            'miniVideo.addEventListener(\'loadedmetadata\', firstNativeFrame',
             'setVideoCover(image, \'manual\', selectedTime())',
             'preview.hidden = document.getElementById(\'studioCoverScrubPreview\')?.dataset.scrubbing']) {
             if(!s.includes(marker)) throw Error('Video cover regression: '+marker);
