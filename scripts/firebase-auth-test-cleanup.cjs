@@ -105,11 +105,24 @@ async function auditAppEvidence(candidateUids) {
           if (candidateUids.has(key)) { matched.add(key); profileUids.add(key); }
           continue;
         }
-        if (path === 'following' && candidateUids.has(key)) matched.add(key);
+        if (['following','identityVerifications','buyerKycRecords','savedPosts'].includes(path)
+            && candidateUids.has(key)) matched.add(key);
         const identifiers = owners.map(field => record[field]).filter(v => typeof v === 'string');
         if (path === 'conversations' && Array.isArray(record.participants))
           identifiers.push(...record.participants.filter(x => typeof x === 'string'));
         for (const id of identifiers) if (candidateUids.has(id)) matched.add(id);
+        // Interaction entries may be nested, such as likes/postId/uid and
+        // messages/conversationId/messageId. Inspect only one level of owner
+        // fields and UID keys; do not expose account identifiers in logs.
+        if (['likes','messages','comments','jobApplications','eventRegistrations'].includes(path)) {
+          for (const [childKey, child] of Object.entries(record)) {
+            if (candidateUids.has(childKey)) matched.add(childKey);
+            if (!child || typeof child !== 'object' || Array.isArray(child)) continue;
+            for (const field of owners)
+              if (typeof child[field] === 'string' && candidateUids.has(child[field]))
+                matched.add(child[field]);
+          }
+        }
       }
       if (path !== 'users' && path !== 'publicProfiles')
         for (const uid of matched) activityUids.add(uid);
