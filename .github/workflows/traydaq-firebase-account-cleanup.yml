@@ -1,0 +1,149 @@
+name: Traydaq Firebase Accounts (Manual Safe Cleanup)
+
+# Manual only. This public workflow never publishes UID/email lists or account exports.
+on:
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: "audit = counts only; preview = validate selected UIDs; delete = confirmed deletion"
+        required: true
+        type: choice
+        default: audit
+        options:
+          - audit
+          - preview
+          - delete
+      delete_confirmation:
+        description: "For delete ONLY, type exactly: DELETE CONFIRMED TEST ACCOUNTS"
+        required: false
+        type: string
+        default: ""
+
+permissions:
+  contents: read
+
+concurrency:
+  group: traydaq-firebase-user-cleanup
+  cancel-in-progress: false
+
+jobs:
+  firebase-users:
+    name: Firebase Auth account audit / approved cleanup
+    # Only the owner from the default branch can launch an administrative run.
+    if: >-
+      github.repository == 'gideondreams3325/traydaq' &&
+      github.actor == 'gideondreams3325' &&
+      github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Check manual operation and confirmation
+        shell: bash
+        env:
+          OPERATION: ${{ inputs.operation }}
+          CONFIRMATION: ${{ inputs.delete_confirmation }}
+        run: |
+          set -euo pipefail
+          case "$OPERATION" in
+            audit|preview)
+              echo "Safe read-only operation selected: $OPERATION"
+              ;;
+            delete)
+              if [ "$CONFIRMATION" != 'DELETE CONFIRMED TEST ACCOUNTS' ]; then
+                echo "::error::Delete requires the exact confirmation phrase. No accounts changed."
+                exit 1
+              fi
+              echo "Delete mode requested. Account-by-account preflight still required."
+              ;;
+            *)
+              echo "::error::Unknown cleanup operation."
+              exit 1
+              ;;
+          esac
+
+      - name: Checkout public cleanup tool from main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install Firebase Admin SDK without project install scripts
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/firebase-cleanup-deps"
+          npm install --prefix "$RUNNER_TEMP/firebase-cleanup-deps" --ignore-scripts --no-package-lock --no-audit --no-fund firebase-admin@13.5.0
+          echo "NODE_PATH=$RUNNER_TEMP/firebase-cleanup-deps/node_modules" >> "$GITHUB_ENV"
+          node --check scripts/firebase-auth-test-cleanup.cjs
+          echo "Firebase cleanup tooling is ready; no credentials loaded during dependency installation."
+
+      - name: Configure Firebase credentials privately
+        shell: bash
+        env:
+          ADMIN_JSON: ${{ secrets.TRAYDAQ_FIREBASE_ADMIN_JSON }}
+          APPROVED_UIDS: ${{ secrets.TRAYDAQ_CLEANUP_APPROVED_UIDS }}
+          OPERATION: ${{ inputs.operation }}
+        run: |
+          set -euo pipefail
+          umask 077
+          if [ -z "$ADMIN_JSON" ]; then
+            echo "::error::Missing TRAYDAQ_FIREBASE_ADMIN_JSON repository Actions secret. No accounts changed."
+            exit 1
+          fi
+          if [ "$OPERATION" != audit ] && [ -z "$APPROVED_UIDS" ]; then
+            echo "::error::Missing TRAYDAQ_CLEANUP_APPROVED_UIDS repository Actions secret. No accounts changed."
+            exit 1
+          fi
+          # The credential and approval file are ephemeral, never committed or uploaded.
+          printf '%s' "$ADMIN_JSON" > "$RUNNER_TEMP/traydaq-firebase-credential.json"
+          chmod 600 "$RUNNER_TEMP/traydaq-firebase-credential.json"
+          node - "$RUNNER_TEMP/traydaq-firebase-credential.json" <<'NODE'
+          const fs = require('node:fs');
+          const data = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
+          if (data.type !== 'service_account' || data.project_id !== 'sellerflow-efaab') {
+            console.error('::error::Credential does not match project sellerflow-efaab.');
+            process.exit(1);
+          }
+          console.log('Firebase project verified. No credential fields printed.');
+          NODE
+          if [ "$OPERATION" != audit ]; then
+            printf '%s\n' "$APPROVED_UIDS" > "$RUNNER_TEMP/traydaq-approved-uids.txt"
+            chmod 600 "$RUNNER_TEMP/traydaq-approved-uids.txt"
+          fi
+          echo "GOOGLE_APPLICATION_CREDENTIALS=$RUNNER_TEMP/traydaq-firebase-credential.json" >> "$GITHUB_ENV"
+
+      - name: Run selected account audit or cleanup (redacted public logs)
+        shell: bash
+        env:
+          OPERATION: ${{ inputs.operation }}
+          GOOGLE_CLOUD_PROJECT: sellerflow-efaab
+        run: |
+          set -euo pipefail
+          case "$OPERATION" in
+            audit)
+              node scripts/firebase-auth-test-cleanup.cjs audit --redact
+              ;;
+            preview)
+              node scripts/firebase-auth-test-cleanup.cjs delete \
+                --uids-file="$RUNNER_TEMP/traydaq-approved-uids.txt" \
+                --confirm-project=sellerflow-efaab --redact
+              ;;
+            delete)
+              node scripts/firebase-auth-test-cleanup.cjs delete \
+                --uids-file="$RUNNER_TEMP/traydaq-approved-uids.txt" \
+                --confirm-project=sellerflow-efaab --redact --execute
+              ;;
+          esac
+          # The public run output contains aggregate counts only: never raw UIDs or emails.
+
+      - name: Remove temporary credential and approval files
+        if: always()
+        shell: bash
+        run: |
+          rm -f "$RUNNER_TEMP/traydaq-firebase-credential.json" "$RUNNER_TEMP/traydaq-approved-uids.txt"
