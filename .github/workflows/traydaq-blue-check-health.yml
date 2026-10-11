@@ -1,0 +1,37 @@
+name: Traydaq Blue Check Hub Health
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/traydaq-blue-check-health.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  badge-registry-health:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verify public badge registry and Firebase Auth lookup
+        shell: bash
+        run: |
+          set -euo pipefail
+          url='https://vvpwntehstjbccarqqzp.supabase.co/functions/v1/traydaq-blue-badges'
+          code="$(curl --silent --show-error --max-time 20 --output "$RUNNER_TEMP/badge-health.json" --write-out '%{http_code}' "$url")"
+          node - "$code" "$RUNNER_TEMP/badge-health.json" <<'JS'
+          const fs=require('node:fs');
+          const status=process.argv[2];
+          let body={};
+          try{body=JSON.parse(fs.readFileSync(process.argv[3],'utf8'));}
+          catch{throw Error('Badge registry returned invalid JSON');}
+          if(status!=='200'||body.success!==true||body.registryOnline!==true||
+             body.officialLookupOnline!==true||!Array.isArray(body.blueVerifiedUids)){
+            console.error('Badge registry offline, HTTP '+status+'; check Supabase Edge function diagnostics.');
+            process.exitCode=1;
+          } else {
+            console.log('PASS: badge registry and official Firebase identity lookup are operational.');
+          }
+          JS
