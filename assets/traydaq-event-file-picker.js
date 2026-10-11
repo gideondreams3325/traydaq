@@ -154,10 +154,11 @@
 
   // Enhance existing custom "Choose file" buttons without replacing their handlers.
   function decorateExistingButtons() {
-    document.querySelectorAll('button,[role="button"]').forEach(button => {
-      if (button.classList.contains('td-upload-remove') || button.classList.contains('td-upload-action')) return;
-      const words = (button.textContent || '').trim();
-      if (!/^(choose|select|browse|pick|attach)\s+(a\s+|an\s+)?(file|photo|image|video|audio|music|document|media|picture|cover|files|photos|images|videos|pictures)\b/i.test(words)) return;
+    document.querySelectorAll('button,[role="button"],[onclick],label,[class*="cursor-pointer"]').forEach(button => {
+      if (button.classList.contains('td-upload-remove') || button.classList.contains('td-upload-action') ||
+          button.classList.contains('td-upload-card')) return;
+      const words = (button.textContent || '').replace(/\s+/g, ' ').trim();
+      if (!/^(?:(?:tap(?: here)? to|click to)\s+(?:choose|select|browse|upload)(?:\b|\s)|(?:choose|select|browse|pick|attach|change|add|upload)\s+(?:(?:a|an|new)\s+)?(?:file|photo|image|video|audio|music|document|media|picture|cover|files|photos|images|videos|pictures|gallery)\b)/i.test(words)) return;
       let parent = button.parentElement, found = false;
       for (let n = 0; parent && n < 3; n++, parent = parent.parentElement) {
         if (parent.querySelector('input[type="file"]')) { found = true; break; }
