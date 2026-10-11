@@ -24,7 +24,7 @@ assert.match(runtime, /function fitFeedViewport/);
 assert.match(runtime, /getBoundingClientRect/);
 assert.match(runtime, /data-td-feed-viewport/);
 assert.match(runtime, /visualViewport/);
-assert.match(css, /#reelFeed\\[data-td-feed-viewport/);
+assert.ok(css.includes('#reelFeed[data-td-feed-viewport'));
 assert.match(css, /--td-feed-viewport-height/);
 assert.match(css, /max-width: 900px/);
 assert.match(runtime, /largeEnough/);
