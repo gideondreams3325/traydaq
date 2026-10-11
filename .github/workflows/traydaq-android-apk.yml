@@ -391,6 +391,28 @@ jobs:
           node tests/profile-social-activity.test.mjs
           # Post-engagement suite also needs dist/ and synced Android assets.
 
+      - name: Show profile visitor avatars and link to their real profiles
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Only public patch instructions and tests are downloaded. The app's
+          # private source and profile data stay in the temporary build runner.
+          base="https://raw.githubusercontent.com/gideondreams3325/traydaq/$GITHUB_SHA"
+          mkdir -p /tmp/traydaq-visitors/scripts /tmp/traydaq-visitors/tests
+          curl --fail --silent --show-error --location \
+            "$base/scripts/patch-private-profile-visitors.mjs" \
+            --output /tmp/traydaq-visitors/scripts/patch-private-profile-visitors.mjs
+          curl --fail --silent --show-error --location \
+            "$base/tests/traydaq-profile-visitors.test.mjs" \
+            --output /tmp/traydaq-visitors/tests/traydaq-profile-visitors.test.mjs
+          node --check /tmp/traydaq-visitors/scripts/patch-private-profile-visitors.mjs
+          node --test /tmp/traydaq-visitors/tests/traydaq-profile-visitors.test.mjs
+          node /tmp/traydaq-visitors/scripts/patch-private-profile-visitors.mjs .
+          node --check profile-social-panels.js
+          node tests/profile-cross-user-navigation.test.js
+          grep -Fq 'data-sf-visitor-username=' profile-social-panels.js
+          grep -Fq 'id="tdProfileVisitors2026"' index.html
+
       - name: Fix secure Android liveness camera and verification capture
         shell: bash
         run: |
