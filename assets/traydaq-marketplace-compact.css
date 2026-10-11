@@ -16,3 +16,13 @@
 .td-mp-trigger:focus-visible, .td-mp-filter-panel button:focus-visible { outline:3px solid #d3ac32; outline-offset:2px; }
 @media (max-width:370px) { .td-mp-trigger {padding:6px 8px;} #productGrid, #storeGrid {gap:7px!important;} }
 @media (min-width:768px) {#productGrid, #storeGrid {gap:14px!important;}}
+
+/* Preserve the visual hierarchy when the seller's original Edit/Delete controls are grouped. */
+.td-mp-filter-panel button.active, .td-mp-filter-panel button[aria-pressed="true"] {background:#14633d!important;color:#fff!important;}
+.td-mp-trigger.td-mp-has-active {border-color:#14633d;background:#e6f4e9;}
+#productGrid .td-mp-manage-root {display:flex; flex-direction:column; gap:5px; width:100%; padding-top:5px; margin-top:4px; border-top:1px solid #e5eee7;}
+#productGrid .td-mp-manage-trigger {align-self:flex-end; display:inline-flex; align-items:center; gap:4px; width:auto; min-height:36px; padding:6px 9px; border:1px solid #bfd7c5; border-radius:9px; background:#f1f8f3; color:#165c38; font-size:11px; font-weight:750;}
+#productGrid .td-mp-manage-panel[hidden] {display:none!important;}
+#productGrid .td-mp-manage-panel {display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:6px; width:100%;}
+#productGrid .td-mp-manage-panel > :is(button,a) {position:static!important; inset:auto!important; display:inline-flex; align-items:center; justify-content:center; width:100%!important; min-width:0; max-width:none!important; min-height:40px!important; padding:7px 8px!important; border-radius:9px; font-size:11px!important; white-space:normal;}
+#productGrid .td-mp-manage-trigger:focus-visible,#productGrid .td-mp-manage-panel :is(button,a):focus-visible {outline:3px solid #d3ac32!important;outline-offset:2px;}
