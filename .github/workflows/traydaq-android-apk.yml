@@ -435,6 +435,20 @@ jobs:
           console.log('PASS: accessible green-and-gold discovery grids, compact images, and preserved card actions.');
           JS
 
+      - name: Keep Creator Studio Music Library browse-only
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --location \
+            "https://raw.githubusercontent.com/gideondreams3325/traydaq/${GITHUB_SHA}/scripts/patch-private-creator-music.mjs" \
+            --output /tmp/traydaq-creator-music-patch.mjs
+          node --check /tmp/traydaq-creator-music-patch.mjs
+          node /tmp/traydaq-creator-music-patch.mjs .
+          grep -Fq 'id="tdCreatorMusicBrowseOnly"' index.html
+          grep -Fq 'No songs available for reuse yet. Check back later.' index.html
+          grep -Fq "creatorPickerIntro = 'Use music released by artists who permit creator reuse'" index.html
+          echo 'PASS: Creator Studio displays the song picker without its upload button.'
+
       - name: Strip legacy local account and activity snapshots
         shell: bash
         run: |
