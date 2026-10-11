@@ -243,3 +243,174 @@
     transition: none !important; animation: none !important;
   }
 }
+
+/* TRAYDAQ_SHARE_COLOR_REFINEMENT_2026
+   Color/contrast corrections for the shipped Android WebView share sheet.
+   These declarations deliberately win over older Tailwind/inline button styles. */
+.td-share-panel {
+  background: #ffffff !important;
+  color: #0b2f24 !important;
+}
+.td-share-panel .td-share-hero {
+  width: 76px !important;
+  height: 76px !important;
+  margin: 8px auto 12px !important;
+  border-radius: 24px !important;
+  background: #e8f3ee !important;
+  color: #0b6b46 !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.7) !important;
+}
+.td-share-panel .td-share-hero svg {
+  width: 34px !important;
+  height: 34px !important;
+  stroke: #0b6b46 !important;
+  fill: none !important;
+}
+.td-share-panel .td-share-title {
+  color: #0b3b2d !important;
+  font-weight: 900 !important;
+  font-size: clamp(28px,6.1vw,36px) !important;
+  letter-spacing: -.05em !important;
+  margin: 0 auto 8px !important;
+}
+.td-share-panel .td-share-subtitle {
+  color: #6b777d !important;
+  font-weight: 400 !important;
+  font-size: clamp(13px,3.5vw,15px) !important;
+  margin: 0 auto 22px !important;
+  line-height: 1.45 !important;
+}
+.td-share-panel .td-share-primary {
+  background: linear-gradient(135deg, #d8b22d 0%, #cca11b 100%) !important;
+  color: #ffffff !important;
+  border-radius: 22px !important;
+  box-shadow: 0 10px 24px rgba(180,136,20,.22) !important;
+  font-weight: 800 !important;
+  gap: 12px !important;
+}
+.td-share-panel .td-share-primary > :not(.td-share-action-icon):not(.td-share-primary-label),
+.td-share-panel .td-share-primary > .td-share-primary-label,
+.td-share-panel .td-share-primary > :not(.td-share-action-icon):not(.td-share-primary-label) * {
+  background: transparent !important;
+  background-color: transparent !important;
+  color: #ffffff !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  text-decoration: none !important;
+  font-family: inherit !important;
+  font-weight: 800 !important;
+}
+.td-share-panel .td-share-primary .td-share-action-icon,
+.td-share-panel .td-share-primary .td-share-action-icon svg {
+  background: transparent !important;
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+  fill: none !important;
+}
+.td-share-panel .td-share-primary::after { color: #ffffff !important; }
+.td-share-panel .td-share-social-row {
+  gap: clamp(4px,2vw,12px) !important;
+  align-items: start !important;
+  margin: 0 0 23px !important;
+}
+.td-share-panel .td-share-social-item {
+  min-height: 96px !important;
+  height: auto !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  gap: 7px !important;
+  color: #102f26 !important;
+  font-weight: 700 !important;
+  line-height: 1.2 !important;
+  padding: 2px 0 !important;
+}
+.td-share-panel .td-share-social-item .td-share-brand-icon {
+  width: clamp(51px,13vw,62px) !important;
+  height: clamp(51px,13vw,62px) !important;
+  flex: 0 0 clamp(51px,13vw,62px) !important;
+  border-radius: 50% !important;
+  border: 5px solid #edf2f0 !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(0,0,0,.06) !important;
+}
+.td-share-panel .td-share-social-item .td-share-brand-whatsapp { background: #25d366 !important; }
+.td-share-panel .td-share-social-item .td-share-brand-telegram { background: #2aabee !important; }
+.td-share-panel .td-share-social-item .td-share-brand-x { background: #080808 !important; }
+.td-share-panel .td-share-social-item .td-share-brand-facebook { background: #1877f2 !important; }
+.td-share-panel .td-share-social-item .td-share-brand-icon svg,
+.td-share-panel .td-share-social-item .td-share-brand-icon svg path {
+  color: #ffffff !important;
+  fill: #ffffff !important;
+  stroke: none !important;
+}
+.td-share-panel .td-share-social-item .td-share-brand-icon svg {
+  width: 68% !important;
+  height: 68% !important;
+}
+.td-share-panel .td-share-social-item :not(.td-share-brand-icon):not(svg):not(path) {
+  font-family: inherit !important;
+  font-size: inherit !important;
+  line-height: 1.25 !important;
+}
+.td-share-panel .td-share-link-card {
+  background: #f6faf8 !important;
+  border: 1px solid #dbe7e1 !important;
+  border-radius: 19px !important;
+  min-height: 75px !important;
+}
+.td-share-panel .td-share-link-badge {
+  background: #e7f2ec !important;
+  color: #0b6b46 !important;
+}
+.td-share-panel .td-share-link-card :is(input,textarea,code) {
+  font-family: inherit !important;
+  font-size: clamp(12px,3.3vw,14px) !important;
+  font-weight: 500 !important;
+  line-height: 1.35 !important;
+  color: #193f35 !important;
+  background: transparent !important;
+  border: 0 !important;
+  outline: 0 !important;
+  letter-spacing: 0 !important;
+  min-width: 0 !important;
+  flex: 1 1 auto !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+}
+.td-share-panel .td-share-link-card input:focus-visible {
+  outline: 2px solid #0b6b46 !important;
+  outline-offset: 2px !important;
+}
+.td-share-panel .td-share-copy {
+  background: linear-gradient(135deg, #d8b22d 0%, #cca11b 100%) !important;
+  color: #10271f !important;
+  font-weight: 800 !important;
+  border-radius: 15px !important;
+}
+.td-share-panel .td-share-copy .td-share-action-icon svg { stroke: #10271f !important; fill: none !important; }
+.td-share-panel .td-share-save {
+  background: #f8fbfa !important;
+  color: #10362b !important;
+  border: 1px solid #dce7e2 !important;
+  justify-content: flex-start !important;
+}
+.td-share-panel .td-share-save .td-share-action-icon,
+.td-share-panel .td-share-save .td-share-action-icon svg,
+.td-share-panel .td-share-save::after { color: #0b6b46 !important; stroke: #0b6b46 !important; }
+.td-share-panel .td-share-close {
+  background: #eef2f2 !important;
+  color: #10271f !important;
+  border-radius: 20px !important;
+  font-weight: 800 !important;
+}
+.td-share-panel .td-share-legacy-icon,
+.td-share-panel .td-share-legacy-decoration {
+  display: none !important;
+}
+@media (max-width: 370px) {
+  .td-share-panel { padding-left: 12px !important; padding-right: 12px !important; }
+  .td-share-panel .td-share-primary { padding: 12px 13px !important; font-size: 14px !important; }
+  .td-share-panel .td-share-copy { padding: 10px 12px !important; }
+  .td-share-panel .td-share-link-badge { width: 36px !important; min-width: 36px !important; flex-basis: 36px !important; height: 36px !important; }
+}
