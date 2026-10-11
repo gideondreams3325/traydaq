@@ -71,8 +71,70 @@ async function getProfiles(uid) {
   const snapshots = await Promise.all(nodes.map(n => get(ref(db, n + '/' + uid))));
   return Object.fromEntries(nodes.map((n, i) => [n, snapshots[i].val()]));
 }
+
+// Read-only RTDB correlation. These are aggregate indicators, not proof a
+// flagged account is disposable. Some legacy activity may live in Firestore.
+async function auditAppEvidence(candidateUids) {
+  if (!candidateUids.size) {
+    console.log('RTDB_EVIDENCE_NO_CANDIDATES=true');
+    return;
+  }
+  const { ref, get } = require('firebase-admin/database');
+  if (!db) db = getDatabase(app);
+  const paths = ['users','publicProfiles','posts','stores','products','orders','jobs','events','following','conversations'];
+  const owners = ['uid','userId','userUid','ownerUid','ownerId','sellerUid','sellerId',
+    'storeOwnerUid','storeOwnerId','creatorUid','creatorId','authorUid','authorId',
+    'posterId','postedBy','createdByUid','createdBy','buyerUid','buyerId','hostUid',
+    'hostId','organizerUid','organizerId','employerId','merchantUid','merchantId'];
+  const profileUids = new Set();
+  const activityUids = new Set();
+  const matchedByPath = {};
+  const incomplete = [];
+  for (const path of paths) {
+    try {
+      // Each query is one collection-level read, rather than 906 individual
+      // requests. If slow or unavailable, mark the evidence incomplete.
+      const snapshot = await Promise.race([
+        get(ref(db, path)),
+        new Promise((_, reject) => setTimeout(() => reject(Error('TIME_LIMIT')), 15000))
+      ]);
+      const contents = snapshot.val();
+      const records = contents && typeof contents === 'object' ? Object.entries(contents) : [];
+      const matched = new Set();
+      for (const [key, record] of records) {
+        if (!record || typeof record !== 'object') continue;
+        if (path === 'users' || path === 'publicProfiles') {
+          if (candidateUids.has(key)) { matched.add(key); profileUids.add(key); }
+          continue;
+        }
+        if (path === 'following' && candidateUids.has(key)) matched.add(key);
+        const identifiers = owners.map(field => record[field]).filter(v => typeof v === 'string');
+        if (path === 'conversations' && Array.isArray(record.participants))
+          identifiers.push(...record.participants.filter(x => typeof x === 'string'));
+        for (const id of identifiers) if (candidateUids.has(id)) matched.add(id);
+      }
+      if (path !== 'users' && path !== 'publicProfiles')
+        for (const uid of matched) activityUids.add(uid);
+      matchedByPath[path] = matched.size;
+      console.log('RTDB_MATCHING_CANDIDATES_' + path.toUpperCase() + '=' + matched.size);
+    } catch (_error) {
+      incomplete.push(path);
+      console.log('RTDB_EVIDENCE_' + path.toUpperCase() + '=UNAVAILABLE');
+    }
+  }
+  let both = 0;
+  for (const uid of profileUids) if (activityUids.has(uid)) both++;
+  console.log('RTDB_CANDIDATES_WITH_PROFILE=' + profileUids.size +
+    ' WITH_LINKED_ACTIVITY=' + activityUids.size + ' WITH_BOTH=' + both +
+    ' WITH_NO_MATCH_IN_CHECKED_PATHS=' +
+      [...candidateUids].filter(uid => !profileUids.has(uid) && !activityUids.has(uid)).length +
+    ' INCOMPLETE_PATHS=' + incomplete.length);
+  console.log('RTDB evidence is non-exhaustive. No matching record does NOT prove an account is fake. Firestore, nested social activity, and other paths are not fully audited.');
+}
+
 async function audit() {
   let cursor, total = 0, suspected = 0, protectedCount = 0;
+  const candidates = new Set();
   const evidence = {
     flaggedEmailVerified: 0,
     flaggedGoogleProvider: 0,
@@ -97,6 +159,7 @@ async function audit() {
       const reason = fixtureHint(user);
       if (reason) {
         suspected++;
+        candidates.add(user.uid);
         if (reason === 'test-style email prefix') evidence.flaggedEmailPrefix++;
         if (reason === 'test-style display name') evidence.flaggedDisplayName++;
         if (user.emailVerified) evidence.flaggedEmailVerified++;
@@ -127,6 +190,7 @@ async function audit() {
     ' DISPLAY_NAME_ONLY=' + evidence.flaggedDisplayName +
     ' AUTH_UNVERIFIED_NO_PHONE_GOOGLE=' + evidence.flaggedAuthOnlyEvidence);
   console.log('These signals do not identify fake accounts or establish lack of app activity.');
+  if (present('--redact')) await auditAppEvidence(candidates);
   if (redact) console.log('Public report is aggregate-only. To select accounts, review Firebase Console privately; do not copy UIDs into public logs or workflow inputs.');
   console.log('No accounts were deleted. Select only UIDs you personally confirm are test accounts.');
 }
