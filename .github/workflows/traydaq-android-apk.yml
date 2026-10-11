@@ -4,6 +4,7 @@ on:
   workflow_dispatch:
   # Allow the owner to start a single build by updating this workflow on main.
   # For You grouped engagement controls (October 11, 2026).
+  # Terms screen uses the updated Traydaq music and content agreement (2026-10-11).
   # Profile media counters: video views replace hearts (2026-10-11).
   # Rebuild with corrected live profile fixture and shared media preview recovery.
   # Verify profile video view counter refresh regression (2026-10-11).
@@ -287,6 +288,13 @@ jobs:
             "https://raw.githubusercontent.com/gideondreams3325/traydaq/${GITHUB_SHA}/scripts/patch-private-legal-terms.mjs" \
             --output /tmp/traydaq-legal-terms-patch.mjs
           node --check /tmp/traydaq-legal-terms-patch.mjs
+          # Regression-check cached legacy SellerFlow policies without exporting private source.
+          mkdir -p /tmp/traydaq-public-tests/scripts /tmp/traydaq-public-tests/tests
+          cp /tmp/traydaq-legal-terms-patch.mjs /tmp/traydaq-public-tests/scripts/patch-private-legal-terms.mjs
+          curl --fail --silent --show-error --location \
+            "https://raw.githubusercontent.com/gideondreams3325/traydaq/${GITHUB_SHA}/tests/traydaq-legal-terms.test.mjs" \
+            --output /tmp/traydaq-public-tests/tests/traydaq-legal-terms.test.mjs
+          node /tmp/traydaq-public-tests/tests/traydaq-legal-terms.test.mjs
           node /tmp/traydaq-legal-terms-patch.mjs .
           node --input-type=module <<'JS'
           import fs from "node:fs";
