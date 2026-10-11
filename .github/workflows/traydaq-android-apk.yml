@@ -2,6 +2,7 @@ name: Traydaq Android APK (Public Builder)
 
 on:
   workflow_dispatch:
+  # Keep Android feed scrolling smooth: skip classified reels, lazy video metadata and batch media DOM work (2026-10-11).
   # Fix Android event and vacancy publishing via confirmed Firebase RTDB writes (2026-10-11).
   # Refresh share-sheet branded colors and strip stray decorative glyphs (2026-10-11).
   # Allow the owner to start a single build by updating this workflow on main.
@@ -1363,7 +1364,10 @@ jobs:
           grep -Fq 'tdAdaptiveFeedMedia20261011' index.html
           grep -Fq 'tdGlobalDropdownsScript2026' index.html
           grep -Fq 'tdMediaPreviews2026' index.html
-          echo 'PASS: unnecessary background DOM scanning and offscreen media preloads reduced.'
+          grep -Fq 'data-td-adaptive-classified' index.html
+          grep -Fq 'feedVideoObserver' index.html
+          grep -Fq 'processBatch' index.html
+          echo 'PASS: classified reels skip repeat layout, offscreen feed videos defer metadata and media DOM work is batched.'
 
       - name: Apply comment usernames, avatars and unique likes
         shell: bash
