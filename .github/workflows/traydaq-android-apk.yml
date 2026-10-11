@@ -219,6 +219,26 @@ jobs:
           console.log('PASS: real username display logic is injected and syntactically valid.');
           JS
 
+      - name: Replace legacy Terms screen with music and content publishing agreement
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --location \
+            "https://raw.githubusercontent.com/gideondreams3325/traydaq/${GITHUB_SHA}/scripts/patch-private-legal-terms.mjs" \
+            --output /tmp/traydaq-legal-terms-patch.mjs
+          node --check /tmp/traydaq-legal-terms-patch.mjs
+          node /tmp/traydaq-legal-terms-patch.mjs .
+          node --input-type=module <<'JS'
+          import fs from "node:fs";
+          const html=fs.readFileSync("index.html","utf8");
+          for(const required of ["TD_TRAYDAQ_LEGAL_POLICY_TEXT","tdTermsFromApp(appTerms)","Allow Creator Reuse","Electronic Transactions Act","Music, sound recordings"]) {
+            if(!html.includes(required))throw new Error("Missing current legal policy: "+required);
+          }
+          const modal=html.match(/function showTermsModal[\s\S]{0,250}tdTermsFromApp\(appTerms\)/);
+          if(!modal)throw new Error("Terms modal is not using current legal content.");
+          console.log("PASS: Traydaq in-app terms include music licensing, uploads and Ghanaian law.");
+          JS
+
       - name: Strip legacy local account and activity snapshots
         shell: bash
         run: |
