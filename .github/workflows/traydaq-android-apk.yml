@@ -1441,6 +1441,29 @@ jobs:
           grep -q "AndroidGoogleAuthBridge" dist/index.html
           node tests/post-engagement-following.test.js
 
+      - name: Regenerate crisp, uncropped TRAYDAQ launcher icons
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Use a resolution-independent public vector brand mark, not the
+          # old cropped mipmap bitmaps. Work only on the temporary APK checkout.
+          base="https://raw.githubusercontent.com/gideondreams3325/traydaq/${GITHUB_SHA}"
+          mkdir -p /tmp/td-launcher
+          for part in assets/traydaq-launcher-mark.svg scripts/generate-traydaq-launcher.py tests/test-traydaq-launcher.py; do
+            curl --fail --silent --show-error --location "$base/$part" \
+              --output "/tmp/td-launcher/$(basename "$part")"
+          done
+          python3 -m venv /tmp/td-launcher/venv
+          /tmp/td-launcher/venv/bin/pip install --quiet --disable-pip-version-check Pillow CairoSVG
+          /tmp/td-launcher/venv/bin/python /tmp/td-launcher/test-traydaq-launcher.py
+          /tmp/td-launcher/venv/bin/python /tmp/td-launcher/generate-traydaq-launcher.py \
+            . /tmp/td-launcher/traydaq-launcher-mark.svg
+          test -s android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
+          test -s android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_foreground.png
+          grep -Fq '@mipmap/ic_launcher_foreground' android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml
+          grep -Fq 'android:icon="@mipmap/ic_launcher"' android/app/src/main/AndroidManifest.xml
+          echo 'PASS: sharp green/gold logo centered inside square, round and adaptive launcher masks.'
+
       - name: Install Android post-link intent receiver after Capacitor sync
         shell: bash
         run: |
