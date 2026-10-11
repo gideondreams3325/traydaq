@@ -541,6 +541,51 @@ jobs:
           console.log('PASS: Android event upload keeps native file input, full-width tap target and previews.');
           JS
 
+      - name: Make every app dropdown easy to tap and choose
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Install generic one-tap pickers in both the main and admin Android routes.
+          # The public builder never commits the original private app code.
+          curl --fail --silent --show-error --location \
+            "https://raw.githubusercontent.com/gideondreams3325/traydaq/${GITHUB_SHA}/scripts/patch-private-global-dropdowns.mjs" \
+            --output /tmp/traydaq-global-dropdown-patch.mjs
+          curl --fail --silent --show-error --location \
+            "https://raw.githubusercontent.com/gideondreams3325/traydaq/${GITHUB_SHA}/assets/traydaq-global-selects.js" \
+            --output /tmp/traydaq-global-dropdown.js
+          curl --fail --silent --show-error --location \
+            "https://raw.githubusercontent.com/gideondreams3325/traydaq/${GITHUB_SHA}/assets/traydaq-global-selects.css" \
+            --output /tmp/traydaq-global-dropdown.css
+          node --check /tmp/traydaq-global-dropdown-patch.mjs
+          node --check /tmp/traydaq-global-dropdown.js
+          node /tmp/traydaq-global-dropdown-patch.mjs . /tmp/traydaq-global-dropdown.js /tmp/traydaq-global-dropdown.css
+          node --input-type=module <<'JS'
+          import assert from 'node:assert/strict';
+          import fs from 'node:fs';
+          for (const name of ['index.html','admin/index.html']) {
+            const h=fs.readFileSync(name,'utf8');
+            assert(h.includes('id="tdGlobalDropdownsStyle2026"'), name+' missing global dropdown styles');
+            assert(h.includes('id="tdGlobalDropdownsScript2026"'), name+' missing dynamic dropdown installer');
+            assert(h.includes('min-height:56px'), name+' missing large tap fields');
+            assert(h.includes('min-height:60px'), name+' missing large option rows');
+          }
+          const js=fs.readFileSync('/tmp/traydaq-global-dropdown.js','utf8');
+          for (const marker of [
+            "document.querySelectorAll('select')",
+            'new MutationObserver(',
+            'select.value = option.value',
+            "select.dispatchEvent(new Event('change'",
+            "select.addEventListener('invalid'",
+            "button.addEventListener('click'",
+            "event.target === overlay",
+            "select.closest('.td-job-picker-holder, .td-easy-select-wrap')",
+            'window.__tdEasySelects2026 = true',
+            'event.shiftKey'
+          ]) assert(js.includes(marker), 'Missing shared dropdown support: '+marker);
+          new Function(js);
+          console.log('PASS: main app + admin one-tap dropdowns, dynamic fields, required validation, filter options and Android touch targets.');
+          JS
+
       - name: Modernize Marketplace, Vacancies and Events as responsive card grids
         shell: bash
         run: |
