@@ -5,6 +5,7 @@ on:
   # Fix Android event and vacancy publishing via confirmed Firebase RTDB writes (2026-10-11).
   # Refresh share-sheet branded colors and strip stray decorative glyphs (2026-10-11).
   # Allow the owner to start a single build by updating this workflow on main.
+  # Aspect-safe For You / Following photos and videos; verified fit-regression test (October 11, 2026).
   # For You grouped engagement controls (October 11, 2026).
   # Terms screen uses the updated Traydaq music and content agreement (2026-10-11).
   # Profile media counters: video views replace hearts (2026-10-11).
