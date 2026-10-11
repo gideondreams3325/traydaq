@@ -3,7 +3,7 @@ name: Traydaq Android APK (Public Builder)
 on:
   workflow_dispatch:
   # Allow the owner to start a single build by updating this workflow on main.
-  # Rebuild with validated Inbox RTDB references (October 11, 2026).
+  # For You grouped engagement controls (October 11, 2026).
   # Pull requests and commits to other files do not trigger private source checkout.
   push:
     branches: [main]
@@ -690,6 +690,33 @@ jobs:
           new Function(html.slice(start+'<script id="tdMediaPreviews2026">'.length,end));
           console.log('PASS: production HTML contains valid universal image/video preview runtime.');
           JS
+
+      - name: Organize For You engagements into a compact More menu
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/traydaq-feed-group/{scripts,assets,tests}
+          PATCH_BASE="https://raw.githubusercontent.com/gideondreams3325/traydaq/${GITHUB_SHA}"
+          curl --fail --silent --show-error --location \
+            "$PATCH_BASE/scripts/patch-private-feed-engagement.mjs" \
+            --output /tmp/traydaq-feed-group/scripts/patch-private-feed-engagement.mjs
+          curl --fail --silent --show-error --location \
+            "$PATCH_BASE/assets/traydaq-feed-engagement.css" \
+            --output /tmp/traydaq-feed-group/assets/traydaq-feed-engagement.css
+          curl --fail --silent --show-error --location \
+            "$PATCH_BASE/tests/traydaq-feed-engagement.test.mjs" \
+            --output /tmp/traydaq-feed-group/tests/traydaq-feed-engagement.test.mjs
+          node --check /tmp/traydaq-feed-group/scripts/patch-private-feed-engagement.mjs
+          node /tmp/traydaq-feed-group/tests/traydaq-feed-engagement.test.mjs
+          node /tmp/traydaq-feed-group/scripts/patch-private-feed-engagement.mjs \
+            . /tmp/traydaq-feed-group/assets/traydaq-feed-engagement.css
+          grep -q 'id="tdGroupedEngagement2026"' index.html
+          grep -q 'data-td-feed-more' index.html
+          # Fail instead of silently losing original engagement/delete handlers.
+          grep -q 'data-post-action="repost"' index.html
+          grep -q 'data-post-action="options"' index.html
+          grep -q 'data-user-delete-reel' index.html
+          grep -q 'data-admin-takedown-reel' index.html
 
       - name: Install project dependencies
         run: npm install --no-audit --no-fund
