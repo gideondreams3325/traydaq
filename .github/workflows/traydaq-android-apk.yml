@@ -432,6 +432,45 @@ jobs:
           console.log('PASS: mobile job-application fields, file-picker validation, sticky action area and shared styles.');
           JS
 
+      - name: Make vacancy and service dropdowns open on one tap
+        shell: bash
+        run: |
+          set -euo pipefail
+          # These public assets patch only the temporary private Android build checkout.
+          curl --fail --silent --show-error --location \
+            "https://raw.githubusercontent.com/gideondreams3325/traydaq/${GITHUB_SHA}/scripts/patch-private-job-select-taps.mjs" \
+            --output /tmp/traydaq-job-select-taps.mjs
+          curl --fail --silent --show-error --location \
+            "https://raw.githubusercontent.com/gideondreams3325/traydaq/${GITHUB_SHA}/assets/traydaq-job-picker.js" \
+            --output /tmp/traydaq-job-picker.js
+          curl --fail --silent --show-error --location \
+            "https://raw.githubusercontent.com/gideondreams3325/traydaq/${GITHUB_SHA}/assets/traydaq-job-picker.css" \
+            --output /tmp/traydaq-job-picker.css
+          node --check /tmp/traydaq-job-select-taps.mjs
+          node --check /tmp/traydaq-job-picker.js
+          node /tmp/traydaq-job-select-taps.mjs . /tmp/traydaq-job-picker.js /tmp/traydaq-job-picker.css
+          node --check jobs-events.js
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          import assert from 'node:assert/strict';
+          const html=fs.readFileSync('index.html','utf8');
+          const source=fs.readFileSync('jobs-events.js','utf8');
+          const js=fs.readFileSync('/tmp/traydaq-job-picker.js','utf8');
+          assert(html.includes('id="tdEasyJobPickers2026"'), 'Touch picker styles missing');
+          assert(html.includes('min-height: 58px'), 'Small select tap targets remain');
+          assert(source.includes('const refreshJobPickerButtons = tdInstallEasyJobSelects(modal);'), 'Job form did not activate picker');
+          assert(source.includes('refreshJobPickerButtons();'), 'Listing type switches do not refresh choices');
+          for(const marker of ['#postJobForm select', 'select.value = option.value',
+            "select.dispatchEvent(new Event('change'", "select.addEventListener('invalid'",
+            "event.target === overlay", "button.addEventListener('click'",
+            "label.addEventListener('click'", "choice.addEventListener('click'",
+            "event.key === 'Escape'", "button.type = 'button'"]) {
+            assert(js.includes(marker), 'Missing Android select interaction: '+marker);
+          }
+          new Function(js);
+          console.log('PASS: Full-field tap, full-row option selection, validation, dismiss, label tap and updated form values.');
+          JS
+
       - name: Modernize Marketplace, Vacancies and Events as responsive card grids
         shell: bash
         run: |
