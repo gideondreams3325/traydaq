@@ -382,7 +382,12 @@ jobs:
           grep -Fq '/traydaq-face-mesh/face_mesh.js' dist/index.html
           echo 'PASS: Native APK will include the complete on-device face tracking model.'
           npx cap sync android
+          # Capacitor has already populated public/. Its copied WASM model folder can
+          # be read-only; remove only that generated folder before the legacy packer
+          # copies dist/ a second time. Keep the model source in dist/ unchanged.
+          rm -rf android/app/src/main/assets/public/traydaq-face-mesh
           node scripts/prepare-android-variants.js
+          test -s android/app/src/main/assets/public/traydaq-face-mesh/face_mesh_solution_packed_assets.data
           node scripts/patch-capacitor.js
           test -s android/app/google-services.json
           grep -q "AndroidGoogleAuthBridge" dist/index.html
