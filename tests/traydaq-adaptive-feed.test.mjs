@@ -17,7 +17,7 @@ assert.match(output, new RegExp('id="' + ADAPTIVE_FEED_MARKER + 'Style"'));
 assert.match(output, new RegExp('id="' + ADAPTIVE_FEED_MARKER + '"'));
 assert.ok(output.indexOf('data-td-adaptive-feed-media') < output.indexOf('</style>'));
 assert.ok(output.indexOf('installTraydaqAdaptiveFeedMedia') > output.indexOf('<script id='));
-assert.match(output, /object-fit:\\s*contain\\s*!important/);
+assert.match(output, /object-fit:\s*contain\s*!important/);
 assert.match(runtime, /loadedmetadata/);
 assert.match(runtime, /orientationchange/);
 assert.match(runtime, /largeEnough/);
