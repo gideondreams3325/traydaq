@@ -135,15 +135,27 @@
   }
   function queue(node) {
     if (!(node instanceof Element)) return;
+    if (!node.matches('img,video') && !node.querySelector('img,video')) return;
     queued.add(node);
     if (scheduled) return;
     scheduled = true;
-    queueMicrotask(function () {
+    // Native navigation must paint first. Coalesce all thumbnail changes into one frame.
+    const flush = function () {
       scheduled = false;
-      const entries = Array.from(queued);
+      const entries = Array.from(queued).filter(node => node.isConnected);
       queued.clear();
-      entries.forEach(scan);
-    });
+      const unique = [];
+      for (const candidate of entries) {
+        if (unique.some(parent => parent.contains(candidate))) continue;
+        for (let i = unique.length - 1; i >= 0; i--) {
+          if (candidate.contains(unique[i])) unique.splice(i, 1);
+        }
+        unique.push(candidate);
+      }
+      unique.forEach(scan);
+    };
+    if (typeof requestAnimationFrame === 'function') requestAnimationFrame(flush);
+    else window.setTimeout(flush, 16);
   }
   function boot() {
     queue(document.body);
