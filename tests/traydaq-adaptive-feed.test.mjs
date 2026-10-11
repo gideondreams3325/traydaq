@@ -29,6 +29,7 @@ assert.match(css, /--td-feed-viewport-height/);
 assert.match(css, /max-width: 900px/);
 assert.match(runtime, /largeEnough/);
 assert.match(runtime, /feed\.querySelectorAll\(CARD\)/);
+assert.match(runtime, /data-td-adaptive-classified/);
 assert.match(runtime, /document\.visibilityState === 'hidden'/);
 assert.match(runtime, /if \(node === root \|\| node\.contains\(root\)/);
 assert.ok(!runtime.includes("document.addEventListener('click', schedule, true)"));
