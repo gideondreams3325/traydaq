@@ -585,6 +585,22 @@ jobs:
           console.log('PASS: both management tabs show only listings owned by the currently signed-in UID.');
           JS
 
+      - name: Account-isolate vacancy applications and event tickets
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/traydaq-ownership/scripts /tmp/traydaq-ownership/tests
+          curl --fail --silent --show-error --location \
+            "https://raw.githubusercontent.com/gideondreams3325/traydaq/${GITHUB_SHA}/scripts/patch-private-owned-jobs-events.mjs" \
+            --output /tmp/traydaq-ownership/scripts/patch-private-owned-jobs-events.mjs
+          curl --fail --silent --show-error --location \
+            "https://raw.githubusercontent.com/gideondreams3325/traydaq/${GITHUB_SHA}/tests/traydaq-owned-jobs-events.test.mjs" \
+            --output /tmp/traydaq-ownership/tests/traydaq-owned-jobs-events.test.mjs
+          node --check /tmp/traydaq-ownership/scripts/patch-private-owned-jobs-events.mjs
+          node /tmp/traydaq-ownership/scripts/patch-private-owned-jobs-events.mjs .
+          node --check jobs-events.js
+          node --test /tmp/traydaq-ownership/tests/traydaq-owned-jobs-events.test.mjs
+          echo 'PASS: signed-in users see only their own applications, listings and tickets.'
       - name: Keep Creator Studio video playback stable while editing
         shell: bash
         run: |
