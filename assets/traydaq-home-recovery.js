@@ -1,164 +1,140 @@
-/* TRAYDAQ Android: replace a stalled black Home viewport with a light, recoverable state.
- * Visual-only guard: never deletes posts, rewrites feeds, or fetches account data. */
-(function tdInstallHomeRecovery(){
+/* TRAYDAQ: unobtrusive, automatic Home feed wait. Never asks users to retry or reload. */
+(function tdInstallHomeRecovery() {
   'use strict';
   if (window.__tdHomeRecoveryInstalled) return;
   window.__tdHomeRecoveryInstalled = true;
-  var WAIT_MS = 4800, firstEmptyAt = null, lastFeed = null, recovery = null;
-  var lastInline = null, recoveryFailed = false;
-
-  function visible(element) {
-    if (!element || !element.isConnected || element.closest('[hidden]')) return false;
-    var rect = element.getBoundingClientRect();
-    var style = window.getComputedStyle(element);
-    return rect.width > 120 && rect.height > 100 &&
-      style.display !== 'none' && style.visibility !== 'hidden';
+  const AUTO_REFRESH_MS = 8500;
+  let currentFeed = null, pendingSince = 0, refreshed = false;
+  let indicator = null, scheduled = false;
+  function visible(node) {
+    if (!node || !node.isConnected || node.closest('[hidden],.hidden,[aria-hidden="true"]')) return false;
+    const style = window.getComputedStyle(node);
+    const bounds = node.getBoundingClientRect();
+    return style.display !== 'none' && style.visibility !== 'hidden' && bounds.width > 120 && bounds.height > 100;
   }
   function homeTabSelected() {
-    var items = document.querySelectorAll('nav button, nav a, [role="navigation"] button, [role="navigation"] a, #bottomNav button, .bottom-nav button, .nav-item');
-    for (var i = 0; i < items.length; i++) {
-      var item = items[i], text = (item.textContent || '').trim();
-      if (!/^Home$/i.test(text)) continue;
+    const items = document.querySelectorAll('nav button,nav a,[role="navigation"] button,[role="navigation"] a,#bottomNav button,.bottom-nav button,.nav-item');
+    let found = false;
+    for (const item of items) {
+      if (!/^Home$/i.test((item.textContent || '').trim())) continue;
+      found = true;
       if (item.matches('.active,.selected,.current,[aria-selected="true"],[aria-current="page"]') ||
-          (item.parentElement && item.parentElement.matches('.active,.selected,.current'))) return true;
+          item.parentElement?.matches('.active,.selected,.current')) return true;
     }
-    return false;
+    // Some app builds use an icon-only Home tab. Visible feed is the fallback.
+    return !found;
   }
-  function validPost(card) {
-    if (!card || !card.isConnected) return false;
-    // An empty .reel-card is NOT a loaded post. It can be just a black video stage.
-    var media = card.querySelectorAll('video,img,canvas');
-    for (var i = 0; i < media.length; i++) {
-      var item = media[i];
-      if (item.closest('.reel-avatar,.reel-actions,.reel-action-group,.reel-disc,.reel-sound,nav,header,footer')) continue;
-      if (item.tagName === 'VIDEO' && (item.readyState >= 2 ||
-          (item.getAttribute('poster') || '').trim())) return true;
-      if (item.tagName === 'IMG' && item.complete && item.naturalWidth > 0) return true;
-      if (item.tagName === 'CANVAS' && item.width > 80 && item.height > 80) return true;
-    }
-    var stage = card.querySelector('.reel-media,.reel-bg,.reel-image,.reel-photo,.reel-video,[data-td-adaptive-feed-bg]');
-    if (stage && /url\(/i.test(window.getComputedStyle(stage).backgroundImage || '')) return true;
-    var textPost = card.querySelector('.reel-caption,.reel-description,.post-caption,.post-text');
-    return !!(textPost && (textPost.textContent || '').trim().length > 24 && !media.length);
-  }
-  function feedReady(feed) {
+  function firstPostReady(feed) {
     if (!feed) return false;
-    var cards = feed.querySelectorAll('.reel-card');
-    if (cards.length) {
-      for (var i = 0; i < Math.min(3, cards.length); i++) if (validPost(cards[i])) return true;
-      return false;
+    const cards = feed.querySelectorAll('.reel-card');
+    for (let i = 0; i < Math.min(cards.length, 2); i++) {
+      const card = cards[i];
+      for (const media of card.querySelectorAll('video,img,canvas')) {
+        if (media.closest('.reel-avatar,.reel-actions,.reel-action-group,.reel-disc,.reel-sound,nav,header,footer')) continue;
+        if (media.tagName === 'VIDEO' && media.readyState >= 2) return true;
+        if (media.tagName === 'IMG' && media.complete && media.naturalWidth > 0) return true;
+        if (media.tagName === 'CANVAS' && media.width > 60 && media.height > 60) return true;
+      }
+      const surface = card.querySelector('[data-td-adaptive-feed-bg],.reel-bg,.reel-media,.reel-image,.reel-photo');
+      if (surface && /url\(/i.test(window.getComputedStyle(surface).backgroundImage || '')) return true;
+      const textPost = card.querySelector('.reel-caption,.reel-description,.post-caption,.post-text');
+      if (textPost && (textPost.textContent || '').trim().length > 24) return true;
     }
-    // Respect explicit empty states and server errors; never cover a valid explanation.
-    var text = (feed.textContent || '').replace(/\s+/g, ' ').trim();
-    if (recovery) text = text.replace((recovery.textContent || '').replace(/\s+/g, ' ').trim(), '').trim();
-    return /no posts|no videos|nothing to show|no content|empty feed|caught up|sign in to see|could not load/i.test(text) ||
-      text.length > 35;
+    if (cards.length) return false;
+    const message = (feed.textContent || '').replace(/\s+/g, ' ').trim();
+    return /no posts|nothing to show|no videos|empty feed|no content|sign in to see|could not load/i.test(message);
   }
-  function clear() {
-    if (recovery && recovery.isConnected) recovery.remove();
-    recovery = null;
-    recoveryFailed = false;
-    if (lastFeed && lastFeed.removeAttribute) lastFeed.removeAttribute('data-td-home-pending');
-    firstEmptyAt = null;
-    lastInline = null;
+  function stop() {
+    if (indicator?.isConnected) indicator.remove();
+    indicator = null;
+    if (currentFeed?.isConnected) currentFeed.removeAttribute('data-td-home-pending');
+    pendingSince = 0; refreshed = false;
   }
-  function makeButton(label, action, secondary) {
-    var b = document.createElement('button');
-    b.type = 'button';
-    b.className = secondary ? 'td-home-action td-home-action-secondary' : 'td-home-action';
-    b.textContent = label;
-    b.addEventListener('click', action);
-    return b;
+  function renderLoading(feed) {
+    if (indicator && indicator.isConnected) return;
+    const hint = document.createElement('div');
+    hint.className = 'td-home-loading-hint';
+    hint.id = 'tdHomeLoadingHint';
+    hint.setAttribute('data-td-home-recovery', 'true');
+    hint.setAttribute('role', 'status');
+    hint.setAttribute('aria-label', 'Loading For You posts');
+    const spinner = document.createElement('span');
+    spinner.className = 'td-home-spinner';
+    spinner.setAttribute('aria-hidden', 'true');
+    const label = document.createElement('span');
+    label.textContent = 'Loading posts…';
+    hint.append(spinner, label);
+    feed.appendChild(hint);
+    indicator = hint;
+    feed.setAttribute('data-td-home-pending', 'true');
   }
-  function retry() {
-    clear();
-    try {
-      if (typeof window.navigate === 'function') { window.navigate('feed'); inspect(); return; }
-    } catch (_) {}
-    window.location.reload();
-  }
-  function show(feed, inline, failed) {
-    if (!recovery || !recovery.isConnected || lastInline !== inline) {
-      if (recovery && recovery.isConnected) recovery.remove();
-      var card = document.createElement('section');
-      card.id = 'tdHomeRecovery';
-      card.className = 'td-home-state' + (inline ? '' : ' td-home-state-fixed');
-      card.setAttribute('data-td-home-recovery', 'true');
-      card.setAttribute('role', 'status');
-      card.setAttribute('aria-live', 'polite');
-      var spinner = document.createElement('div');
-      spinner.className = 'td-home-spinner';
-      spinner.setAttribute('aria-hidden', 'true');
-      var title = document.createElement('strong');
-      title.className = 'td-home-heading';
-      var detail = document.createElement('p');
-      detail.className = 'td-home-description';
-      var actions = document.createElement('div');
-      actions.className = 'td-home-actions';
-      card.appendChild(spinner);
-      card.appendChild(title);
-      card.appendChild(detail);
-      card.appendChild(actions);
-      card._tdView = {spinner:spinner,title:title,detail:detail,actions:actions};
-      if (inline) feed.appendChild(card);
-      else document.body.appendChild(card);
-      recovery = card;
-      recoveryFailed = null;
-      lastInline = inline;
-    }
-    if (inline) feed.setAttribute('data-td-home-pending', 'true');
-    if (recoveryFailed === failed) return;
-    recoveryFailed = failed;
-    var view = recovery._tdView;
-    view.spinner.hidden = failed;
-    view.title.textContent = failed ? 'Home is taking longer than expected' : 'Loading your Home feed';
-    view.detail.textContent = failed ?
-      'Your posts are safe. Try again, or open another section while Home loads.' :
-      'Getting your posts ready…';
-    while (view.actions.firstChild) view.actions.removeChild(view.actions.firstChild);
-    if (failed) {
-      view.actions.appendChild(makeButton('Retry Home', retry, false));
-      view.actions.appendChild(makeButton('Reload app', function(){ window.location.reload(); }, true));
-    }
+  function resumeFeedAutomatically() {
+    // At most one recovery per visit to Home: don't flood Firebase or force full reloads.
+    if (refreshed || document.visibilityState === 'hidden') return;
+    refreshed = true;
+    window.setTimeout(() => {
+      const feed = document.getElementById('reelFeed');
+      if (feed !== currentFeed || !visible(feed) || !homeTabSelected() || firstPostReady(feed)) return;
+      try {
+        if (typeof window.renderFeed === 'function') {
+          Promise.resolve(window.renderFeed()).catch(() => {});
+        } else if (typeof window.navigate === 'function') {
+          window.navigate('feed');
+        }
+      } catch (_) { /* The existing feed may still be loading; never reload the whole app. */ }
+    }, 0);
   }
   function inspect() {
     if (document.visibilityState === 'hidden') return;
-    var feed = document.getElementById('reelFeed');
-    if (feed !== lastFeed) { clear(); lastFeed = feed; }
-    var inline = visible(feed);
-    if (!inline && !homeTabSelected()) { clear(); return; }
-    if (inline && feedReady(feed)) { clear(); return; }
-    if (firstEmptyAt === null) firstEmptyAt = Date.now();
-    show(feed, inline, Date.now() - firstEmptyAt >= WAIT_MS);
+    const feed = document.getElementById('reelFeed');
+    if (feed !== currentFeed) { stop(); currentFeed = feed; }
+    if (!visible(feed) || !homeTabSelected()) { stop(); return; }
+    if (firstPostReady(feed)) { stop(); return; }
+    if (!pendingSince) pendingSince = Date.now();
+    renderLoading(feed);
+    if (Date.now() - pendingSince >= AUTO_REFRESH_MS) resumeFeedAutomatically();
+  }
+  function schedule() {
+    if (scheduled) return;
+    scheduled = true;
+    const raf = window.requestAnimationFrame || (callback => window.setTimeout(callback, 16));
+    raf(() => { scheduled = false; inspect(); });
   }
   function start() {
-    inspect();
-    // Kept lightweight: check only on Home and skip background pages.
-    window.setInterval(inspect, 1300);
-    var observer = new MutationObserver(function(records) {
-      for (var i = 0; i < records.length; i++) {
-        var record = records[i], node = record.target;
-        if (recovery && (node === recovery || recovery.contains(node))) continue;
-        if (node === lastFeed || (lastFeed && lastFeed.contains(node)) ||
-            (record.addedNodes && Array.prototype.some.call(record.addedNodes, function(n){
-              return n.nodeType === 1 && (n.id === 'reelFeed' || n.querySelector && n.querySelector('#reelFeed'));
-            }))) { inspect(); break; }
+    schedule();
+    window.setInterval(() => {
+      if (document.visibilityState !== 'hidden') inspect();
+    }, 1300);
+    const observer = new MutationObserver(records => {
+      for (const record of records) {
+        const target = record.target;
+        if (indicator && (target === indicator || indicator.contains(target))) continue;
+        if (currentFeed && (target === currentFeed || currentFeed.contains(target))) {
+          schedule(); return;
+        }
+        for (const node of record.addedNodes || []) {
+          if (node.nodeType === 1 &&
+              (node.id === 'reelFeed' || node.querySelector?.('#reelFeed'))) {
+            schedule(); return;
+          }
+        }
       }
     });
-    if (document.body) observer.observe(document.body, {childList:true,subtree:true});
-    document.addEventListener('load', function(event) {
-      if (event.target && event.target.closest && event.target.closest('#reelFeed')) inspect();
+    observer.observe(document.body, {childList:true,subtree:true});
+    document.addEventListener('load', event => {
+      if (event.target?.closest?.('#reelFeed')) schedule();
     }, true);
-    document.addEventListener('loadeddata', function(event) {
-      if (event.target && event.target.closest && event.target.closest('#reelFeed')) inspect();
+    document.addEventListener('loadeddata', event => {
+      if (event.target?.closest?.('#reelFeed')) schedule();
     }, true);
-    window.addEventListener('online', inspect);
-    window.addEventListener('pageshow', inspect);
-    document.addEventListener('visibilitychange', inspect);
-    document.addEventListener('click', function(event) {
-      if (event.target && event.target.closest && event.target.closest('nav,[role="navigation"],#bottomNav,.bottom-nav')) {
-        window.setTimeout(inspect, 0);
-      }
+    window.addEventListener('pageshow', schedule);
+    window.addEventListener('online', () => {
+      if (currentFeed) { refreshed = false; pendingSince = Date.now() - AUTO_REFRESH_MS; }
+      schedule();
+    });
+    document.addEventListener('visibilitychange', schedule);
+    document.addEventListener('click', event => {
+      if (event.target?.closest?.('nav,[role="navigation"],#bottomNav,.bottom-nav')) window.setTimeout(schedule, 0);
     }, true);
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start, {once:true});
