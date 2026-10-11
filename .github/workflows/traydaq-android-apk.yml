@@ -45,6 +45,22 @@ jobs:
             exit 1
           fi
 
+      - name: Check public Blue Check Hub backend availability
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Public badge status only. Never print UIDs, Firebase credentials or tokens.
+          url="https://vvpwntehstjbccarqqzp.supabase.co/functions/v1/traydaq-blue-badges"
+          code="$(curl --silent --show-error --max-time 18 --output /tmp/traydaq-badge-health.json --write-out '%{http_code}' "$url" || true)"
+          node - "$code" <<'JS'
+          const fs=require('node:fs');
+          let response={};
+          try{response=JSON.parse(fs.readFileSync('/tmp/traydaq-badge-health.json','utf8'));}catch{}
+          const healthy=process.argv[2]==='200'&&response.success===true&&response.registryOnline===true;
+          console.log(healthy?'PASS: Blue-check registry is connected.':'WARNING: Blue-check registry unavailable; safe grant/revoke disabled in the APK until service is restored.');
+          if(!healthy)console.log('Non-sensitive HTTP status: '+String(process.argv[2]).replace(/[^0-9]/g,'').slice(0,3));
+          JS
+
       - name: Checkout private SellerFlow source (not published)
         uses: actions/checkout@v4
         with:
@@ -127,6 +143,9 @@ jobs:
           grep -q '🆔 Verified' index.html
           grep -q 'tdBlueBadgeEndpoint' index.html
           grep -q "else if(tabName === 'blue_checks') sfAdminBlueChecks(users);" index.html
+          grep -q 'td-blue-hub-status' index.html
+          grep -q 'Blue-check status unavailable' index.html
+          grep -q 'Refreshing…' index.html
           # The official user check must never be granted by PRO status or KYC alone.
           node --input-type=module <<'JS'
           import fs from 'node:fs';
