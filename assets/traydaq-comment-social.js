@@ -8,9 +8,11 @@
   const loading = new Set();
   let activePanel = null;
   let activePostId = '';
-  let likesRef = null;
-  let likesListener = null;
-  let edges = {};
+  // tdSupabaseCommentLikes2026: never write comment reactions to missing Firebase rules.
+  const likesApi = 'https://vvpwntehstjbccarqqzp.supabase.co/functions/v1/traydaq-comment-likes';
+  let remoteLikes = {};
+  let refreshTimer = null;
+  let refreshBusy = false;
   let comments = [];
   let refreshQueued = false;
   const pending = new Set();
@@ -38,16 +40,8 @@
     return comments.find(c => c && String(c.id) === String(id)) || null;
   }
   function likeMembers(id) {
-    const result = new Set(members(commentById(id)?.likes));
-    const overlay = edges[id] || {};
-    if (overlay && typeof overlay === 'object') {
-      Object.keys(overlay).forEach(uid => {
-        if (!validId(uid)) return;
-        if (overlay[uid] === true) result.add(uid);
-        else if (overlay[uid] === false) result.delete(uid);
-      });
-    }
-    return result;
+    // Existing embedded likes remain visible; new reactions have their own server ledger.
+    return new Set(members(commentById(id)?.likes));
   }
   function existingCount(button) {
     if (!button.dataset.tdBaseCount) {
@@ -86,21 +80,21 @@
     activePanel.querySelectorAll('[data-comment-react]').forEach(button => {
       const id = button.dataset.commentReact;
       if (!validId(id)) return;
-      const who = currentUid();
-      const found = commentById(id);
-      const participants = likeMembers(id);
-      const on = !!who && participants.has(who);
-      let count = found ? participants.size : existingCount(button);
-      if (!found) {
-        count += Object.values(edges[id] || {}).filter(v => v === true).length;
-      }
+      const known = commentById(id);
+      const old = likeMembers(id);
+      const server = remoteLikes[id] || {};
+      const remoteCount = Math.max(0, Number(server.count) || 0);
+      const baseline = known ? old.size : existingCount(button);
+      const count = baseline + remoteCount;
+      const on = server.liked === true;
       const spans = button.querySelectorAll('span');
       if (spans.length >= 2) {
         if (spans[0].textContent !== (on ? '❤️' : '♡')) spans[0].textContent = on ? '❤️' : '♡';
-        if (spans[spans.length - 1].textContent !== String(count)) spans[spans.length - 1].textContent = String(count);
+        if (spans[spans.length - 1].textContent !== String(count))
+          spans[spans.length - 1].textContent = String(count);
       } else {
-        const text = (on ? '❤️ ' : '♡ ') + count;
-        if (button.textContent !== text) button.textContent = text;
+        const content = (on ? '❤️ ' : '♡ ') + count;
+        if (button.textContent !== content) button.textContent = content;
       }
       button.classList.toggle('td-comment-liked', on);
       button.setAttribute('aria-pressed', String(on));
@@ -181,37 +175,57 @@
     else Promise.resolve().then(refresh);
   }
   function stop() {
-    if (likesRef && likesListener) {
-      try { likesRef.off('value', likesListener); } catch (_) {}
-    }
+    if (refreshTimer !== null) window.clearInterval(refreshTimer);
+    refreshTimer = null;
     activePanel = null;
     activePostId = '';
-    likesRef = null;
-    likesListener = null;
-    edges = {};
+    remoteLikes = {};
     comments = [];
+    refreshBusy = false;
+  }
+  async function userToken() {
+    const user = window.firebase?.auth?.().currentUser || window.auth?.currentUser;
+    if (!user || typeof user.getIdToken !== 'function') return '';
+    return await user.getIdToken();
+  }
+  async function fetchLikes(postId, panel) {
+    if (refreshBusy || pending.size || document.visibilityState === 'hidden') return;
+    refreshBusy = true;
+    try {
+      const token = await userToken().catch(() => '');
+      const response = await fetch(likesApi + '?postId=' + encodeURIComponent(postId), {
+        method: 'GET', headers: token ? {Authorization:'Bearer ' + token} : {},
+        cache: 'no-store', signal: AbortSignal.timeout(11000)
+      });
+      const body = await response.json();
+      if (!response.ok || body.success !== true) throw Error('Comment likes unavailable');
+      if (panel !== activePanel || postId !== activePostId || pending.size) return;
+      remoteLikes = body.likes && typeof body.likes === 'object' ? body.likes : {};
+      drawLikes();
+    } catch (error) {
+      console.warn('Comment likes refresh unavailable:', String(error?.message || 'offline').slice(0,80));
+    } finally { refreshBusy = false; }
   }
   function start(panel, postId) {
     stop();
     activePanel = panel;
     activePostId = postId;
     const base = database();
+    void fetchLikes(postId, panel);
+    refreshTimer = window.setInterval(() => {
+      if (activePanel === panel && activePostId === postId)
+        void fetchLikes(postId, panel);
+    }, 9000);
     if (!base) return;
-    const ref = base.ref('commentLikes/' + postId);
-    likesRef = ref;
-    likesListener = snap => {
-      if (postId !== activePostId) return;
-      edges = snap.val() || {};
-      drawLikes();
-    };
-    try { ref.on('value', likesListener, error => console.warn('Comment likes read unavailable:', error?.code || error)); }
-    catch (_) { /* Fallback to cached comment likes while offline. */ }
-    base.ref('posts/' + postId + '/comments').once('value').then(snapshot => {
+    Promise.all([
+      base.ref('posts/' + postId + '/comments').once('value').then(s => s.val()).catch(() => null),
+      base.ref('comments/' + postId).once('value').then(s => s.val()).catch(() => null)
+    ]).then(([inside,canonical]) => {
       if (activePostId !== postId || activePanel !== panel) return;
-      const value = snapshot.val();
-      comments = Array.isArray(value) ? value.filter(Boolean) :
-        value && typeof value === 'object'
-          ? Object.entries(value).map(([id, c]) => c && typeof c === 'object' ? {id, ...c} : null).filter(Boolean)
+      const source = inside && (Array.isArray(inside) ? inside.length : Object.keys(inside).length) ? inside : canonical;
+      comments = Array.isArray(source) ? source.filter(Boolean) :
+        source && typeof source === 'object'
+          ? Object.entries(source).map(([id,c]) => c && typeof c === 'object' ? {id,...c} : null).filter(Boolean)
           : [];
       comments = comments.map((c,i) => ({...c,id:c.id || 'c_' + (c.createdAt || i) + '_' + i}));
       installLegacyLikeButtons();
@@ -252,18 +266,32 @@
     }
     const key = postId + '/' + cid + '/' + uid;
     if (pending.has(key)) return;
+    const current = remoteLikes[cid] || {count:0, liked:false};
+    const old = {count:Math.max(0,Number(current.count)||0),liked:current.liked===true};
+    const next = !old.liked;
     pending.add(key);
-    const old = Object.prototype.hasOwnProperty.call(edges[cid] || {}, uid)
-      ? edges[cid][uid] : undefined;
-    const next = !likeMembers(cid).has(uid);
-    edges[cid] = {...(edges[cid] || {}), [uid]: next};
-    drawLikes(); // immediate visual feedback, including on your own comment
+    remoteLikes[cid] = {count:Math.max(0,old.count+(next?1:-1)),liked:next};
+    drawLikes();
     try {
-      await database().ref('commentLikes/' + key).set(next);
+      const token = await userToken();
+      if (!token || currentUid() !== uid) throw Error('Sign-in changed');
+      const response = await fetch(likesApi, {
+        method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},
+        body:JSON.stringify({postId,commentId:cid,liked:next}),
+        signal:AbortSignal.timeout(14000)
+      });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok || body.success !== true || !body.likes)
+        throw Error('Comment like service rejected request');
+      if (activePostId === postId) {
+        remoteLikes = body.likes;
+        drawLikes();
+      }
     } catch (error) {
-      if (old === undefined) delete edges[cid][uid];
-      else edges[cid][uid] = old;
-      drawLikes();
+      if (activePostId === postId) {
+        remoteLikes[cid] = old;
+        drawLikes();
+      }
       inform('Unable to save comment like. Check your connection and try again.');
     } finally { pending.delete(key); }
   }, true);
