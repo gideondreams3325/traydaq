@@ -774,6 +774,32 @@ jobs:
           grep -Fq 'id="tdProfileContrast2026"' index.html
           grep -Fq 'id="tdProfileContrastRuntime2026"' index.html
 
+      - name: Verify Supabase video views service and patch authenticated Android playback
+        shell: bash
+        run: |
+          set -euo pipefail
+          endpoint="https://vvpwntehstjbccarqqzp.supabase.co/functions/v1/traydaq-video-views/health"
+          curl --fail --silent --show-error --max-time 22 "$endpoint" -o /tmp/traydaq-video-views-health.json
+          node -e "const x=require('/tmp/traydaq-video-views-health.json');if(x.success!==true||x.counter!=='ready')throw Error('Supabase video counter health check failed');console.log('PASS: authenticated Supabase video view backend is available.');"
+          mkdir -p /tmp/traydaq-video-views/scripts /tmp/traydaq-video-views/tests /tmp/traydaq-video-views/edge/traydaq-video-views
+          curl --fail --silent --show-error --location \
+            "https://raw.githubusercontent.com/gideondreams3325/traydaq/${GITHUB_SHA}/scripts/patch-private-supabase-video-views.mjs" \
+            --output /tmp/traydaq-video-views/scripts/patch-private-supabase-video-views.mjs
+          curl --fail --silent --show-error --location \
+            "https://raw.githubusercontent.com/gideondreams3325/traydaq/${GITHUB_SHA}/tests/traydaq-supabase-video-views.test.mjs" \
+            --output /tmp/traydaq-video-views/tests/traydaq-supabase-video-views.test.mjs
+          curl --fail --silent --show-error --location \
+            "https://raw.githubusercontent.com/gideondreams3325/traydaq/${GITHUB_SHA}/edge/traydaq-video-views/eligible.mjs" \
+            --output /tmp/traydaq-video-views/edge/traydaq-video-views/eligible.mjs
+          node --check /tmp/traydaq-video-views/scripts/patch-private-supabase-video-views.mjs
+          node --test /tmp/traydaq-video-views/tests/traydaq-supabase-video-views.test.mjs
+          node /tmp/traydaq-video-views/scripts/patch-private-supabase-video-views.mjs .
+          node --check post-social.js
+          grep -q 'tdSupabaseVideoViews2026' post-social.js
+          if grep -q "db.ref('postViews/' + id + '/' + actor).set" post-social.js; then
+            echo "::error::Unsecured Firebase video claim remains active."
+            exit 1
+          fi
       - name: Install project dependencies
         run: npm install --no-audit --no-fund
 
