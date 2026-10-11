@@ -2,6 +2,7 @@ name: Traydaq Android APK (Public Builder)
 
 on:
   workflow_dispatch:
+  # Refresh share-sheet branded colors and strip stray decorative glyphs (2026-10-11).
   # Allow the owner to start a single build by updating this workflow on main.
   # For You grouped engagement controls (October 11, 2026).
   # Terms screen uses the updated Traydaq music and content agreement (2026-10-11).
