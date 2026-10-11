@@ -1146,6 +1146,16 @@ jobs:
             if(!html.includes(token))throw Error('Missing shared-dialog contract: '+token);
           }
           if(html.includes('if(!window.confirm((active?"Revoke":"Award")'))throw Error('Native Blue Check popup still exists.');
+          const creator=fs.readFileSync('creator-studio.js','utf8');
+          const support=fs.readFileSync('support-center.js','utf8');
+          if(!creator.includes('await window.customConfirm({title:"Discard Creator Studio changes?"') ||
+             creator.includes("if (confirm('Discard your changes and close creator studio?'))"))
+            throw Error('Creator Studio still uses native discard prompt.');
+          if(!support.includes('window.customAlert({title:"Sign in required"') ||
+             support.includes("else alert('Sign in before reporting an app issue.')"))
+            throw Error('Support reporting still uses native Android alert.');
+          new Function(creator);
+          new Function(support);
           console.log('PASS: White / green / gold confirmations added app-wide; blue check confirms with identity and audit reason.');
           JS
 
