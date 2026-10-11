@@ -36,12 +36,12 @@ export function tdOwnedRow(type,row,uid){
   const fields=byType[type]||[];
   return fields.some(k=>row[k]!=null&&String(row[k]).trim()===id);
 }
-function tdCurrentUid(){
+export function tdCurrentUid(){
   const user=getActiveUser();
   const uid=String(user?.uid||'').trim();
   return uid&&uid!=='local_user'?uid:'';
 }
-function tdOwnedCached(key,type,uid){
+export function tdOwnedCached(key,type,uid){
   if(!uid)return [];
   const read=k=>{
     try{const data=JSON.parse(localStorage.getItem(k)||'[]');return Array.isArray(data)?data:[];}
@@ -55,7 +55,7 @@ function tdOwnedCached(key,type,uid){
   }
   return all;
 }
-function tdAppendOwnedCache(key,type,row,uid){
+export function tdAppendOwnedCache(key,type,row,uid){
   if(!tdOwnedRow(type,row,uid)||uid!==tdCurrentUid())return false;
   const records=tdOwnedCached(key,type,uid).filter(item=>String(item.id)!==String(row.id));
   try{
