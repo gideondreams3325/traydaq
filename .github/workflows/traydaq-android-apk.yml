@@ -3,7 +3,7 @@ name: Traydaq Android APK (Public Builder)
 on:
   workflow_dispatch:
   # Allow the owner to start a single build by updating this workflow on main.
-  # Rebuild requested October 11, 2026 at 06:54 UTC (no build logic changes).
+  # Rebuild official admin blue-check resilience and identity fallback (October 11, 2026).
   # Pull requests and commits to other files do not trigger private source checkout.
   push:
     branches: [main]
@@ -169,7 +169,15 @@ jobs:
              !h.includes('Permanent official badge')) {
             throw new Error('Official Traydaq account must be permanently blue-checked and not revocable in the UI.');
           }
-          console.log('PASS: dynamic official Traydaq blue check, permanent admin protection, ID distinction, and nonblocking profile hydration.');
+          if(!h.includes('getIdTokenResult(true)')||
+             !h.includes('claims.email_verified!==true')||
+             !h.includes('tdResolveSignedInOfficialBadge();')||
+             !h.includes('window.sfBlueBadgeRegistryOnline=data.registryOnline!==false;')||
+             !h.includes('window.setInterval(()=>{if(document.visibilityState==="visible")sfRefreshBlueBadges()')||
+             !h.includes('data-td-trust-uid')) {
+            throw new Error('Permanent admin identity fallback or registry retry is missing.');
+          }
+          console.log('PASS: dynamic official Traydaq blue check, permanent admin protection, ID distinction, Firebase owner fallback and nonblocking hydration.');
 
           JS
 
