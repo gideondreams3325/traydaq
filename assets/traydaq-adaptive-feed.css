@@ -1,0 +1,25 @@
+/* TRAYDAQ adaptive feed media: apply only to the actual reel media, never avatars,
+   product badges, playback controls, menus, or bottom navigation. Both For You
+   and Following use reel cards. No 9:16 assumption or destructive cropping. */
+.reel-card [data-td-adaptive-feed-media="true"] {
+  -webkit-object-fit: contain !important;
+  object-fit: contain !important;
+  object-position: center center !important;
+  aspect-ratio: auto !important;
+  background-color: #111b16;
+  max-width: 100%;
+  max-height: 100%;
+}
+.reel-card [data-td-adaptive-feed-bg="true"] {
+  background-size: contain !important;
+  background-position: center center !important;
+  background-repeat: no-repeat !important;
+  background-color: #111b16;
+}
+/* Landscape/square media retain their entire frame inside the original
+   swipeable viewport; UI buttons and the feed overlays retain their layout. */
+.reel-card video[data-td-adaptive-feed-media="true"],
+.reel-card img[data-td-adaptive-feed-media="true"] {
+  -o-object-fit: contain !important;
+  object-fit: contain !important;
+}
