@@ -317,6 +317,20 @@ jobs:
           fi
           echo 'PASS: Camera permission bridge, secure four-view capture and anti-spoof regression guards.'
 
+      - name: Bundle secure FaceMesh tracker into Traydaq APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --location \
+            "https://raw.githubusercontent.com/gideondreams3325/traydaq/${GITHUB_SHA}/scripts/patch-private-verification-face-assets.mjs" \
+            --output /tmp/traydaq-face-assets-patch.mjs
+          node --check /tmp/traydaq-face-assets-patch.mjs
+          node /tmp/traydaq-face-assets-patch.mjs .
+          grep -Fq '/traydaq-face-mesh/face_mesh.js' index.html
+          if grep -Fq 'cdn.jsdelivr.net/npm/@mediapipe/face_mesh' index.html; then
+            echo "::error::Camera verification is still dependent on an external model CDN."
+            exit 1
+          fi
       - name: Strip legacy local account and activity snapshots
         shell: bash
         run: |
@@ -352,6 +366,21 @@ jobs:
         env:
           GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
         run: |
+          # Ship face-detection WASM and model files in the signed APK; no
+          # user identity images or private records are included.
+          model_dir=$(mktemp -d)
+          model_tarball=$(npm pack @mediapipe/face_mesh@0.4.1633559619 --pack-destination "$model_dir" --silent | tail -n 1)
+          test -n "$model_tarball"
+          tar -xzf "$model_dir/$model_tarball" -C "$model_dir"
+          mkdir -p dist/traydaq-face-mesh
+          cp "$model_dir/package/face_mesh.js" "$model_dir/package/face_mesh.binarypb" dist/traydaq-face-mesh/
+          cp "$model_dir"/package/face_mesh_solution* dist/traydaq-face-mesh/
+          test -s dist/traydaq-face-mesh/face_mesh.js
+          test -s dist/traydaq-face-mesh/face_mesh_solution_packed_assets.data
+          test -s dist/traydaq-face-mesh/face_mesh_solution_wasm_bin.wasm
+          test -s dist/traydaq-face-mesh/face_mesh_solution_simd_wasm_bin.wasm
+          grep -Fq '/traydaq-face-mesh/face_mesh.js' dist/index.html
+          echo 'PASS: Native APK will include the complete on-device face tracking model.'
           npx cap sync android
           node scripts/prepare-android-variants.js
           node scripts/patch-capacitor.js
