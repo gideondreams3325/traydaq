@@ -11,6 +11,15 @@
   const videos = new WeakSet();
   const queued = new Set();
   let scheduled = false;
+  // Offscreen video thumbnails should not all download metadata during startup.
+  const thumbnailObserver = typeof IntersectionObserver === 'function'
+    ? new IntersectionObserver(entries => {
+        for (const entry of entries) {
+          if (!entry.isIntersecting) continue;
+          entry.target.preload = 'metadata';
+          thumbnailObserver.unobserve(entry.target);
+        }
+      }, {rootMargin:'300px 0px'}) : null;
 
   function safeUrl(value) {
     if (typeof value !== 'string' || !value.trim()) return '';
@@ -92,7 +101,8 @@
       video.muted = true;
       video.playsInline = true;
       video.setAttribute('webkit-playsinline', '');
-      video.preload = 'metadata';
+      video.preload = thumbnailObserver ? 'none' : 'metadata';
+      if (thumbnailObserver) thumbnailObserver.observe(video);
       video.tabIndex = -1;
       video.setAttribute('aria-label', 'Video thumbnail');
       video.classList.add('td-media-native-preview');
@@ -116,7 +126,7 @@
       video.muted = true;
       video.playsInline = true;
       video.setAttribute('webkit-playsinline', '');
-      video.preload = 'metadata';
+      video.preload = 'none'; // setupVideo upgrades it only near the viewport.
       video.setAttribute('aria-label', 'Video thumbnail');
       // Preserve the card's surrounding link and delegated tap action.
       video.style.pointerEvents = 'none';
@@ -125,6 +135,8 @@
       return;
     }
     if (!img.hasAttribute('decoding')) img.decoding = 'async';
+    if (!img.hasAttribute('loading') && img.closest(
+      '#productGrid,#storeGrid,#jobsListContainer,#eventsListContainer')) img.loading = 'lazy';
   }
   function scan(node) {
     if (!(node instanceof Element)) return;
