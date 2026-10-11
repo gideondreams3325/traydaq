@@ -23,9 +23,8 @@
   };
 
   function labelFor(select) {
-    const forLabel = select.id ? [...document.querySelectorAll('label[for]')]
-      .find(label => label.htmlFor === select.id) : null;
-    const label = forLabel || select.closest('label') || select.parentElement?.querySelector('label');
+    const label = select.labels?.[0] || select.closest('label') ||
+      select.parentElement?.querySelector('label');
     return (label?.textContent || select.getAttribute('aria-label') || select.name || 'Choose an option')
       .replace(/\s*\*\s*$/, '').replace(/\s+/g, ' ').trim() || 'Choose an option';
   }
@@ -39,11 +38,18 @@
     if (!state || !select.isConnected) return;
     const chosen = currentOption(select);
     const placeholder = !select.value || !chosen || chosen.disabled;
-    state.value.textContent = chosen?.textContent?.trim() || 'Choose an option';
+    const displayed = chosen?.textContent?.trim() || 'Choose an option';
+    if (state.value.textContent !== displayed) state.value.textContent = displayed;
     state.value.classList.toggle('td-easy-select-empty', placeholder);
-    state.button.disabled = select.disabled;
-    state.button.setAttribute('aria-label', labelFor(select) + ': ' + state.value.textContent);
-    state.button.setAttribute('aria-required', String(select.required));
+    if (state.button.disabled !== select.disabled) state.button.disabled = select.disabled;
+    const accessibleLabel = labelFor(select) + ': ' + displayed;
+    if (state.button.getAttribute('aria-label') !== accessibleLabel) {
+      state.button.setAttribute('aria-label', accessibleLabel);
+    }
+    const required = String(Boolean(select.required));
+    if (state.button.getAttribute('aria-required') !== required) {
+      state.button.setAttribute('aria-required', required);
+    }
   }
 
   function dismiss(focus = true) {
@@ -258,16 +264,22 @@
   }, true);
   const observer = new MutationObserver(mutations => {
     for (const change of mutations) {
+      const target = change.target;
+      if (target.closest?.('.td-easy-overlay, .td-job-picker-overlay')) continue;
       if (change.type === 'childList') {
-        if (change.target.closest?.('.td-easy-overlay, .td-job-picker-overlay')) continue;
-        queueScan();
-        return;
-      }
-      if (change.type === 'attributes' && (change.target.tagName === 'SELECT' ||
-          change.attributeName === 'class' || change.attributeName === 'style' ||
-          change.attributeName === 'hidden')) {
-        queueScan();
-        return;
+        // Do not rescan the entire app for unrelated feed, chat, toast or media changes.
+        if (target.tagName === 'SELECT' || target.closest?.('select, label') ||
+            [...change.addedNodes, ...change.removedNodes].some(node =>
+              node.nodeType === 1 && (node.matches?.('select, label, form') ||
+                node.querySelector?.('select')))) {
+          queueScan();
+          return;
+        }
+      } else if (change.type === 'attributes') {
+        if (target.tagName === 'SELECT' || target.querySelector?.('select')) {
+          queueScan();
+          return;
+        }
       }
     }
   });
