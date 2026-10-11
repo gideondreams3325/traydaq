@@ -903,6 +903,28 @@ jobs:
           grep -Fq 'td-share-brand-telegram' index.html
           grep -Fq 'td-share-brand-facebook' index.html
           echo 'PASS: Traydaq share sheet is upgraded; native share, direct social sharing, copy, download, and close handlers remain bound.'
+      - name: Fix shared-post URLs and target the correct in-app post
+        shell: bash
+        run: |
+          set -euo pipefail
+          # This public patch runs only in the temporary Android source checkout.
+          mkdir -p /tmp/traydaq-post-links/{scripts,assets,tests}
+          base="https://raw.githubusercontent.com/gideondreams3325/traydaq/${GITHUB_SHA}"
+          for part in scripts/patch-private-post-links.mjs assets/traydaq-post-links.js tests/traydaq-post-links.test.mjs; do
+            curl --fail --silent --show-error --location "$base/$part" --output "/tmp/traydaq-post-links/$part"
+          done
+          node --check /tmp/traydaq-post-links/scripts/patch-private-post-links.mjs
+          node --check /tmp/traydaq-post-links/assets/traydaq-post-links.js
+          node --test /tmp/traydaq-post-links/tests/traydaq-post-links.test.mjs
+          curl --fail --silent --show-error --max-time 20 \
+            "https://vvpwntehstjbccarqqzp.supabase.co/functions/v1/traydaq-open-post?postId=TRAYDAQ_BUILD_CHECK" \
+            | grep -Fq 'Open in TRAYDAQ'
+          node /tmp/traydaq-post-links/scripts/patch-private-post-links.mjs . \
+            /tmp/traydaq-post-links/assets/traydaq-post-links.js html
+          grep -Fq 'id="tdPostDeepLinks2026"' index.html
+          grep -Fq 'functions/v1/traydaq-open-post' index.html
+          echo 'PASS: social share/copy sends a post URL, not a Supabase video or picture file.'
+
       - name: Enable playable videos in admin moderation cards
         shell: bash
         run: |
@@ -1264,6 +1286,18 @@ jobs:
           test -s android/app/google-services.json
           grep -q "AndroidGoogleAuthBridge" dist/index.html
           node tests/post-engagement-following.test.js
+
+      - name: Install Android post-link intent receiver after Capacitor sync
+        shell: bash
+        run: |
+          set -euo pipefail
+          node /tmp/traydaq-post-links/scripts/patch-private-post-links.mjs . "" native
+          grep -Fq 'TRAYDAQ_POST_DEEP_LINK_2026' android/app/src/main/AndroidManifest.xml
+          grep -Fq 'android:scheme="traydaq"' android/app/src/main/AndroidManifest.xml
+          grep -Fq 'TraydaqPostLinks' android/app/src/main/java/com/sellerflow/app/MainActivity.java
+          grep -Fq 'traydaq-post-link' android/app/src/main/java/com/sellerflow/app/MainActivity.java
+          grep -Fq 'tdPostDeepLinks2026' android/app/src/main/assets/public/index.html
+          echo 'PASS: installed Traydaq receives shared post IDs on cold launch and app resume.'
 
       - name: Re-sanitize packaged account snapshots before Gradle
         shell: bash
