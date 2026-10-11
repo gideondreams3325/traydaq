@@ -161,7 +161,11 @@
     try {
       if (action === 'copy') return await copyLink(link);
       if (action === 'native') {
-        if (typeof navigator.share === 'function') {
+        // Capacitor's Android chooser is preferred in the installed APK.
+        const nativeShare = window.Capacitor?.Plugins?.Share;
+        if (typeof nativeShare?.share === 'function') {
+          await nativeShare.share({ title, text: title, url: link, dialogTitle: 'Share TRAYDAQ post' });
+        } else if (typeof navigator.share === 'function') {
           await navigator.share({ title, text: title, url: link });
         } else return copyLink(link);
         return;
