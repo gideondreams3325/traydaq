@@ -13,7 +13,7 @@ export function patchVerificationBadges(source){
  if(source.includes('tdTrustBadgeHtml'))throw Error('Badge separation already patched');
  const badgeCss = '<style id="tdBadgeSeparationStyles">'+
    '.td-id-badge{display:inline-flex;align-items:center;gap:3px;border:1px solid #dcc88a;background:#fff8df;color:#574415;border-radius:999px;padding:2px 7px;font-size:10px;font-weight:800;vertical-align:middle;white-space:nowrap}'+
-   '.td-blue-badge{display:inline-flex;align-items:center;justify-content:center;border-radius:50%;width:18px;height:18px;background:#1d9bf0;color:#fff;font-size:12px;font-weight:900;vertical-align:middle;box-shadow:0 0 0 2px #e3f3ff;flex-shrink:0}'+
+   '.td-blue-badge{display:inline-flex;align-items:center;justify-content:center;border-radius:50%;width:20px;height:20px;background:#1686e0;color:#fff;font-size:14px;line-height:1;font-weight:900;vertical-align:middle;box-shadow:0 0 0 2px #dcedff;flex-shrink:0;margin-inline-start:3px}'+
    '.td-trust-badge-slot:empty{display:none}'+
    '.td-blue-hub section{max-width:100%}.td-blue-hub-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:10px}'+
    '.td-blue-hub-row{min-width:0;background:#fff;border:1px solid #d9e8df;border-radius:15px;padding:12px}'+
@@ -39,15 +39,31 @@ export function patchVerificationBadges(source){
   '      window.sfBlueBadgeUidSet=new Set(data.blueVerifiedUids.filter(u=>typeof u==="string"&&/^[A-Za-z0-9_-]{6,128}$/.test(u)));',
   '      window.sfOfficialTraydaqUid=(typeof data.officialAdminUid==="string"&&/^[A-Za-z0-9_-]{6,128}$/.test(data.officialAdminUid))?data.officialAdminUid:null;',
   '      if(window.sfOfficialTraydaqUid)window.sfBlueBadgeUidSet.add(window.sfOfficialTraydaqUid);',
-  '      window.sfBlueBadgeRegistryOnline=true;',
+  '      else if(data.officialLookupOnline===false)await tdResolveSignedInOfficialBadge();'
+  '      window.sfBlueBadgeRegistryOnline=data.registryOnline!==false;',
   '      tdRefreshVisibleTrustBadges();',
-  '    }catch(_){window.sfBlueBadgeUidSet=new Set();window.sfOfficialTraydaqUid=null;window.sfBlueBadgeRegistryOnline=false;tdRefreshVisibleTrustBadges();}',
+  '    }catch(_){window.sfBlueBadgeRegistryOnline=false;await tdResolveSignedInOfficialBadge();tdRefreshVisibleTrustBadges();}',
   '    finally{tdBlueBadgeUpdatedAt=Date.now();tdBlueBadgeFetch=null;}',
   '    return window.sfBlueBadgeUidSet;',
   '  })();',
   '  return tdBlueBadgeFetch;',
   '}',
-  'function sfAccountVerified(u){',
+  // When the public badge service is unavailable, the currently signed-in',
+  '  // official owner can still prove their account directly to Firebase Auth.',
+  '  // Never apply this fallback to a different user or a profile email field.',
+  '  async function tdResolveSignedInOfficialBadge(){',
+  '    try{',
+  '      const signedIn=typeof auth!=="undefined"?auth?.currentUser:null;',
+  '      if(!signedIn||typeof signedIn.getIdTokenResult!=="function")return;',
+  '      const result=await signedIn.getIdTokenResult(true);',
+  '      const claims=result?.claims||{};',
+  '      if(claims.email_verified!==true||String(claims.email||"").toLowerCase()!=="gideondreams3325@gmail.com"||',
+  '         String(claims.user_id||claims.sub||"")!==signedIn.uid)return;',
+  '      window.sfOfficialTraydaqUid=signedIn.uid;',
+  '      window.sfBlueBadgeUidSet.add(signedIn.uid);',
+  '    }catch(_){/* Keep the server-verified registry; never trust profile fields. */}',
+  '  }',
+  'function sfAccountVerified(u){'
   '  return !!u&&(u.accountVerificationStatus==="VERIFIED"||u.accountVerified===true||u.verificationStatus==="approved");',
   '}',
   'function tdBadgeMarkup(uid,verified){',
@@ -66,7 +82,7 @@ export function patchVerificationBadges(source){
   '}',
   'function tdTrustBadgeHtml(u){',
   '  if(!u)return "";',
-  '  const uid=String(u.uid||u.userId||u.ownerUid||"");',
+  '  const uid=String(u.uid||u.userId||u.ownerUid||u.firebaseUid||u.ownerId||u.id||"");',
   '  const verified=sfAccountVerified(u);',
   '  if(!/^[A-Za-z0-9_-]{6,128}$/.test(uid))return tdBadgeMarkup("",verified);',
   '  return \' <span class="td-trust-badge-slot" data-td-trust-uid="\'+uid+\'" data-td-account-verified="\'+(verified?"1":"0")+\'">\'+tdBadgeMarkup(uid,verified)+\'</span>\';',
@@ -74,6 +90,10 @@ export function patchVerificationBadges(source){
   'window.sfRefreshBlueBadges=sfRefreshBlueBadges;',
   'window.sfTrustBadgeHtml=tdTrustBadgeHtml;',
   'sfRefreshBlueBadges().catch(()=>{});',
+  'if(typeof window!=="undefined"&&typeof document!=="undefined"){',
+  '  window.setInterval(()=>{if(document.visibilityState==="visible")sfRefreshBlueBadges().catch(()=>{});},90000);',
+  '  document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")sfRefreshBlueBadges(true).catch(()=>{});});',
+  '}',
   ''
  ].join('\n');
  const vfStart=source.indexOf('function verifyBadge(s){'),vfEnd=source.indexOf('function isBusinessVerified(s){',vfStart);
