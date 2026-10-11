@@ -1,0 +1,63 @@
+/* TRAYDAQ Vacancies: compact white/green/gold mobile-first controls. */
+.sf-disc-jobs.td-vacancies-compact .sf-disc-heading {gap:7px!important;padding:7px 1px 10px!important;}
+.sf-disc-jobs.td-vacancies-compact .sf-disc-heading h1 {font-size:clamp(17px,4.6vw,24px)!important;}
+.sf-disc-jobs.td-vacancies-compact .sf-disc-heading p {font-size:11px!important;line-height:1.4!important;}
+.sf-disc-jobs.td-vacancies-compact .sf-safety-notice {margin-block:5px!important;}
+.sf-disc-jobs.td-vacancies-compact .sf-disc-tabs {overflow:visible!important;gap:7px!important;padding:8px 0!important;align-items:stretch;}
+.sf-disc-jobs.td-vacancies-compact .sf-disc-tabs > .jobs-tab[data-tab="explore"],
+.sf-disc-jobs.td-vacancies-compact .td-vacancy-nav-summary {display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:40px!important;padding:7px 12px!important;border-radius:11px!important;font-size:12px!important;font-weight:800!important;white-space:nowrap;cursor:pointer;}
+.sf-disc-jobs.td-vacancies-compact .td-vacancy-nav-menu {position:relative;flex:0 0 auto;min-width:0;}
+.sf-disc-jobs.td-vacancies-compact .td-vacancy-nav-summary {list-style:none;border:1px solid #c8dccf;background:#f0f7f2;color:#175a39;}
+.sf-disc-jobs.td-vacancies-compact .td-vacancy-nav-summary::-webkit-details-marker,
+.sf-disc-jobs.td-vacancies-compact .td-vacancy-filter-summary::-webkit-details-marker {display:none;}
+.sf-disc-jobs.td-vacancies-compact .td-vacancy-nav-summary::marker,
+.sf-disc-jobs.td-vacancies-compact .td-vacancy-filter-summary::marker {content:'';}
+.sf-disc-jobs.td-vacancies-compact .td-vacancy-chevron {font-size:16px;line-height:1;color:#4c7660;}
+.sf-disc-jobs.td-vacancies-compact .td-vacancy-nav-menu[open] .td-vacancy-nav-summary,
+.sf-disc-jobs.td-vacancies-compact .td-vacancy-filter-menu[open] .td-vacancy-filter-summary {background:#e9f5eb;border-color:#17613b;}
+.sf-disc-jobs.td-vacancies-compact .td-vacancy-nav-panel {position:absolute;z-index:1600;top:calc(100% + 5px);right:0;display:flex;flex-direction:column;gap:4px;width:min(230px,calc(100vw - 30px));max-height:min(60vh,350px);overflow-y:auto;padding:7px;border-radius:14px;background:#fff;border:1px solid #cbded0;box-shadow:0 12px 30px #183e282a;}
+.sf-disc-jobs.td-vacancies-compact .td-vacancy-nav-panel .jobs-tab {display:flex!important;justify-content:flex-start!important;align-items:center!important;width:100%;min-height:43px!important;text-align:left!important;white-space:normal!important;background:#fff!important;color:#1e4531!important;border:1px solid transparent!important;padding:10px 11px!important;border-radius:9px!important;font-size:12px!important;}
+.sf-disc-jobs.td-vacancies-compact .td-vacancy-nav-panel .jobs-tab[aria-current="page"] {background:#e8f5ea!important;border-color:#afd0ba!important;color:#125b37!important;}
+.sf-disc-jobs.td-vacancies-compact .sf-explore-pane {padding:9px!important;gap:8px!important;}
+.sf-disc-jobs.td-vacancies-compact .td-vacancy-toolbar {display:grid;grid-template-columns:minmax(0,1fr) auto;gap:7px;align-items:start;min-width:0;}
+.sf-disc-jobs.td-vacancies-compact .td-vacancy-search {min-width:0;}
+.sf-disc-jobs.td-vacancies-compact #jobSearchInput {height:41px!important;min-height:41px!important;width:100%;min-width:0;font-size:13px!important;padding:8px 11px!important;border-color:#cbded0!important;border-radius:11px!important;background:#fff!important;}
+.sf-disc-jobs.td-vacancies-compact .td-vacancy-filter-menu {position:relative;flex:0 0 auto;}
+.sf-disc-jobs.td-vacancies-compact .td-vacancy-filter-summary {display:flex;align-items:center;justify-content:center;gap:5px;min-height:41px;padding:8px 10px;list-style:none;white-space:nowrap;border:1px solid #bad3c4;border-radius:11px;background:#f1f8f3;color:#145b38;font-size:12px;font-weight:800;cursor:pointer;}
+.sf-disc-jobs.td-vacancies-compact .td-vacancy-filter-summary.td-has-filters {background:#e7f4e8;border-color:#17643d;}
+.sf-disc-jobs.td-vacancies-compact .td-vacancy-filter-count {display:inline-flex;align-items:center;justify-content:center;min-width:17px;height:17px;border-radius:999px;background:#17613b;color:white;font-size:10px;padding:0 4px;}
+.sf-disc-jobs.td-vacancies-compact .td-vacancy-filter-count[hidden] {display:none!important;}
+.sf-disc-jobs.td-vacancies-compact .td-vacancy-filter-panel {position:absolute;z-index:1600;right:0;top:calc(100% + 5px);display:flex;flex-direction:column;gap:10px;width:min(300px,calc(100vw - 27px));max-height:min(68vh,410px);overflow-y:auto;padding:12px;border:1px solid #cbded0;border-radius:14px;background:#fff;box-shadow:0 12px 30px #183e282a;}
+.sf-disc-jobs.td-vacancies-compact .td-vacancy-filter-field {display:flex;flex-direction:column;gap:5px;min-width:0;}
+.sf-disc-jobs.td-vacancies-compact .td-vacancy-filter-label {font-size:12px;font-weight:750;color:#22533a;}
+.sf-disc-jobs.td-vacancies-compact .td-vacancy-filter-field :is(select,.td-easy-select-wrap,.td-easy-select-trigger) {width:100%;min-width:0;max-width:100%;}
+.sf-disc-jobs.td-vacancies-compact .td-vacancy-filter-field :is(select,.td-easy-select-trigger) {min-height:42px!important;font-size:13px!important;}
+.sf-disc-jobs.td-vacancies-compact .td-vacancy-clear {min-height:39px;padding:7px 10px;border-radius:10px;background:#f4f8f4;border:1px solid #cbded0;color:#175b3b;font-size:12px;font-weight:800;cursor:pointer;}
+.sf-disc-jobs.td-vacancies-compact .td-vacancy-clear:disabled {opacity:.5;cursor:default;}
+.sf-disc-jobs.td-vacancies-compact #listingTypeFilters.td-vacancy-types {display:flex;gap:5px!important;min-width:0;max-width:100%;margin:0;padding:1px 0 3px;overflow-x:auto;scrollbar-width:none;}
+.sf-disc-jobs.td-vacancies-compact #listingTypeFilters.td-vacancy-types::-webkit-scrollbar {display:none;}
+.sf-disc-jobs.td-vacancies-compact #listingTypeFilters.td-vacancy-types .listing-type-filter {flex:0 0 auto;min-height:36px!important;padding:6px 10px!important;font-size:11px!important;border-radius:9px!important;}
+.sf-disc-jobs.td-vacancies-compact #listingTypeFilters.td-vacancy-types .listing-type-filter[data-listing-type]:not(.bg-white) {background:#17613b!important;color:#fff!important;border-color:#17613b!important;}
+.sf-disc-jobs.td-vacancies-compact #jobsListContainer {gap:8px!important;margin-top:0!important;}
+.sf-disc-jobs.td-vacancies-compact #jobsListContainer > .td-job-card {gap:7px!important;padding:8px!important;border-radius:13px!important;}
+.sf-disc-jobs.td-vacancies-compact #jobsListContainer .td-job-card > div:first-child {gap:6px!important;}
+.sf-disc-jobs.td-vacancies-compact #jobsListContainer .td-job-card [data-view-job]:has(> img) {height:105px!important;}
+.sf-disc-jobs.td-vacancies-compact #jobsListContainer .td-job-card h3 {font-size:13px!important;line-height:1.26!important;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.sf-disc-jobs.td-vacancies-compact #jobsListContainer .td-job-card .td-vacancy-card-actions {display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:5px!important;width:100%!important;min-width:0!important;align-self:stretch!important;}
+.sf-disc-jobs.td-vacancies-compact #jobsListContainer .td-job-card .td-vacancy-card-actions button {width:100%!important;min-width:0!important;min-height:38px!important;padding:6px 4px!important;font-size:11px!important;line-height:1.2!important;border-radius:9px!important;white-space:nowrap!important;}
+.sf-disc-jobs.td-vacancies-compact #jobsListContainer .td-job-card .td-vacancy-card-actions :is([data-apply-job],[data-contact-entrepreneur]) {background:#17613b!important;color:#fff!important;border-color:#17613b!important;}
+.sf-disc-jobs.td-vacancies-compact #jobsListContainer .td-job-card > div:last-child {gap:4px!important;font-size:10px!important;}
+.sf-disc-jobs.td-vacancies-compact :is(.td-vacancy-nav-summary,.td-vacancy-filter-summary,.td-vacancy-clear,.td-vacancy-card-actions button,.listing-type-filter):focus-visible {outline:3px solid #d0a731!important;outline-offset:2px!important;}
+@media (max-width:370px) {
+ .sf-disc-jobs.td-vacancies-compact .td-vacancy-nav-summary,
+ .sf-disc-jobs.td-vacancies-compact .sf-disc-tabs > .jobs-tab[data-tab="explore"] {padding:7px 9px!important;}
+ .sf-disc-jobs.td-vacancies-compact .td-vacancy-filter-summary {padding:8px!important;}
+ .sf-disc-jobs.td-vacancies-compact #jobsListContainer .td-job-card .td-vacancy-card-actions button {font-size:10px!important;}
+}
+@media (min-width:600px) {
+ .sf-disc-jobs.td-vacancies-compact #jobsListContainer {gap:13px!important;}
+ .sf-disc-jobs.td-vacancies-compact #jobsListContainer .td-job-card [data-view-job]:has(> img) {height:135px!important;}
+}
+@media (prefers-reduced-motion:reduce) {
+ .sf-disc-jobs.td-vacancies-compact * {scroll-behavior:auto!important;transition:none!important;}
+}

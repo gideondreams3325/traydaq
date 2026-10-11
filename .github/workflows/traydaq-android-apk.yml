@@ -765,6 +765,26 @@ jobs:
           node --check jobs-events.js
           echo 'PASS: event cards have compact controls with accessible secondary actions.'
 
+      - name: Group and compact Vacancies navigation, filters and card actions
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Public assets only; patch the temporary private checkout during APK build.
+          base="https://raw.githubusercontent.com/gideondreams3325/traydaq/${GITHUB_SHA}"
+          mkdir -p /tmp/td-vacancies/{assets,scripts,tests}
+          for part in scripts/patch-private-vacancies-compact.mjs assets/traydaq-vacancies-compact.css assets/traydaq-vacancies-compact.js tests/traydaq-vacancies-compact.test.mjs; do
+            curl --fail --silent --show-error --location "$base/$part" --output "/tmp/td-vacancies/$part"
+          done
+          node --check /tmp/td-vacancies/scripts/patch-private-vacancies-compact.mjs
+          node --check /tmp/td-vacancies/assets/traydaq-vacancies-compact.js
+          node --test /tmp/td-vacancies/tests/traydaq-vacancies-compact.test.mjs
+          node /tmp/td-vacancies/scripts/patch-private-vacancies-compact.mjs . \
+            /tmp/td-vacancies/assets/traydaq-vacancies-compact.css \
+            /tmp/td-vacancies/assets/traydaq-vacancies-compact.js
+          grep -Fq 'id="tdVacanciesCompact2026Style"' index.html
+          grep -Fq 'id="tdVacanciesCompact2026Script"' index.html
+          echo 'PASS: mobile Vacancy controls grouped; existing filters, application and messaging actions preserved.'
+
       - name: Keep Creator Studio Music Library browse-only
         shell: bash
         run: |
