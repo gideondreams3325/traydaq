@@ -38,7 +38,7 @@ function patchDesk(source, config) {
     '  container.innerHTML = `<div class="text-center py-10',
     '  const ownerUid = String(user?.uid || "").trim();\n' +
       '  if (!ownerUid || ownerUid === "local_user") {\n' +
-      '    container.innerHTML = "<p role=\"alert\" class=\"text-center py-8 text-gray-700\">Sign in again to see your own listings.</p>";\n' +
+      '    container.textContent = "Sign in again to see your own listings.";\n' +
       '    return;\n' +
       '  }\n' +
       '  container.innerHTML = `<div class="text-center py-10',
@@ -74,7 +74,9 @@ function patchDesk(source, config) {
   const target = config.kind === 'jobs'
     ? "    const target = _$('jobsContentArea') || container;"
     : "    const target = _$('eventsContentArea') || container;";
-  desk = replaceOnce(desk, target,
+  const firstTarget = desk.indexOf(target);
+  if (firstTarget < 0) throw new Error('Missing ' + config.kind + ' render target');
+  const replacement =
     '    // Account switches and out-of-order asynchronous responses must not\n' +
     '    // put a previous account\'s listings or management buttons on screen.\n' +
     '    if (String(getActiveUser()?.uid || "") !== ownerUid || active' +
@@ -82,7 +84,8 @@ function patchDesk(source, config) {
     '    for (let i = ' + rowName + '.length - 1; i >= 0; i--) {\n' +
     '      if (!tdListingBelongsToSignedInUid(' + rowName + '[i], ownerUid)) ' + rowName + '.splice(i, 1);\n' +
     '    }\n' + target,
-    config.kind + ' final render verification');
+    config.kind + ' final render verification';
+  desk = desk.slice(0, firstTarget) + replacement + desk.slice(firstTarget + target.length);
   return source.slice(0, start) + desk + source.slice(end);
 }
 
