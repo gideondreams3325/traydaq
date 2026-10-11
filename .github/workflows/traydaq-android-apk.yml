@@ -1120,6 +1120,33 @@ jobs:
           node /tmp/td-profile-video-covers.mjs .
           grep -Fq 'id="tdProfileDarkVideoRecover"' index.html
 
+      - name: Patch TRAYDAQ shared confirmations and all built-in confirmation screens
+        shell: bash
+        run: |
+          set -euo pipefail
+          base="https://raw.githubusercontent.com/gideondreams3325/traydaq/${GITHUB_SHA}"
+          curl --fail --silent --show-error --location "$base/scripts/patch-private-confirmations.mjs" --output /tmp/traydaq-confirmation-patch.mjs
+          curl --fail --silent --show-error --location "$base/scripts/test-private-confirmations.mjs" --output /tmp/traydaq-confirmation-test.mjs
+          curl --fail --silent --show-error --location "$base/assets/traydaq-confirmations.css" --output /tmp/traydaq-confirmation.css
+          curl --fail --silent --show-error --location "$base/assets/traydaq-confirmations.js" --output /tmp/traydaq-confirmation.js
+          node --check /tmp/traydaq-confirmation-patch.mjs
+          node --check /tmp/traydaq-confirmation.js
+          node /tmp/traydaq-confirmation-test.mjs
+          node /tmp/traydaq-confirmation-patch.mjs . /tmp/traydaq-confirmation.css /tmp/traydaq-confirmation.js
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          const html=fs.readFileSync('index.html','utf8');
+          const a=html.indexOf('<script id="tdConfirmationRuntime2026">');
+          const b=html.indexOf('</script>',a);
+          if(a<0||b<a)throw Error('TRAYDAQ shared confirmation runtime not injected.');
+          new Function(html.slice(a+'<script id="tdConfirmationRuntime2026">'.length,b));
+          for(const token of ['window.tdShowDecision(options,"confirm")','window.tdShowDecision(options,"prompt")','window.tdShowDecision(opts,"alert")','Confirm & Grant Badge','minLength:10,maxLength:220']){
+            if(!html.includes(token))throw Error('Missing shared-dialog contract: '+token);
+          }
+          if(html.includes('if(!window.confirm((active?"Revoke":"Award")'))throw Error('Native Blue Check popup still exists.');
+          console.log('PASS: White / green / gold confirmations added app-wide; blue check confirms with identity and audit reason.');
+          JS
+
       - name: Install project dependencies
         run: npm install --no-audit --no-fund
 
