@@ -207,6 +207,43 @@ jobs:
 
           JS
 
+      - name: Add owner-only ID deletion and deletion history to verification vault
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --location \
+            "https://raw.githubusercontent.com/gideondreams3325/traydaq/${GITHUB_SHA}/scripts/patch-private-kyc-history.mjs" \
+            --output /tmp/traydaq-kyc-history-patch.mjs
+          curl --fail --silent --show-error --location \
+            "https://raw.githubusercontent.com/gideondreams3325/traydaq/${GITHUB_SHA}/assets/traydaq-kyc-history.js" \
+            --output /tmp/traydaq-kyc-history.js
+          node --check /tmp/traydaq-kyc-history-patch.mjs
+          node --check /tmp/traydaq-kyc-history.js
+          node /tmp/traydaq-kyc-history-patch.mjs . /tmp/traydaq-kyc-history.js
+          grep -q 'id="tdKycHistoryBtn"' index.html
+          grep -q 'data-td-delete-dossier' index.html
+          grep -q 'tdKycHistoryBind(allRecords)' index.html
+          grep -q 'kycDeletedAt' index.html
+          # Fail the APK build rather than shipping an unprotected delete button.
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          const html=fs.readFileSync('index.html','utf8');
+          const start=html.indexOf('async function tdKycOwnerSession()');
+          const end=html.indexOf('async function tdKycDeleteDossier(',start);
+          const authGate=html.slice(start,end);
+          if(start<0||end<0||!authGate.includes('getIdTokenResult(true)')||
+            !authGate.includes('claims.email_verified!==true')||
+            !authGate.includes('gideondreams3325@gmail.com'))
+            throw new Error('Unverified owner could delete private KYC!');
+          const deleteStart=html.indexOf('async function tdKycDeleteDossier(');
+          const deleteEnd=html.indexOf('async function tdKycShowHistory(',deleteStart);
+          const code=html.slice(deleteStart,deleteEnd);
+          for(const check of ['customPrompt({','customConfirm({','await rtdb.ref().update(changes)',
+            'securityReviews/','buyerKycRecords/','identityVerifications/','tdKycLegacyCleanup'])
+            if(!code.includes(check))throw new Error('ID deletion safety guard missing: '+check);
+          console.log('PASS: owner authentication, explicit confirmation, RTDB deletion and audit history included.');
+          JS
+
       - name: Stop Firebase availability lookups creating throwaway accounts
         shell: bash
         run: |
