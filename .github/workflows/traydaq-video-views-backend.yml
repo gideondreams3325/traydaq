@@ -1,4 +1,4 @@
-name: TRAYDAQ Video View Backend (Public Controller)
+name: Retired Firebase Video Views Backend (Supabase Replacement Active)
 
 on:
   push:
@@ -16,7 +16,8 @@ concurrency:
 
 jobs:
   video-views:
-    if: github.repository == 'gideondreams3325/traydaq' && github.actor == 'gideondreams3325'
+    # Archived for rollback only. Supabase traydaq-video-views now handles trusted views.
+    if: false
     runs-on: ubuntu-latest
     timeout-minutes: 35
     steps:
