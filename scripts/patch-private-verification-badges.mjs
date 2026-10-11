@@ -39,7 +39,7 @@ export function patchVerificationBadges(source){
   '      window.sfBlueBadgeUidSet=new Set(data.blueVerifiedUids.filter(u=>typeof u==="string"&&/^[A-Za-z0-9_-]{6,128}$/.test(u)));',
   '      window.sfOfficialTraydaqUid=(typeof data.officialAdminUid==="string"&&/^[A-Za-z0-9_-]{6,128}$/.test(data.officialAdminUid))?data.officialAdminUid:null;',
   '      if(window.sfOfficialTraydaqUid)window.sfBlueBadgeUidSet.add(window.sfOfficialTraydaqUid);',
-  '      else if(data.officialLookupOnline===false)await tdResolveSignedInOfficialBadge();'
+  '      else if(data.officialLookupOnline===false)await tdResolveSignedInOfficialBadge();',
   '      window.sfBlueBadgeRegistryOnline=data.registryOnline!==false;',
   '      tdRefreshVisibleTrustBadges();',
   '    }catch(_){window.sfBlueBadgeRegistryOnline=false;await tdResolveSignedInOfficialBadge();tdRefreshVisibleTrustBadges();}',
@@ -63,7 +63,7 @@ export function patchVerificationBadges(source){
   '      window.sfBlueBadgeUidSet.add(signedIn.uid);',
   '    }catch(_){/* Keep the server-verified registry; never trust profile fields. */}',
   '  }',
-  'function sfAccountVerified(u){'
+  'function sfAccountVerified(u){',
   '  return !!u&&(u.accountVerificationStatus==="VERIFIED"||u.accountVerified===true||u.verificationStatus==="approved");',
   '}',
   'function tdBadgeMarkup(uid,verified){',
