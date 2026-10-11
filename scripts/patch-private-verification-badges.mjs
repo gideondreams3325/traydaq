@@ -80,12 +80,6 @@ export function patchVerificationBadges(source){
  source=once(source,'<span class="verified-badge ml-1">✓</span>\n            </div>\n            <span class="text-[10px] font-bold bg-gold',
   '<span aria-hidden="true">🛡️</span>\n            </div>\n            <span class="text-[10px] font-bold bg-gold','security icon');
  // For verified users, show ID badge; blue-check is never implied by verification.
- source=once(source,
-  '      '+ '${isAdmin ? '+ '`',
-  '      '+ '${isAdmin ? '+ '`',
-  'template marker guard');
- // Change verification success state independently from legacy seller verified boolean.
- source=once(source,'      '+ '${isAdmin ? '+ '`'+'\n', '      '+'${isAdmin ? '+'`'+'\n','template stable');
  source=once(source,'      '+ '`'+' : p.verified ? '+'`', '      '+'`'+' : sfAccountVerified(p) ? '+'`','verification status condition');
  source=once(source,'You are verified <span class="verified-badge ml-1">✓</span><div class="muted text-sm mt-1">Your blue Traydaq badge may appear beside your seller name.</div>',
   'Account verification complete <span class="td-id-badge">🆔 Verified</span><div class="muted text-sm mt-1">Blue checks are awarded separately by the Traydaq Security Team.</div>',
