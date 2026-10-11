@@ -42,10 +42,19 @@ let db = null; // Don't open RTDB sockets for read-only Authentication audits.
 
 const STRONG_TEST_EMAIL = /^(?:plain_user_|pers_user_|test[_+.-]|fake[_+.-]|fixture[_+.-]|seed[_+.-]|mock[_+.-]|demo[_+.-]|qa[_+.-])/i;
 const STRONG_TEST_NAME = /^(?:plain_user_|pers_user_|test[_+.-]|fake[_+.-]|fixture[_+.-]|seed[_+.-]|mock[_+.-]|demo[_+.-]|qa[_+.-])/i;
+function identifiedTestPrefix(user){
+  const options=[String(user.uid||''),String(user.email||'').split('@')[0],String(user.displayName||'')];
+  for(const text of options){
+    if(/^plain_user_/i.test(text))return 'PLAIN_USER';
+    if(/^pers_user_/i.test(text))return 'PERS_USER';
+  }
+  return null;
+}
 const protectedFlags = ['admin','isAdmin','isOwner','isModerator','verified','identityVerified','isVerified','blueVerified','sellerVerified','kycVerified'];
 const truthy = value => value === true || value === 1 || value === 'true';
 function fixtureHint(user, profiles = []) {
   const emailName = String(user.email || '').split('@')[0];
+  if (identifiedTestPrefix(user)) return 'identified plain_user_/pers_user_ test prefix';
   if (STRONG_TEST_EMAIL.test(emailName)) return 'test-style email prefix';
   if (STRONG_TEST_NAME.test(user.displayName || '')) return 'test-style display name';
   for (const profile of profiles) {
@@ -159,7 +168,10 @@ async function audit() {
     flaggedHasLastSignIn: 0,
     flaggedAuthOnlyEvidence: 0,
     flaggedEmailPrefix: 0,
-    flaggedDisplayName: 0
+    flaggedDisplayName: 0,
+    namedPlain: 0,
+    namedPers: 0,
+    otherPrefixes: 0
   };
   console.log('READ-ONLY review for Firebase project ' + PROJECT);
   console.log('A flagged name is NOT proof of a fake account. Never bulk-delete by name.');
@@ -174,6 +186,10 @@ async function audit() {
       if (reason) {
         suspected++;
         candidates.add(user.uid);
+        const family=identifiedTestPrefix(user);
+        if (family==='PLAIN_USER') evidence.namedPlain++;
+        else if(family==='PERS_USER') evidence.namedPers++;
+        else evidence.otherPrefixes++;
         if (reason === 'test-style email prefix') evidence.flaggedEmailPrefix++;
         if (reason === 'test-style display name') evidence.flaggedDisplayName++;
         if (user.emailVerified) evidence.flaggedEmailVerified++;
@@ -203,6 +219,9 @@ async function audit() {
   console.log('REVIEW_CANDIDATES_EMAIL_PREFIX=' + evidence.flaggedEmailPrefix +
     ' DISPLAY_NAME_ONLY=' + evidence.flaggedDisplayName +
     ' AUTH_UNVERIFIED_NO_PHONE_GOOGLE=' + evidence.flaggedAuthOnlyEvidence);
+  console.log('USER_CONFIRMED_TEST_PREFIX_PLAIN_USER=' + evidence.namedPlain +
+    ' USER_CONFIRMED_TEST_PREFIX_PERS_USER=' + evidence.namedPers +
+    ' OTHER_TEST_STYLE_PREFIXES=' + evidence.otherPrefixes);
   console.log('These signals do not identify fake accounts or establish lack of app activity.');
   if (present('--redact')) await auditAppEvidence(candidates);
   if (redact) console.log('Public report is aggregate-only. To select accounts, review Firebase Console privately; do not copy UIDs into public logs or workflow inputs.');
