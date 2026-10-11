@@ -1337,6 +1337,34 @@ jobs:
           grep -Fq 'class="reel-actions"' index.html
           echo 'PASS: photos and videos of every aspect ratio fit without cropping in both feed tabs.'
 
+      - name: Verify lightweight Android startup and navigation
+        shell: bash
+        run: |
+          set -euo pipefail
+          base="https://raw.githubusercontent.com/gideondreams3325/traydaq/${GITHUB_SHA}"
+          mkdir -p /tmp/td-perf/{assets,scripts,tests}
+          for part in \
+            assets/traydaq-adaptive-feed.js \
+            assets/traydaq-adaptive-feed.css \
+            assets/traydaq-global-selects.js \
+            assets/traydaq-global-selects.css \
+            assets/traydaq-media-previews.js \
+            assets/traydaq-media-previews.css \
+            scripts/patch-private-adaptive-feed.mjs \
+            scripts/patch-private-global-dropdowns.mjs \
+            scripts/patch-private-media-previews.mjs \
+            tests/traydaq-navigation-performance.test.mjs; do
+            curl -fsSL "$base/$part" -o "/tmp/td-perf/$part"
+          done
+          node --check /tmp/td-perf/assets/traydaq-adaptive-feed.js
+          node --check /tmp/td-perf/assets/traydaq-global-selects.js
+          node --check /tmp/td-perf/assets/traydaq-media-previews.js
+          node --test /tmp/td-perf/tests/traydaq-navigation-performance.test.mjs
+          grep -Fq 'tdAdaptiveFeedMedia20261011' index.html
+          grep -Fq 'tdGlobalDropdownsScript2026' index.html
+          grep -Fq 'tdMediaPreviews2026' index.html
+          echo 'PASS: unnecessary background DOM scanning and offscreen media preloads reduced.'
+
       - name: Apply comment usernames, avatars and unique likes
         shell: bash
         run: |
