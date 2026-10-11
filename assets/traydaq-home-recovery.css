@@ -1,4 +1,6 @@
 /* Light, non-blocking Home loading state; never change loaded post appearance. */
+/* Empty feeds never need a full-screen black video stage. */
+#reelFeed:not(:has(.reel-card)) { background-color: #fbfcfa !important; }
 #reelFeed[data-td-home-pending="true"] {
   position: relative !important;
   background-color: #fbfcfa !important;
