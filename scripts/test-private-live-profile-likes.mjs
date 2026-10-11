@@ -76,6 +76,7 @@ emit('posts',{p2:{sellerId:'creatorA',mediaUrl:'https://example.test/b.jpg'},p3:
 emit('likes/p3',{viewerB:true,viewerC:true});
 assert.equal(tileViews.textContent,'👁 12','A video tile must use views instead of likes');
 emit('posts',{p2:{sellerId:'creatorA',mediaUrl:'https://example.test/b.jpg'},p3:{sellerId:'creatorA',type:'video',mediaUrl:'https://example.test/c.mp4',viewCount:15}});
+console.log('PROFILE_VIDEO_DIAGNOSTIC',JSON.stringify({label:tileViews.textContent,postListeners:listeners.filter(x=>x.ref.path==='posts').length,likeListeners:listeners.filter(x=>x.ref.path==='likes/p3').length,likes:likes.textContent}));
 assert.equal(tileViews.textContent,'👁 15','Video view changes must update without reopening profile');
 assert.equal(tileLikes.textContent,'❤️ 1','Image tile keeps the heart metric');
 emit('posts',{p2:{sellerId:'creatorA',mediaUrl:'https://example.test/b.jpg'}});
