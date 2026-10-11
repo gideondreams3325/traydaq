@@ -384,6 +384,25 @@ jobs:
         with:
           node-version: "22"
 
+      - name: Repair vacancy and entrepreneur reviews using live Supabase
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --location \
+            "https://raw.githubusercontent.com/gideondreams3325/traydaq/${GITHUB_SHA}/scripts/patch-private-community-reviews.mjs" \
+            --output /tmp/traydaq-community-reviews-patch.mjs
+          curl --fail --silent --show-error --location \
+            "https://raw.githubusercontent.com/gideondreams3325/traydaq/${GITHUB_SHA}/tests/traydaq-reviews-patch.test.mjs" \
+            --output /tmp/traydaq-community-reviews-test.mjs
+          node --check /tmp/traydaq-community-reviews-patch.mjs
+          node --check /tmp/traydaq-community-reviews-test.mjs
+          node /tmp/traydaq-community-reviews-patch.mjs .
+          node --check community-feedback.js
+          node --check supabase/functions/sellerflow-api/community-feedback.mjs
+          node /tmp/traydaq-community-reviews-test.mjs .
+          node tests/supabase-edge-comments.test.mjs
+          # Only APK build inputs are patched. Live server deployment is managed separately.
+
       - name: Install project dependencies
         run: npm install --no-audit --no-fund
 
