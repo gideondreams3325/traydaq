@@ -1,0 +1,18 @@
+/* TRAYDAQ compact marketplace controls */
+#marketProductsView > .card:first-child, #marketStoresView > .card:first-child { padding:9px!important; margin-bottom:9px!important; }
+#marketProductsView #productSearch, #marketStoresView #marketSearch { height:42px!important; min-height:42px!important; }
+#productFilterChips, #marketFilterChips { gap:5px!important; padding:3px 0 5px!important; align-items:center; }
+#productFilterChips > button, #marketFilterChips > button { min-height:36px!important; padding:6px 9px!important; font-size:11px!important; border-radius:10px!important; white-space:nowrap; flex:none; }
+#productGrid, #storeGrid {gap:9px!important;}
+#productGrid > [id^="market-product-"] { padding:8px!important; }
+#storeGrid > [id^="market-store-"] { padding:9px!important; }
+#productGrid [data-add-cart] { min-width:0!important; min-height:36px!important; padding:7px 8px!important; font-size:11px!important; border-radius:9px!important; }
+#storeGrid > [id^="market-store-"] button { min-width:0; max-width:100%; min-height:36px; padding:7px 9px!important; font-size:11px!important; }
+.td-mp-filter-root { position:relative; display:inline-flex; flex:0 0 auto; }
+.td-mp-trigger { display:inline-flex; align-items:center; gap:5px; min-height:36px; padding:6px 10px; border:1px solid #bad4c3; border-radius:10px; background:#f0f7f2; color:#145c38; font-size:11px; font-weight:750; cursor:pointer; }
+.td-mp-filter-panel[hidden] {display:none!important;}
+.td-mp-filter-panel { position:fixed; top:var(--td-mp-top,80px); left:var(--td-mp-left,10px); width:min(270px,calc(100vw - 20px)); max-height:60vh; overflow-y:auto; z-index:2000; display:flex; flex-direction:column; gap:4px; padding:7px; background:white; border:1px solid #cbddce; border-radius:14px; box-shadow:0 12px 32px #193c2930; }
+#productFilterChips .td-mp-filter-panel button, #marketFilterChips .td-mp-filter-panel button { display:block; width:100%; min-height:42px!important; text-align:left; padding:8px 11px!important; white-space:normal; border-radius:9px!important; font-size:12px!important; }
+.td-mp-trigger:focus-visible, .td-mp-filter-panel button:focus-visible { outline:3px solid #d3ac32; outline-offset:2px; }
+@media (max-width:370px) { .td-mp-trigger {padding:6px 8px;} #productGrid, #storeGrid {gap:7px!important;} }
+@media (min-width:768px) {#productGrid, #storeGrid {gap:14px!important;}}
