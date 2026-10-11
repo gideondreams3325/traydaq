@@ -282,27 +282,12 @@ jobs:
           node --check /tmp/traydaq-live-likes-test.mjs
           node /tmp/traydaq-live-likes-patch.mjs .
           node /tmp/traydaq-live-likes-test.mjs
+          node --check post-social.js
+          node --check profile-social-panels.js
+          grep -Fq "action === 'like' ? countEntries(all)" post-social.js
           # Also run the preexisting content and profile activity safeguards.
           node tests/profile-social-activity.test.mjs
           node tests/post-engagement-following.test.js
-
-      - name: Synchronize real-time Traydaq likes across feed and profiles
-        shell: bash
-        run: |
-          set -euo pipefail
-          # Only patch the private checkout within this ephemeral runner.
-          curl --fail --silent --show-error --location \
-            "https://raw.githubusercontent.com/gideondreams3325/traydaq/${GITHUB_SHA}/scripts/patch-private-live-likes.mjs" \
-            --output /tmp/traydaq-live-likes-patch.mjs
-          curl --fail --silent --show-error --location \
-            "https://raw.githubusercontent.com/gideondreams3325/traydaq/${GITHUB_SHA}/tests/traydaq-live-likes.test.mjs" \
-            --output /tmp/traydaq-live-likes.test.mjs
-          node --check /tmp/traydaq-live-likes-patch.mjs
-          node /tmp/traydaq-live-likes-patch.mjs .
-          node --check post-social.js
-          node --check profile-social-panels.js
-          node /tmp/traydaq-live-likes.test.mjs
-          # No data records or secret tokens may be output or committed.
 
       - name: Strip legacy local account and activity snapshots
         shell: bash
