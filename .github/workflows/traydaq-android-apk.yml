@@ -650,6 +650,47 @@ jobs:
           grep -Fq 'td-share-brand-telegram' index.html
           grep -Fq 'td-share-brand-facebook' index.html
           echo 'PASS: Traydaq share sheet is upgraded; native share, direct social sharing, copy, download, and close handlers remain bound.'
+      - name: Restore consistent image and video previews across TRAYDAQ
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Fetch only public fix instructions. Private source remains on the runner.
+          curl -fsSL "https://raw.githubusercontent.com/gideondreams3325/traydaq/${GITHUB_SHA}/scripts/patch-private-media-previews.mjs" -o /tmp/traydaq-media-previews-patch.mjs
+          curl -fsSL "https://raw.githubusercontent.com/gideondreams3325/traydaq/${GITHUB_SHA}/assets/traydaq-media-previews.js" -o /tmp/traydaq-media-previews.js
+          curl -fsSL "https://raw.githubusercontent.com/gideondreams3325/traydaq/${GITHUB_SHA}/assets/traydaq-media-previews.css" -o /tmp/traydaq-media-previews.css
+          node --check /tmp/traydaq-media-previews-patch.mjs
+          node --check /tmp/traydaq-media-previews.js
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          import {patchMediaPreviews} from '/tmp/traydaq-media-previews-patch.mjs';
+          const runtime=fs.readFileSync('/tmp/traydaq-media-previews.js','utf8');
+          const css=fs.readFileSync('/tmp/traydaq-media-previews.css','utf8');
+          const sample='<html><head></head><body>x.post.coverUrl || x.post.thumbnailUrl</body></html>';
+          const result=patchMediaPreviews(sample,runtime,css);
+          for(const required of ['tdMediaPreviews2026','x.post.mediaUrl || x.post.videoUrl',
+            'td-media-native-preview','td-media-preview-unavailable']) {
+            if(!result.includes(required)) throw Error('Media preview regression: '+required);
+          }
+          if(!result.includes('x.post.coverUrl || x.post.thumbnailUrl')) throw Error('Native cover priority lost');
+          try {patchMediaPreviews(result,runtime,css);throw Error('Duplicate media patch allowed');}
+          catch(error) {if(!String(error.message).includes('already installed'))throw error;}
+          console.log('PASS: native covers preferred, legacy videos recovered, patch remains single-install.');
+          JS
+          node /tmp/traydaq-media-previews-patch.mjs . /tmp/traydaq-media-previews.js /tmp/traydaq-media-previews.css
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          const html=fs.readFileSync('index.html','utf8');
+          for(const marker of ['id="tdMediaPreviews2026"','id="tdMediaPreviews2026Style"',
+            'x.post.mediaUrl || x.post.videoUrl','video.classList.add','td-media-awaiting-frame']) {
+            if(!html.includes(marker)) throw Error('Media integration missing: '+marker);
+          }
+          const start=html.indexOf('<script id="tdMediaPreviews2026">');
+          const end=html.indexOf('</script>',start);
+          if(start<0||end<start) throw Error('Missing shared media runtime');
+          new Function(html.slice(start+'<script id="tdMediaPreviews2026">'.length,end));
+          console.log('PASS: production HTML contains valid universal image/video preview runtime.');
+          JS
+
       - name: Install project dependencies
         run: npm install --no-audit --no-fund
 
