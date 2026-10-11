@@ -945,7 +945,8 @@ jobs:
             /tmp/traydaq-post-links/assets/traydaq-post-links.js html
           grep -Fq 'id="tdPostDeepLinks2026"' index.html
           grep -Fq 'functions/v1/traydaq-open-post' index.html
-          echo 'PASS: social share/copy sends a post URL, not a Supabase video or picture file.'
+          grep -Fq 'Capacitor?.Plugins?.Share' index.html
+          echo 'PASS: Android chooser, social share and copy all send a post URL, not a media file.'
 
       - name: Enable playable videos in admin moderation cards
         shell: bash
