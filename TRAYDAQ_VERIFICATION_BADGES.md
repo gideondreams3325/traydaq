@@ -9,6 +9,8 @@ Two **different** Trust & Safety credentials now exist:
 
 A PRO subscription **does not** award the blue check. Completing identity verification **does not** award the blue check. The blue check does not automatically confer identity-verification approval or seller-publishing permissions.
 
+**Permanent official account exception:** The active, email-verified Firebase Authentication account with the platform administrator email `gideondreams3325@gmail.com` receives the blue check automatically. The backend resolves the account's immutable Firebase UID using privileged Authentication lookup; editable display names, usernames and profile roles cannot claim it. The badge is never created by account verification or subscription status, and a revoke request for that official UID is forbidden. If the account is disabled, email-unverified, missing or Firebase Auth is unavailable, the backend does not invent a badge.
+
 ## Implemented code
 
 - `scripts/patch-private-admin-ui.mjs`: clickable **Blue Check Hub** dashboard card (13th workspace), on the Security Team Portal.
@@ -34,6 +36,8 @@ A PRO subscription **does not** award the blue check. Completing identity verifi
 ## How the Security Team uses the Blue Check Hub
 
 In an APK containing this patch, open **Profile → Security Team Portal → Blue Check Hub**, find a genuine user, and choose **Grant blue check** or **Revoke blue check**. Confirm the action and provide a reason of 10–220 characters.
+
+The official Traydaq account is marked **Permanent official badge** in the hub, with the change button disabled. The server independently rejects attempts to revoke it.
 
 A successful action writes an auditable decision and notifies the recipient. If the server badge registry or Firebase credentials are unavailable, the hub disables the controls rather than allowing a locally faked blue check.
 
