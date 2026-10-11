@@ -123,10 +123,10 @@ export function patchInboxChat(source) {
     }, 'reaction function');
 
   source = patchBetween(source,
-    '     let legacyChatDocs = [];',
-    '     // /messages/{cid} is an RTDB collection, not a document.', part => {
-      const at = part.indexOf("     const messagesColl = collection(db,'messages',cid);");
-      if (at < 0 || part.indexOf("     const messagesColl = collection(db,'messages',cid);", at + 1) >= 0) {
+    '    let legacyChatDocs = [];',
+    '    // /messages/{cid} is an RTDB collection, not a document.', part => {
+      const at = part.indexOf("    const messagesColl = collection(db,'messages',cid);");
+      if (at < 0 || part.indexOf("    const messagesColl = collection(db,'messages',cid);", at + 1) >= 0) {
         throw Error('Traydaq Inbox legacy message-loading block changed');
       }
       // Preserve the existing renderer and one historical, valid Firestore subcollection
@@ -146,7 +146,7 @@ export function patchInboxChat(source) {
 
   // If a message was migrated from Firestore to RTDB with the same ID, render it once.
   source = replaceOnce(source,
-    '       const sorted = [...legacyChatDocs,...rawDocs].sort((a,b) => {',
+    '      const sorted = [...legacyChatDocs,...rawDocs].sort((a,b) => {',
     `       const byId = new Map();
        for (const row of [...legacyChatDocs, ...rawDocs]) byId.set(row.id, row);
        const sorted = [...byId.values()].sort((a,b) => {`,
