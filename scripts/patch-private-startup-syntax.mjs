@@ -7,6 +7,16 @@ import {fileURLToPath} from 'node:url';
 // The public repo never receives private source files, runtime tokens or user data.
 const DAMAGED_ROUTE=/\b(?:(?:TRAYDAQ|Traydaq)\s+){0,2}(?:Security\s+Team|Team)\s*:\s*renderAdmin\b/g;
 const ROUTE='admin:renderAdmin';
+// A branding rewrite in an older APK changed executable DOM attributes into
+// strings such as [data-TRAYDAQ Traydaq Security Team-takedown-reel].
+// Only restore technical data-* identifiers; displayed team names remain intact.
+const DAMAGED_ADMIN_DATA_ATTRIBUTE=/\bdata-(?:(?:TRAYDAQ|Traydaq)\s+){0,2}(?:Security\s+Team|Team)-([a-z][a-z0-9]*(?:-[a-z0-9]+)*)/gi;
+
+export function assertSafeAdminSelectors(html){
+  if(new RegExp(DAMAGED_ADMIN_DATA_ATTRIBUTE.source,'i').test(html)){
+    throw Error('TRAYDAQ: an admin data-* selector was changed into a team display name');
+  }
+}
 const scriptTag=/<script\b([^>]*)>([\s\S]*?)<\/script\s*>/gi;
 
 export function validateInlineScripts(html){
@@ -30,6 +40,7 @@ export function validateInlineScripts(html){
   if(!scripts.length)throw Error('TRAYDAQ startup: no executable inline scripts found');
   if(invalid.length)throw Error('TRAYDAQ startup: invalid inline script(s): '+
     invalid.map(x=>x.id+' ('+x.message+')').join('; '));
+  assertSafeAdminSelectors(html);
   return scripts.length;
 }
 
@@ -48,10 +59,14 @@ export function repairStartupSyntax(html){
        !/^\s*,/.test(right)) throw Error('TRAYDAQ startup: damaged route appears outside approved navigation map');
     html=html.replace(DAMAGED_ROUTE,ROUTE);
   }
+  const brokenAttributes=[...html.matchAll(DAMAGED_ADMIN_DATA_ATTRIBUTE)];
+  if(brokenAttributes.length){
+    html=html.replace(DAMAGED_ADMIN_DATA_ATTRIBUTE,(_,suffix)=>'data-admin-'+suffix);
+  }
   // Other valid source revisions may space or quote their admin map key differently.
   // Parsing every script is the authoritative invariant, not matching one formatting style.
   validateInlineScripts(html);
-  return {html,repaired:occurrences===1};
+  return {html,repaired:occurrences===1||brokenAttributes.length>0,selectorRepairs:brokenAttributes.length};
 }
 
 export function main(root='.'){
@@ -59,8 +74,8 @@ export function main(root='.'){
   const before=fs.readFileSync(file,'utf8');
   const {html,repaired}=repairStartupSyntax(before);
   if(repaired)fs.writeFileSync(file,html,'utf8');
-  console.log('PASS: TRAYDAQ Android root route and all '+validateInlineScripts(html)+
-    ' inline startup scripts parse. Damaged route '+(repaired?'repaired.':'not present.'));
+  console.log('PASS: TRAYDAQ Android root route, DOM selectors and all '+validateInlineScripts(html)+
+    ' inline startup scripts validate. Repair '+(repaired?'applied.':'not needed.'));
 }
 if(process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.url)){
   main(process.argv[2]||'.');
