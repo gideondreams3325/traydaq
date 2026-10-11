@@ -7,7 +7,9 @@ export function patchCommentSocial(html, runtime) {
       !html.includes('</head>')) throw Error('TRAYDAQ comments: app shell missing.');
   if (html.includes('tdCommentProfiles2026')) throw Error('TRAYDAQ comments: patch already installed.');
   if (typeof runtime !== 'string' || !runtime.includes('__tdCommentSocialLoaded') ||
-      !runtime.includes("ref('commentLikes/' + key).set(next)"))
+      !runtime.includes('tdSupabaseCommentLikes2026') ||
+      !runtime.includes('fetch(likesApi, {') ||
+      runtime.includes("ref('commentLikes/' + key).set(next)"))
     throw Error('TRAYDAQ comments: incomplete client module.');
   const original = '<section class="comment-sheet">';
   const occurrences = html.split(original).length - 1;
