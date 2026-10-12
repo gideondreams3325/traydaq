@@ -102,3 +102,41 @@ Firebase is the authoritative post feed database; the Supabase tables primarily 
 We have started a self-owned FFmpeg + Supabase transcoding system with a Firebase-authenticated gateway, service-role-only queue, adaptive HLS renditions, fallback MP4 and Android playback helper. The full architecture, files, safety checks and rollout sequence are in [media-engine/README.md](media-engine/README.md).
 
 **Not live yet:** No SQL queue migration or Edge gateway was deployed in production, no Render encoding worker was provisioned, and existing APK feeds still use original media. The worker is disabled by default. Video encoding and hosting still use compute, storage, and bandwidth limits.
+
+## Temporary picture-only mode (October 12, 2026)
+
+TRAYDAQ is launching with **picture posts only** to conserve bandwidth. This
+change is reversible and **does not delete old video uploads or post records**.
+Music Library audio, chats, jobs, events, store listings and private verification
+capture are kept intact.
+
+The public Android builder now applies:
+- `assets/traydaq-picture-only.js` and `assets/traydaq-picture-only.css` to
+  archive visible video reels in For You/Following, leave picture posts visible,
+  pause and clear archived video playback elements, and restrict mixed image/video
+  file pickers to pictures without touching audio/ID pickers.
+- `scripts/patch-private-picture-only.mjs` to filter old video posts through the
+  existing For You eligibility function and reject new video posts at the Creator
+  Studio publishing call. Existing privacy/moderation checks remain unchanged.
+- Tests in `tests/traydaq-picture-only.test.mjs`, including duplicate-patch,
+  video metadata/URL recognition, upload type rejection, and music-audio safety.
+- A startup gate adjustment so an all-archived feed no longer holds the animated
+  wheel screen until its maximum timeout.
+
+Supabase Edge Function `traydaq-media-upload` **version 2** is deployed to the
+existing project. It now signs only supported **public pictures** (JPEG, PNG,
+WebP, GIF, AVIF, HEIC, HEIF), rejects declared video MIME types and video
+extensions, retains Firebase JWT owner verification and caps picture size at
+20 MB. The separate Music Library API remains unchanged. Existing videos in
+storage remain available for restoration when affordable video hosting exists.
+
+The signer covers uploads using that endpoint. Other legacy upload routes and
+native APK behavior still require end-to-end verification; do not assume every
+historical app release has image-only restrictions. The current installed APK
+will only show the new UI after a successful GitHub Actions build is installed.
+Do not remove existing media or drop database tables to enable picture-only mode.
+
+To restore videos later, test and reverse the Android picture-only build step
+and restore the signed-upload service's video allowlist, after ensuring storage
+and streaming capacity. The optional `media-engine/` FFmpeg worker remains
+disabled and requires paid compute if activated.
