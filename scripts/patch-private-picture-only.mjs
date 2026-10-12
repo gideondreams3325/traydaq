@@ -3,8 +3,13 @@ import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 
 export const PICTURE_ONLY_MARKER='tdPictureOnly20261012';
-const FEED_PREDICATE='const isEligibleFeedPost = (p) => {';
-const CREATOR_CALL='        const published = await window.executeSellerFlowAiPostPublish(postData, tdOptimizedUpload, null);';
+const FEED_PREDICATES=[
+ 'const isEligibleFeedPost = (p) => {',
+ 'const isEligibleFeedPost=(p)=>{',
+ 'const isEligibleFeedPost = p => {',
+ 'function isEligibleFeedPost(p) {'
+];
+const CREATOR_CALL=/\bconst\s+published\s*=\s*await\s+window\.executeSellerFlowAiPostPublish\s*\(\s*postData\s*,\s*(tdOptimizedUpload|uploadFile)\s*,\s*null\s*\)\s*;/g;
 function once(src,before,after,label){
  const hits=src.split(before).length-1;
  if(hits!==1)throw Error('TRAYDAQ picture-only source contract changed: '+label+' ('+hits+')');
@@ -20,8 +25,12 @@ export function patchPictureOnlyHtml(html,runtime,css){
  if(/<\/script/i.test(runtime)||/<\/style/i.test(css))throw Error('Unexpected inline terminator');
  new Function(runtime);
  // Keep existing feed moderation, security, privacy and ownership logic intact.
- html=once(html,FEED_PREDICATE,
-  FEED_PREDICATE+'\n    // '+PICTURE_ONLY_MARKER+': old videos are archived, not removed from storage.\n'+
+ const predicateMatches=FEED_PREDICATES.filter(variant=>html.includes(variant));
+ if(predicateMatches.length!==1||html.split(predicateMatches[0]).length!==2)
+  throw Error('TRAYDAQ picture-only source contract changed: main feed eligibility function');
+ const predicate=predicateMatches[0];
+ html=once(html,predicate,
+  predicate+'\n    // '+PICTURE_ONLY_MARKER+': old videos are archived, not removed from storage.\n'+
   '    if (window.tdPictureOnly2026?.isVideoPost(p)) return false;',
   'main For You/Following eligibility filter');
  html=html.replace('</head>','<style id="'+PICTURE_ONLY_MARKER+'Style">\n'+css+'\n</style>\n</head>');
@@ -30,11 +39,14 @@ export function patchPictureOnlyHtml(html,runtime,css){
 export function patchPictureOnlyCreator(source){
  if(typeof source!=='string')throw TypeError('Missing Creator Studio');
  if(source.includes(PICTURE_ONLY_MARKER))throw Error('Picture-only Creator Studio already patched');
- return once(source,CREATOR_CALL,
-  '        // '+PICTURE_ONLY_MARKER+': block new videos before publish side effects.\n'+
+ const matches=[...source.matchAll(CREATOR_CALL)];
+ if(matches.length!==1)
+  throw Error('TRAYDAQ picture-only source contract changed: Creator Studio signed publish ('+matches.length+')');
+ const call=matches[0][0], fileVariable=matches[0][1];
+ const guard='        // '+PICTURE_ONLY_MARKER+': block new videos before publish side effects.\n'+
   '        if (!window.tdPictureOnly2026?.guardNewPost) throw Error("Picture-only upload protection is unavailable. Reopen TRAYDAQ.");\n'+
-  '        window.tdPictureOnly2026.guardNewPost(postData, tdOptimizedUpload);\n'+CREATOR_CALL,
-  'Creator Studio signed publish');
+  '        window.tdPictureOnly2026.guardNewPost(postData, '+fileVariable+');\n';
+ return source.slice(0,matches[0].index)+guard+call+source.slice(matches[0].index+call.length);
 }
 export function main(root='.',runtimeFile,cssFile){
  if(!runtimeFile||!cssFile)throw Error('Usage: patch-private-picture-only.mjs <root> <runtime.js> <style.css>');
