@@ -1,0 +1,36 @@
+name: TRAYDAQ Media Engine Tests
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'media-engine/**'
+      - '.github/workflows/media-engine-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate worker and playback JavaScript
+        run: |
+          node --check media-engine/worker.mjs
+          node --check media-engine/client/playback.mjs
+      - name: Run security and media unit tests
+        run: node --test media-engine/tests/*.test.mjs
+      - name: Verify FFmpeg image dependencies in Docker worker
+        run: |
+          test -s media-engine/Dockerfile
+          grep -Fq 'ffmpeg' media-engine/Dockerfile
+          grep -Fq 'USER node' media-engine/Dockerfile
+          grep -Fq 'TRAYDAQ_MEDIA_ENGINE_ENABLED=false' media-engine/Dockerfile
+      - name: Ensure no private credentials are checked in
+        run: |
+          ! grep -R -n -E 'sk-proj-|-----BEGIN PRIVATE KEY-----|service_role.*eyJ' media-engine
