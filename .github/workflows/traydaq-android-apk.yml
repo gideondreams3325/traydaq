@@ -1357,6 +1357,21 @@ jobs:
           node /tmp/td-first-page/scripts/patch-private-feed-first-page.mjs .
           grep -Fq 'tdFeedFirstPage20261012' index.html
           grep -Fq 'window._sfFeedHasMore = snap.docs.length >= 36;' index.html
+      - name: Compress large Creator Studio photos before signed upload
+        shell: bash
+        run: |
+          set -euo pipefail
+          base="https://raw.githubusercontent.com/gideondreams3325/traydaq/${GITHUB_SHA}"
+          mkdir -p /tmp/td-photo-upload/{scripts,tests,assets}
+          for part in scripts/patch-private-creator-photo-compression.mjs tests/traydaq-creator-photo-compression.test.mjs assets/traydaq-public-photo-compression.js; do
+            curl --fail --silent --show-error --location "$base/$part" --output "/tmp/td-photo-upload/$part"
+          done
+          node --check /tmp/td-photo-upload/scripts/patch-private-creator-photo-compression.mjs
+          node --check /tmp/td-photo-upload/assets/traydaq-public-photo-compression.js
+          node --test /tmp/td-photo-upload/tests/traydaq-creator-photo-compression.test.mjs
+          node /tmp/td-photo-upload/scripts/patch-private-creator-photo-compression.mjs . /tmp/td-photo-upload/assets/traydaq-public-photo-compression.js
+          grep -Fq 'tdCreatorPhotoCompression20261012' index.html
+          grep -Fq 'tdOptimizedUpload' creator-studio.js
       - name: Verify lightweight Android startup and navigation
         shell: bash
         run: |
