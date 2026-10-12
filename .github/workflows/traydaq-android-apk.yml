@@ -24,6 +24,7 @@ on:
   # Final tested Speed Engine update: visible reel priority, low RAM budget, route pause and APK markers (2026-10-11).
   # Package photo-only Home, Creator Studio upload guard and archived-video splash exit (2026-10-12).
   # Rebuild photo-only APK with source-compatible publisher and feed guard tests (2026-10-12).
+  # Fix CacheStorage mock in service-worker Node test; re-run picture-only APK (2026-10-12).
   # Pull requests and commits to other files do not trigger private source checkout.
   push:
     branches: [main]
