@@ -145,7 +145,9 @@ async function encodeVideo(input,output,{width,height,crf}) {
   const args=['-hide_banner','-loglevel','error','-nostdin','-y','-i',input,
     '-map','0:v:0','-map','0:a:0?','-vf','fps=30,scale='+width+':'+height+':flags=lanczos',
     '-c:v','libx264','-preset','veryfast','-profile:v','main','-pix_fmt','yuv420p',
-    '-crf',String(crf),'-g','120','-keyint_min','120','-sc_threshold','0',
+    '-crf',String(crf),'-maxrate',width*height>600000?'1800k':'700k',
+    '-bufsize',width*height>600000?'3600k':'1400k',
+    '-g','120','-keyint_min','120','-sc_threshold','0',
     '-c:a','aac','-b:a','96k','-ac','2','-movflags','+faststart','-max_muxing_queue_size','512',
     output];
   await run('ffmpeg',args,260000);
@@ -183,18 +185,20 @@ async function transcode(job) {
       uploaded.push(entry);
     }
     const poster=path.join(folder,'poster.jpg');
+    let posterUploaded=false;
     try{
       await run('ffmpeg',['-hide_banner','-loglevel','error','-nostdin','-y',
         '-ss',String(Math.min(1,Math.max(0,duration/2))),'-i',input,
         '-frames:v','1','-vf','scale=480:-2','-q:v','4',poster],30000);
       await upload(poster,remoteBase+'poster.jpg');
+      posterUploaded=true;
     }catch(_){} // Original post cover still works if poster creation fails.
     await fs.writeFile(path.join(folder,'master.m3u8'),masterPlaylist(uploaded),'utf8');
     await upload(path.join(folder,'master.m3u8'),remoteBase+'master.m3u8'); // Last.
     return {
       hls_path:remoteBase+'master.m3u8',
       mp4_path:remoteBase+'low.mp4',
-      poster_path:(await fs.stat(poster).catch(()=>null))?remoteBase+'poster.jpg':null
+      poster_path:posterUploaded?remoteBase+'poster.jpg':null
     };
   }finally{
     await fs.rm(folder,{recursive:true,force:true});
