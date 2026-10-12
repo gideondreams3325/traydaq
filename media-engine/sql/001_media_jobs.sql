@@ -32,6 +32,13 @@ returns setof public.traydaq_media_jobs
 language plpgsql security invoker set search_path=''
 as $$
 begin
+  -- A worker terminated during its final attempt must not remain 'processing'
+  -- forever. Only expired leases are marked failed.
+  update public.traydaq_media_jobs
+    set state='failed',error_code='WORKER_LEASE_EXPIRED',updated_at=now()
+   where state='processing' and attempts>=3
+     and lease_started_at < now()-interval '15 minutes';
+
   return query
   with next_job as (
     select j.id
