@@ -1557,6 +1557,8 @@ jobs:
           npm run build
           test -s dist/index.html
           grep -Fq 'id="tdSpeedEngine20261011"' dist/index.html
+          grep -Fq 'id="tdCreatorPhotoCompression20261012"' dist/index.html
+          grep -Fq 'tdFeedFirstPage20261012' dist/index.html
           node --input-type=module <<'JS'
           import fs from 'node:fs';
           import {validateInlineScripts} from '/tmp/td-startup/scripts/patch-private-startup-syntax.mjs';
@@ -1837,6 +1839,9 @@ jobs:
           with zipfile.ZipFile(apk) as z:
               name='assets/public/index.html'
               if name not in z.namelist(): raise SystemExit('Packaged Android startup page missing')
+              worker='assets/public/traydaq-public-media-sw.js'
+              if worker not in z.namelist(): raise SystemExit('Packaged public media cache worker missing')
+              if b'traydaq-public-media' not in z.read(worker): raise SystemExit('Packaged media cache safety guard missing')
               Path('/tmp/td-packaged-index.html').write_bytes(z.read(name))
           PY
           node --input-type=module <<'JS'
@@ -1845,6 +1850,10 @@ jobs:
           const html=fs.readFileSync('/tmp/td-packaged-index.html','utf8');
           if(!html.includes('id="tdPublicMediaCache20261012"'))
             throw Error('Public-only media cache missing from signed Android APK');
+          if(!html.includes('tdCreatorPhotoCompression20261012'))
+            throw Error('Creator photo compressor missing from signed Android APK');
+          if(!html.includes('tdFeedFirstPage20261012'))
+            throw Error('Bounded For You feed fetch missing from signed Android APK');
           if(!html.includes('id="tdSpeedEngine20261011"'))
             throw Error('Speed engine missing from signed Android APK');
           const count=validateInlineScripts(html);
