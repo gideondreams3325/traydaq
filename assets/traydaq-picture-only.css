@@ -1,0 +1,6 @@
+/* Picture-first TRAYDAQ: archive video cards from visible feeds only. */
+#reelFeed .reel-card[data-td-picture-only-hidden="true"],
+#followingFeed .reel-card[data-td-picture-only-hidden="true"],
+#followingFeedList .reel-card[data-td-picture-only-hidden="true"],
+.following-feed .reel-card[data-td-picture-only-hidden="true"]{display:none!important}
+.td-picture-only-empty{padding:44px 20px;color:#17653c;background:#fff;text-align:center;font-weight:600;line-height:1.5}
