@@ -96,3 +96,9 @@ All three have standalone tests, plus workflow bundle/APK inclusion checks. Chan
 The signed upload endpoint sends original videos directly to Supabase Storage. Supabase Edge Functions have a strict CPU budget and cannot be used as a general-purpose FFmpeg transcoder for these uploads. Real multiple-bitrate HLS/DASH generation requires a video encoder (e.g. separately provisioned FFmpeg worker or configured streaming provider), ingestion authorization, output storage/CDN, and play-ready manifest references in posts. **None of that is silently enabled**, and no paid vendor account is created. The installed Android Speed Engine adapts **preload budgets**, not encoded bitrates. Existing video editing/export and signed upload flow remain unchanged.
 
 Firebase is the authoritative post feed database; the Supabase tables primarily support other features. No Firestore/RTDB security rules were replaced and no destructive database migrations were made to chase speculative gains.
+
+## Our own TRAYDAQ Media Engine (October 2026)
+
+We have started a self-owned FFmpeg + Supabase transcoding system with a Firebase-authenticated gateway, service-role-only queue, adaptive HLS renditions, fallback MP4 and Android playback helper. The full architecture, files, safety checks and rollout sequence are in [media-engine/README.md](media-engine/README.md).
+
+**Not live yet:** No SQL queue migration or Edge gateway was deployed in production, no Render encoding worker was provisioned, and existing APK feeds still use original media. The worker is disabled by default. Video encoding and hosting still use compute, storage, and bandwidth limits.
