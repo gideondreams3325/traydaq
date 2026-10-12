@@ -60,10 +60,14 @@ assert(!await shouldFetch(base.replace('/posts/','/ghana-card/')),'ID scans not 
 assert(!await shouldFetch(base.replace('/object/public/','/object/sign/')),'private media not cached');
 assert(!await shouldFetch(base.replace('vvpwntehstjbccarqqzp.supabase.co','example.com')),'host must be exact');
 assert(!await shouldFetch(base,'image',{authorization:'Bearer x'}),'authenticated content not cached');
-// Cached images must not cause a second CDN fetch on revisits.
+// Cached images are returned immediately; the first revisit may schedule
+// one background revalidation per service-worker lifetime, not every revisit.
 const requestsBeforeRevisit=remoteFetches;
 assert(await shouldFetch(base));
-assert.equal(remoteFetches,requestsBeforeRevisit,'cached public image was fetched again');
+assert(remoteFetches<=requestsBeforeRevisit+1,'too many background revalidations');
+const requestsAfterRevalidation=remoteFetches;
+assert(await shouldFetch(base));
+assert.equal(remoteFetches,requestsAfterRevalidation,'cached public image revalidated repeatedly');
 // The worker's LRU-style cap protects low-storage Android devices.
 for(let i=0;i<28;i++){
   const key='https://vvpwntehstjbccarqqzp.supabase.co/storage/v1/object/public/traydaq-public-media/media/u_123/posts/'+String(i).padStart(10,'0')+'.jpg';
