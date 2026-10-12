@@ -1343,6 +1343,20 @@ jobs:
           grep -Fq 'class="reel-actions"' index.html
           echo 'PASS: photos and videos of every aspect ratio fit without cropping in both feed tabs.'
 
+      - name: Fetch a smaller first TRAYDAQ For You feed page
+        shell: bash
+        run: |
+          set -euo pipefail
+          base="https://raw.githubusercontent.com/gideondreams3325/traydaq/${GITHUB_SHA}"
+          mkdir -p /tmp/td-first-page/{scripts,tests}
+          for part in scripts/patch-private-feed-first-page.mjs tests/traydaq-feed-first-page.test.mjs; do
+            curl -fsSL "$base/$part" -o "/tmp/td-first-page/$part"
+          done
+          node --check /tmp/td-first-page/scripts/patch-private-feed-first-page.mjs
+          node --test /tmp/td-first-page/tests/traydaq-feed-first-page.test.mjs
+          node /tmp/td-first-page/scripts/patch-private-feed-first-page.mjs .
+          grep -Fq 'tdFeedFirstPage20261012' index.html
+          grep -Fq 'window._sfFeedHasMore = snap.docs.length >= 36;' index.html
       - name: Verify lightweight Android startup and navigation
         shell: bash
         run: |
