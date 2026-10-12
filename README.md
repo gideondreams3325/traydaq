@@ -80,3 +80,19 @@ This client-side optimization does **not** transcode uploaded videos, add adapti
 streaming renditions, rewrite private Firebase queries, or claim guaranteed startup
 timings. Those features require separate server-side integration and measurements.
 Do not paste private user records, access tokens or media URLs into performance logs.
+
+## Android media and feed performance integration (October 12, 2026)
+
+The **public APK builder** now applies additional tested patches exclusively to its temporary private source checkout:
+
+- `scripts/patch-private-feed-first-page.mjs`: changes only the initial For You Firestore page from 100 to 36 posts. Keeps existing filtering and pagination state; aborts the build if its source contract changes.
+- `scripts/patch-private-creator-photo-compression.mjs` and `assets/traydaq-public-photo-compression.js`: optimize Creator Studio JPEG/PNG/WebP uploads bigger than 1.2 MB, capped to 1600px, only when the result is at least 15% smaller. Preserve the original on timeout, unsupported format, failure or poor compression. Uploaded video/audio are untouched.
+- `scripts/patch-private-public-media-cache.mjs` and `assets/traydaq-public-media-sw.js`: install a native Android-only service worker that caches at most 24 approved **public** post/product/profile covers from the TRAYDAQ public media bucket. It never handles private documents, Firebase tokens, signed URLs, API requests, video range requests or personal databases. If service workers are unsupported on a particular Android WebView, registration quietly falls back to regular networking.
+
+All three have standalone tests, plus workflow bundle/APK inclusion checks. Changes to the public workflow trigger the Android builder. **A commit does not prove the APK passed**: check GitHub Actions before installing.
+
+### Video processing limitations
+
+The signed upload endpoint sends original videos directly to Supabase Storage. Supabase Edge Functions have a strict CPU budget and cannot be used as a general-purpose FFmpeg transcoder for these uploads. Real multiple-bitrate HLS/DASH generation requires a video encoder (e.g. separately provisioned FFmpeg worker or configured streaming provider), ingestion authorization, output storage/CDN, and play-ready manifest references in posts. **None of that is silently enabled**, and no paid vendor account is created. The installed Android Speed Engine adapts **preload budgets**, not encoded bitrates. Existing video editing/export and signed upload flow remain unchanged.
+
+Firebase is the authoritative post feed database; the Supabase tables primarily support other features. No Firestore/RTDB security rules were replaced and no destructive database migrations were made to chase speculative gains.
