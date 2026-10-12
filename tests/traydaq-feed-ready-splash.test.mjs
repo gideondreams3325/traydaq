@@ -12,6 +12,10 @@ test('startup JS detects first decoded media and safe exits',()=>{
   assert.doesNotMatch(runtime,/document\.querySelectorAll\('\.reel-card'\)/);
   assert.match(runtime,/MAX_WAIT_MS = 11500/);
 });
+test('picture-only empty feed does not hold Android wheel splash unnecessarily',()=>{
+  assert.ok(runtime.includes("!Array.from(feed.querySelectorAll('.reel-card')).some(isVisible)"));
+  assert.ok(runtime.includes('no picture posts'));
+});
 test('HTML runtime installs only once',()=>{
   const html='<html><head></head><body><main id="reelFeed"><article class="reel-card"></article></main></body></html>';
   const patched=patchFeedGateHtml(html,runtime);
