@@ -1,0 +1,14 @@
+# Optional paid background worker blueprint: DO NOT deploy before configuring secrets.
+# The APK and existing uploads continue working when this worker is absent.
+services:
+  - type: worker
+    name: traydaq-media-engine
+    runtime: docker
+    dockerfilePath: ./media-engine/Dockerfile
+    dockerContext: ./media-engine
+    plan: starter
+    envVars:
+      - key: TRAYDAQ_MEDIA_ENGINE_ENABLED
+        value: "false"
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
