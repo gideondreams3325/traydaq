@@ -60,9 +60,11 @@
       const element = document.querySelector(selector);
       return element && isVisible(element);
     })) return true;
-    if (isVisible(feed) && !feed.querySelector('.reel-card')) {
+    // Picture-only mode archives old video cards without deleting them.
+    // Their hidden DOM nodes must not hold the wheel splash for 11.5 seconds.
+    if (isVisible(feed) && !Array.from(feed.querySelectorAll('.reel-card')).some(isVisible)) {
       const text = (feed.textContent || '').replace(/\s+/g, ' ').trim();
-      if (/no posts|nothing to show|no content|empty feed|could not load|sign in to see/i.test(text)) return true;
+      if (/no picture posts|no posts|nothing to show|no content|empty feed|could not load|sign in to see/i.test(text)) return true;
     }
     return false;
   }
