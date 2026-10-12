@@ -1372,6 +1372,22 @@ jobs:
           node /tmp/td-photo-upload/scripts/patch-private-creator-photo-compression.mjs . /tmp/td-photo-upload/assets/traydaq-public-photo-compression.js
           grep -Fq 'tdCreatorPhotoCompression20261012' index.html
           grep -Fq 'tdOptimizedUpload' creator-studio.js
+      - name: Enable temporary picture-only For You and Creator Studio
+        shell: bash
+        run: |
+          set -euo pipefail
+          base="https://raw.githubusercontent.com/gideondreams3325/traydaq/${GITHUB_SHA}"
+          mkdir -p /tmp/td-picture-only/{assets,scripts,tests}
+          for part in assets/traydaq-picture-only.js assets/traydaq-picture-only.css scripts/patch-private-picture-only.mjs tests/traydaq-picture-only.test.mjs; do
+            curl --fail --silent --show-error --location "$base/$part" --output "/tmp/td-picture-only/$part"
+          done
+          node --check /tmp/td-picture-only/assets/traydaq-picture-only.js
+          node --check /tmp/td-picture-only/scripts/patch-private-picture-only.mjs
+          node --test /tmp/td-picture-only/tests/traydaq-picture-only.test.mjs
+          node /tmp/td-picture-only/scripts/patch-private-picture-only.mjs . /tmp/td-picture-only/assets/traydaq-picture-only.js /tmp/td-picture-only/assets/traydaq-picture-only.css
+          grep -Fq 'id="tdPictureOnly20261012"' index.html
+          grep -Fq 'tdPictureOnly20261012' creator-studio.js
+          echo 'PASS: picture-only TRAYDAQ feed and Creator Studio. All old video files retained.'
       - name: Verify lightweight Android startup and navigation
         shell: bash
         run: |
@@ -1558,6 +1574,7 @@ jobs:
           test -s dist/index.html
           grep -Fq 'id="tdSpeedEngine20261011"' dist/index.html
           grep -Fq 'id="tdCreatorPhotoCompression20261012"' dist/index.html
+          grep -Fq 'id="tdPictureOnly20261012"' dist/index.html
           grep -Fq 'tdFeedFirstPage20261012' dist/index.html
           node --input-type=module <<'JS'
           import fs from 'node:fs';
@@ -1852,6 +1869,8 @@ jobs:
             throw Error('Public-only media cache missing from signed Android APK');
           if(!html.includes('tdCreatorPhotoCompression20261012'))
             throw Error('Creator photo compressor missing from signed Android APK');
+          if(!html.includes('id="tdPictureOnly20261012"'))
+            throw Error('Temporary picture-only mode missing from signed Android APK');
           if(!html.includes('tdFeedFirstPage20261012'))
             throw Error('Bounded For You feed fetch missing from signed Android APK');
           if(!html.includes('id="tdSpeedEngine20261011"'))
