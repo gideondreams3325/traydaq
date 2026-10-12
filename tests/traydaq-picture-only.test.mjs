@@ -15,6 +15,10 @@ test('mode installs once without removing safety filters',()=>{
  assert(revised.includes('window.tdPictureOnly2026?.isVideoPost(p)'));
  assert.throws(()=>patchPictureOnlyHtml(revised,runtime,css),/already installed/);
  assert.throws(()=>patchPictureOnlyHtml(html.replace('const isEligibleFeedPost','const replacedPredicate'),runtime,css),/contract changed/);
+ const compact=html.replace('const isEligibleFeedPost = (p) => {','const isEligibleFeedPost=(p)=>{');
+ assert(patchPictureOnlyHtml(compact,runtime,css).includes(PICTURE_ONLY_MARKER));
+ const declaration=html.replace('const isEligibleFeedPost = (p) => {','function isEligibleFeedPost(p) {');
+ assert(patchPictureOnlyHtml(declaration,runtime,css).includes(PICTURE_ONLY_MARKER));
 });
 test('new video publishing fails closed',()=>{
  const revised=patchPictureOnlyCreator(creator);
@@ -22,6 +26,11 @@ test('new video publishing fails closed',()=>{
  assert(revised.includes('upload protection is unavailable'));
  assert.throws(()=>patchPictureOnlyCreator(revised),/already patched/);
  assert.throws(()=>patchPictureOnlyCreator('function other(){}'),/contract changed/);
+ const plain=creator.replace('tdOptimizedUpload, null','uploadFile, null');
+ assert(patchPictureOnlyCreator(plain).includes('guardNewPost(postData, uploadFile)'));
+ const compact=creator.replace('        const published = await window.executeSellerFlowAiPostPublish(postData, tdOptimizedUpload, null);',
+   '  const published=await window.executeSellerFlowAiPostPublish(postData, tdOptimizedUpload,null);');
+ assert(patchPictureOnlyCreator(compact).includes('guardNewPost(postData, tdOptimizedUpload)'));
 });
 test('pictures accepted, video archived, music audio unaffected',()=>{
  const win={};const doc={readyState:'loading',addEventListener(){}};
