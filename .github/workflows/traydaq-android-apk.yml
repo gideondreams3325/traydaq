@@ -1606,6 +1606,23 @@ jobs:
           grep -Fq 'tdPostDeepLinks2026' android/app/src/main/assets/public/index.html
           echo 'PASS: installed Traydaq receives shared post IDs on cold launch and app resume.'
 
+      - name: Cache only approved public TRAYDAQ media in Android WebView
+        shell: bash
+        run: |
+          set -euo pipefail
+          base="https://raw.githubusercontent.com/gideondreams3325/traydaq/${GITHUB_SHA}"
+          mkdir -p /tmp/td-media-cache/{assets,scripts,tests}
+          for part in assets/traydaq-public-media-sw.js assets/traydaq-public-media-register.js scripts/patch-private-public-media-cache.mjs tests/traydaq-public-media-cache.test.mjs; do
+            curl --fail --silent --show-error --location "$base/$part" --output "/tmp/td-media-cache/$part"
+          done
+          node --check /tmp/td-media-cache/assets/traydaq-public-media-sw.js
+          node --check /tmp/td-media-cache/assets/traydaq-public-media-register.js
+          node --check /tmp/td-media-cache/scripts/patch-private-public-media-cache.mjs
+          node --test /tmp/td-media-cache/tests/traydaq-public-media-cache.test.mjs
+          node /tmp/td-media-cache/scripts/patch-private-public-media-cache.mjs . /tmp/td-media-cache/assets/traydaq-public-media-sw.js /tmp/td-media-cache/assets/traydaq-public-media-register.js
+          grep -Fq 'id="tdPublicMediaCache20261012"' android/app/src/main/assets/public/index.html
+          test -s android/app/src/main/assets/public/traydaq-public-media-sw.js
+          echo 'PASS: APK includes bounded image-only cache for public media; signed/private media excluded.'
       - name: Restore TRAYDAQ animated cart splash with spinning wheels
         shell: bash
         run: |
@@ -1797,6 +1814,8 @@ jobs:
           import fs from 'node:fs';
           import {validateInlineScripts} from '/tmp/td-startup/scripts/patch-private-startup-syntax.mjs';
           const html=fs.readFileSync('/tmp/td-packaged-index.html','utf8');
+          if(!html.includes('id="tdPublicMediaCache20261012"'))
+            throw Error('Public-only media cache missing from signed Android APK');
           if(!html.includes('id="tdSpeedEngine20261011"'))
             throw Error('Speed engine missing from signed Android APK');
           const count=validateInlineScripts(html);
