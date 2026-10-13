@@ -77,6 +77,7 @@ jobs:
           test -f supabase/migrations/20261013_scheduled_photo_album_release.sql
           test -f supabase/migrations/20261013_event_catalog_reminder_options.sql
           test -f tests/scheduled-publishing.test.mjs
+          grep -Fq "event_reminder_notifications" src/social/NotificationsPage.tsx
           grep -Fq "v2_studio_profile_products" src/profile/ProfilePage.tsx
           test -f tests/studios.test.mjs
           grep -Fq '"rollup": "4.61.1"' package.json
