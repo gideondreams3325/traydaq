@@ -72,6 +72,11 @@ jobs:
           test -f supabase/migrations/20261013_studio_media_validation.sql
           test -f supabase/migrations/20261013_approved_studio_media.sql
           test -f supabase/migrations/20261013_profile_studio_products.sql
+          test -f supabase/migrations/20261013_scheduled_release_events.sql
+          test -f supabase/migrations/20261013_public_schedule_gates.sql
+          test -f supabase/migrations/20261013_scheduled_photo_album_release.sql
+          test -f supabase/migrations/20261013_event_catalog_reminder_options.sql
+          test -f tests/scheduled-publishing.test.mjs
           grep -Fq "v2_studio_profile_products" src/profile/ProfilePage.tsx
           test -f tests/studios.test.mjs
           grep -Fq '"rollup": "4.61.1"' package.json
