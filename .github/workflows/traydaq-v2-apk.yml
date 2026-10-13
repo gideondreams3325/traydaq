@@ -72,6 +72,8 @@ jobs:
           grep -Fq '"rollup": "4.61.1"' package.json
           test -f supabase/migrations/20261013_individual_studios.sql
           grep -Fq "export function Studios" src/studio/Studios.tsx
+          grep -Fq "export function SecurityTeamHub" src/security/SecurityTeamHub.tsx
+          grep -Fq "export function StudioCatalog" src/studio/StudioCatalog.tsx
           test -f supabase/functions/submit-album-picture/index.ts
           grep -Fq 'appId: "com.traydaq.app"' capacitor.config.ts
           grep -Fq '"name": "traydaq-v2"' package.json
