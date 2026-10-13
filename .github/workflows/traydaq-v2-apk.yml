@@ -71,6 +71,7 @@ jobs:
           test -f supabase/migrations/20261013_studio_catalog_cards.sql
           test -f supabase/migrations/20261013_studio_media_validation.sql
           test -f supabase/migrations/20261013_approved_studio_media.sql
+          test -f supabase/migrations/20261013_profile_studio_products.sql
           test -f tests/studios.test.mjs
           grep -Fq '"rollup": "4.61.1"' package.json
           test -f supabase/migrations/20261013_individual_studios.sql
