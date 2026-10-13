@@ -61,6 +61,9 @@ jobs:
           test -f src/feed/AlbumComposer.tsx
           test -f src/profile/ProfilePage.tsx
           test -f src/profile/profile.css
+          test -f src/studio/Studios.tsx
+          test -f src/studio/studios.css
+          test -f supabase/migrations/20261013_individual_studios.sql
           test -f supabase/functions/submit-album-picture/index.ts
           grep -Fq 'appId: "com.traydaq.app"' capacitor.config.ts
           grep -Fq '"name": "traydaq-v2"' package.json
