@@ -69,6 +69,8 @@ jobs:
           test -f src/security/security-hub.css
           test -f supabase/migrations/20261013_studio_review_and_catalog.sql
           test -f supabase/migrations/20261013_studio_catalog_cards.sql
+          test -f supabase/migrations/20261013_studio_media_validation.sql
+          test -f tests/studios.test.mjs
           grep -Fq '"rollup": "4.61.1"' package.json
           test -f supabase/migrations/20261013_individual_studios.sql
           grep -Fq "export function Studios" src/studio/Studios.tsx
