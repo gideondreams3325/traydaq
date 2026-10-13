@@ -82,10 +82,12 @@ jobs:
         run: |
           set -euo pipefail
           echo "Using preinstalled Android SDK at ${ANDROID_HOME:-${ANDROID_SDK_ROOT:-unknown}}"
-          command -v sdkmanager
-          sdkmanager --version
-          yes | sdkmanager --licenses >/dev/null || true
-          sdkmanager --install "platforms;android-35" "build-tools;35.0.0" "platform-tools"
+          SDK_ROOT="${ANDROID_HOME:-${ANDROID_SDK_ROOT:?Android SDK root not set}}"
+          SDKMANAGER="$(find "$SDK_ROOT/cmdline-tools" -maxdepth 3 -type f -path '*/bin/sdkmanager' | sort -V | tail -n 1)"
+          test -n "$SDKMANAGER"
+          "$SDKMANAGER" --version
+          yes | "$SDKMANAGER" --licenses >/dev/null || true
+          "$SDKMANAGER" --sdk_root="$SDK_ROOT" --install "platforms;android-35" "build-tools;35.0.0" "platform-tools"
           test -d "${ANDROID_HOME:-$ANDROID_SDK_ROOT}/platforms/android-35"
           test -d "${ANDROID_HOME:-$ANDROID_SDK_ROOT}/build-tools/35.0.0"
 
