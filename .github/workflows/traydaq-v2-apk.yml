@@ -63,6 +63,7 @@ jobs:
           test -f src/profile/profile.css
           test -f src/studio/Studios.tsx
           test -f src/studio/studios.css
+          grep -Fq '"rollup": "4.61.1"' package.json
           test -f supabase/migrations/20261013_individual_studios.sql
           test -f supabase/functions/submit-album-picture/index.ts
           grep -Fq 'appId: "com.traydaq.app"' capacitor.config.ts
