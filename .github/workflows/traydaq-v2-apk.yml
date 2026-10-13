@@ -59,6 +59,8 @@ jobs:
           set -euo pipefail
           test -f capacitor.config.ts
           test -f src/feed/AlbumComposer.tsx
+          test -f src/profile/ProfilePage.tsx
+          test -f src/profile/profile.css
           test -f supabase/functions/submit-album-picture/index.ts
           grep -Fq 'appId: "com.traydaq.app"' capacitor.config.ts
           grep -Fq '"name": "traydaq-v2"' package.json
