@@ -77,6 +77,12 @@ jobs:
           distribution: temurin
           java-version: '21'
 
+      - name: Install V2 project dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Test and build TRAYDAQ V2 web app
+        run: npm run check
+
       - name: Install Android API 35 using runner SDK
         shell: bash
         run: |
@@ -90,12 +96,6 @@ jobs:
           "$SDKMANAGER" --sdk_root="$SDK_ROOT" --install "platforms;android-35" "build-tools;35.0.0" "platform-tools"
           test -d "${ANDROID_HOME:-$ANDROID_SDK_ROOT}/platforms/android-35"
           test -d "${ANDROID_HOME:-$ANDROID_SDK_ROOT}/build-tools/35.0.0"
-
-      - name: Install V2 project dependencies
-        run: npm install --no-audit --no-fund
-
-      - name: Test and build TRAYDAQ V2 web app
-        run: npm run check
 
       - name: Generate V2 Android wrapper (no legacy code)
         run: |
