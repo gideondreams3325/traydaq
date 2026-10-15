@@ -123,25 +123,44 @@ jobs:
         working-directory: mobile
         run: npm run prebuild:android
 
-      - name: Build Android native debug APK
+      # Do NOT distribute assembleDebug APKs: without Metro they cannot load JS.
+      # The release variant embeds JS; sign this TEST build with the debug key.
+      - name: Configure signed standalone Android test APK
+        working-directory: mobile
+        run: node scripts/configure-standalone-test-apk.mjs
+
+      - name: Build self-contained Android test APK
         working-directory: mobile/android
         run: |
           chmod +x gradlew
-          ./gradlew --no-daemon assembleDebug
+          ./gradlew --no-daemon :app:assembleRelease
 
-      - name: Stage installable debug APK
+      - name: Verify APK includes offline JavaScript and valid signature
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK="mobile/android/app/build/outputs/apk/release/app-release.apk"
+          test -s "$APK"
+          unzip -Z1 "$APK" | grep -Eq '^assets/(index.android.bundle|main.jsbundle)
+ || {
+            echo "::error::Standalone APK is missing the React Native JavaScript asset"
+            exit 1
+          }
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose "$APK"
+
+      - name: Stage standalone Android test APK
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p apk
-          cp mobile/android/app/build/outputs/apk/debug/app-debug.apk apk/TRAYDAQ-V2-native-debug.apk
-          test -s apk/TRAYDAQ-V2-native-debug.apk
-          sha256sum apk/TRAYDAQ-V2-native-debug.apk
+          cp mobile/android/app/build/outputs/apk/release/app-release.apk apk/TRAYDAQ-V2-native-standalone.apk
+          test -s apk/TRAYDAQ-V2-native-standalone.apk
+          sha256sum apk/TRAYDAQ-V2-native-standalone.apk
 
       - name: Upload APK only, never private source
         uses: actions/upload-artifact@v4
         with:
-          name: TRAYDAQ-V2-native-debug-APK
-          path: apk/TRAYDAQ-V2-native-debug.apk
+          name: TRAYDAQ-V2-native-standalone-APK
+          path: apk/TRAYDAQ-V2-native-standalone.apk
           retention-days: 14
           if-no-files-found: error
