@@ -141,8 +141,7 @@ jobs:
           set -euo pipefail
           APK="mobile/android/app/build/outputs/apk/release/app-release.apk"
           test -s "$APK"
-          unzip -Z1 "$APK" | grep -Eq '^assets/(index.android.bundle|main.jsbundle)
- || {
+          unzip -Z1 "$APK" | grep -Eq '^assets/(index.android.bundle|main.jsbundle)$' || {
             echo "::error::Standalone APK is missing the React Native JavaScript asset"
             exit 1
           }
