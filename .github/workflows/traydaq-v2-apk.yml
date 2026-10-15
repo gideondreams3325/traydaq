@@ -123,38 +123,30 @@ jobs:
         working-directory: mobile
         run: npm run prebuild:android
 
-      # The permanent upload certificate (not a temporary runner debug key)
-      # is already registered for com.traydaq.app in Firebase.
-      - name: Restore permanent TRAYDAQ V2 signing certificate
+      # The existing repository secret is a STABLE Android test keystore.
+      # The Android SHA-1 and SHA-256 must also be added to Firebase.
+      - name: Restore existing TRAYDAQ Android signing certificate
+        working-directory: mobile
         shell: bash
         env:
-          TRAYDAQ_V2_UPLOAD_KEYSTORE_B64: ${{ secrets.TRAYDAQ_V2_UPLOAD_KEYSTORE_B64 }}
+          V2_SIGNING_KEY_B64: ${{ secrets.TRAYDAQ_DEBUG_KEYSTORE_B64 }}
         run: |
           set -euo pipefail
-          if [ -z "$TRAYDAQ_V2_UPLOAD_KEYSTORE_B64" ]; then
-            echo "::error::Missing TRAYDAQ_V2_UPLOAD_KEYSTORE_B64 in public builder Actions Secrets."
+          if [ -z "$V2_SIGNING_KEY_B64" ]; then
+            echo "::error::Missing existing TRAYDAQ_DEBUG_KEYSTORE_B64 Actions Secret."
             exit 1
           fi
           umask 077
-          printf '%s' "$TRAYDAQ_V2_UPLOAD_KEYSTORE_B64" | base64 --decode > "$RUNNER_TEMP/traydaq-v2-upload.jks"
-          test -s "$RUNNER_TEMP/traydaq-v2-upload.jks"
+          printf '%s' "$V2_SIGNING_KEY_B64" | base64 --decode > android/app/debug.keystore
+          test -s android/app/debug.keystore
+          chmod 600 android/app/debug.keystore
 
-      - name: Configure Firebase-matched Android signing
+      - name: Match existing signing key to Firebase Google OAuth
         working-directory: mobile
-        env:
-          TRAYDAQ_KEYSTORE_PATH: ${{ runner.temp }}/traydaq-v2-upload.jks
-          TRAYDAQ_UPLOAD_STORE_PASSWORD: ${{ secrets.TRAYDAQ_V2_UPLOAD_KEYSTORE_PASSWORD }}
-          TRAYDAQ_UPLOAD_KEY_PASSWORD: ${{ secrets.TRAYDAQ_V2_UPLOAD_KEY_PASSWORD }}
-          TRAYDAQ_UPLOAD_KEY_ALIAS: ${{ secrets.TRAYDAQ_V2_UPLOAD_KEY_ALIAS }}
         run: node scripts/configure-standalone-test-apk.mjs
 
       - name: Build self-contained Android test APK
         working-directory: mobile/android
-        env:
-          TRAYDAQ_KEYSTORE_PATH: ${{ runner.temp }}/traydaq-v2-upload.jks
-          TRAYDAQ_UPLOAD_STORE_PASSWORD: ${{ secrets.TRAYDAQ_V2_UPLOAD_KEYSTORE_PASSWORD }}
-          TRAYDAQ_UPLOAD_KEY_PASSWORD: ${{ secrets.TRAYDAQ_V2_UPLOAD_KEY_PASSWORD }}
-          TRAYDAQ_UPLOAD_KEY_ALIAS: ${{ secrets.TRAYDAQ_V2_UPLOAD_KEY_ALIAS }}
         run: |
           chmod +x gradlew
           ./gradlew --no-daemon :app:assembleRelease
