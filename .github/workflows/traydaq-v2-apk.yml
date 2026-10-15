@@ -83,7 +83,9 @@ jobs:
 
       - name: Typecheck current V2 Android app
         working-directory: mobile
-        run: npm run typecheck
+        run: |
+          node --version
+          npm run typecheck
 
       - name: Validate Expo dependency compatibility
         working-directory: mobile
