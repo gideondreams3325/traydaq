@@ -140,29 +140,45 @@ jobs:
           chmod 600 android/app/debug.keystore
           node scripts/verify-google-signing.mjs android/app/debug.keystore
 
-      # Do NOT distribute assembleDebug APKs: without Metro they cannot load JS.
-      # The release variant embeds JS; sign this TEST build with the debug key.
-      - name: Configure signed standalone Android test APK
+      # The permanent upload certificate (not a temporary runner debug key)
+      # is already registered for com.traydaq.app in Firebase.
+      - name: Restore permanent TRAYDAQ V2 signing certificate
+        shell: bash
+        env:
+          TRAYDAQ_V2_UPLOAD_KEYSTORE_B64: ${{ secrets.TRAYDAQ_V2_UPLOAD_KEYSTORE_B64 }}
+        run: |
+          set -euo pipefail
+          if [ -z "$TRAYDAQ_V2_UPLOAD_KEYSTORE_B64" ]; then
+            echo "::error::Missing TRAYDAQ_V2_UPLOAD_KEYSTORE_B64 in public builder Actions Secrets."
+            exit 1
+          fi
+          umask 077
+          printf '%s' "$TRAYDAQ_V2_UPLOAD_KEYSTORE_B64" | base64 --decode > "$RUNNER_TEMP/traydaq-v2-upload.jks"
+          test -s "$RUNNER_TEMP/traydaq-v2-upload.jks"
+
+      - name: Configure Firebase-matched Android signing
         working-directory: mobile
+        env:
+          TRAYDAQ_KEYSTORE_PATH: ${{ runner.temp }}/traydaq-v2-upload.jks
+          TRAYDAQ_UPLOAD_STORE_PASSWORD: ${{ secrets.TRAYDAQ_V2_UPLOAD_KEYSTORE_PASSWORD }}
+          TRAYDAQ_UPLOAD_KEY_PASSWORD: ${{ secrets.TRAYDAQ_V2_UPLOAD_KEY_PASSWORD }}
+          TRAYDAQ_UPLOAD_KEY_ALIAS: ${{ secrets.TRAYDAQ_V2_UPLOAD_KEY_ALIAS }}
         run: node scripts/configure-standalone-test-apk.mjs
 
       - name: Build self-contained Android test APK
         working-directory: mobile/android
+        env:
+          TRAYDAQ_KEYSTORE_PATH: ${{ runner.temp }}/traydaq-v2-upload.jks
+          TRAYDAQ_UPLOAD_STORE_PASSWORD: ${{ secrets.TRAYDAQ_V2_UPLOAD_KEYSTORE_PASSWORD }}
+          TRAYDAQ_UPLOAD_KEY_PASSWORD: ${{ secrets.TRAYDAQ_V2_UPLOAD_KEY_PASSWORD }}
+          TRAYDAQ_UPLOAD_KEY_ALIAS: ${{ secrets.TRAYDAQ_V2_UPLOAD_KEY_ALIAS }}
         run: |
           chmod +x gradlew
           ./gradlew --no-daemon :app:assembleRelease
 
-      - name: Verify APK includes offline JavaScript and valid signature
-        shell: bash
-        run: |
-          set -euo pipefail
-          APK="mobile/android/app/build/outputs/apk/release/app-release.apk"
-          test -s "$APK"
-          unzip -Z1 "$APK" | grep -Eq '^assets/(index.android.bundle|main.jsbundle)$' || {
-            echo "::error::Standalone APK is missing the React Native JavaScript asset"
-            exit 1
-          }
-          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose "$APK"
+      - name: Verify offline bundle and Firebase Google OAuth signing certificate
+        working-directory: mobile
+        run: node scripts/verify-standalone-apk.mjs
 
       - name: Stage standalone Android test APK
         shell: bash
