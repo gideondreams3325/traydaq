@@ -89,7 +89,7 @@ jobs:
 
       - name: Validate Expo dependency compatibility
         working-directory: mobile
-        run: npx expo-doctor
+        run: npx expo-doctor --verbose
 
       - name: Install Java 17
         uses: actions/setup-java@v4
