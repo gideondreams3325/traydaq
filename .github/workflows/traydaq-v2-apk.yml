@@ -11,14 +11,14 @@ permissions:
   contents: read
 
 concurrency:
-  group: traydaq-v2-public-apk
+  group: traydaq-v2-public-native-apk
   cancel-in-progress: false
 
 jobs:
   build-v2:
-    name: Build independent TRAYDAQ V2 debug APK
+    name: Build current React Native TRAYDAQ V2 APK
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 90
 
     steps:
       - name: Confirm private V2 source access
@@ -26,25 +26,21 @@ jobs:
           V2_SOURCE_TOKEN: ${{ secrets.TRAYDAQ_V2_SOURCE_TOKEN }}
         shell: bash
         run: |
+          set -euo pipefail
           if [ -z "$V2_SOURCE_TOKEN" ]; then
-            echo "::error::Missing read-only V2 source access. Add TRAYDAQ_V2_SOURCE_TOKEN to public repository Actions secrets with Contents: Read for ONLY gideondreams3325/traydaq-v2."
+            echo "::error::Missing TRAYDAQ_V2_SOURCE_TOKEN. Add a Contents: Read fine-grained token scoped to traydaq-v2."
             exit 1
           fi
-          # GitHub Actions on this public repository cannot read a different
-          # private repository with GITHUB_TOKEN or the legacy SellerFlow token.
-          # Check V2-specific read access first and avoid checkout retry loops.
           if ! curl -fsSL --retry 0 \
             -H "Accept: application/vnd.github+json" \
             -H "Authorization: Bearer $V2_SOURCE_TOKEN" \
             -H "X-GitHub-Api-Version: 2022-11-28" \
-            "https://api.github.com/repos/gideondreams3325/traydaq-v2" \
-            -o /dev/null; then
-            echo "::error::TRAYDAQ_V2_SOURCE_TOKEN cannot access private gideondreams3325/traydaq-v2. Replace the public builder's Actions secret with a fine-grained GitHub PAT scoped ONLY to traydaq-v2 and Contents: Read. Do not reuse the legacy SellerFlow token."
+            "https://api.github.com/repos/gideondreams3325/traydaq-v2" -o /dev/null; then
+            echo "::error::TRAYDAQ_V2_SOURCE_TOKEN does not have read access to private V2."
             exit 1
           fi
-          echo "Private V2 source access confirmed."
 
-      - name: Checkout private TRAYDAQ V2 source without publishing it
+      - name: Checkout latest private V2 source
         uses: actions/checkout@v4
         with:
           repository: gideondreams3325/traydaq-v2
@@ -53,97 +49,85 @@ jobs:
           persist-credentials: false
           fetch-depth: 1
 
-      - name: Check that only new V2 source was checked out
+      - name: Verify React Native source and official logo
         shell: bash
         run: |
           set -euo pipefail
-          test -f capacitor.config.ts
-          test -f src/feed/AlbumComposer.tsx
-          test -f src/profile/ProfilePage.tsx
-          test -f src/profile/profile.css
-          test -f src/studio/Studios.tsx
-          test -f src/studio/studios.css
-          test -f src/studio/StudioCatalog.tsx
-          test -f src/studio/studio-catalog.css
-          test -f src/security/SecurityTeamHub.tsx
-          test -f src/security/security-hub.css
-          test -f supabase/migrations/20261013_studio_review_and_catalog.sql
-          test -f supabase/migrations/20261013_studio_catalog_cards.sql
-          test -f supabase/migrations/20261013_studio_media_validation.sql
-          test -f supabase/migrations/20261013_approved_studio_media.sql
-          test -f supabase/migrations/20261013_profile_studio_products.sql
-          test -f supabase/migrations/20261013_scheduled_release_events.sql
-          test -f supabase/migrations/20261013_public_schedule_gates.sql
-          test -f supabase/migrations/20261013_scheduled_photo_album_release.sql
-          test -f supabase/migrations/20261013_event_catalog_reminder_options.sql
-          test -f tests/scheduled-publishing.test.mjs
-          grep -Fq "event_reminder_notifications" src/social/NotificationsPage.tsx
-          grep -Fq "v2_studio_profile_products" src/profile/ProfilePage.tsx
-          test -f tests/studios.test.mjs
-          grep -Fq '"rollup": "4.61.1"' package.json
-          test -f supabase/migrations/20261013_individual_studios.sql
-          grep -Fq "export function Studios" src/studio/Studios.tsx
-          grep -Fq "export function SecurityTeamHub" src/security/SecurityTeamHub.tsx
-          grep -Fq "export function StudioCatalog" src/studio/StudioCatalog.tsx
-          test -f supabase/functions/submit-album-picture/index.ts
-          grep -Fq 'appId: "com.traydaq.app"' capacitor.config.ts
-          grep -Fq '"name": "traydaq-v2"' package.json
-          echo "TRAYDAQ V2 source and distinct Android application ID verified."
+          test -f mobile/app.json
+          test -f mobile/package.json
+          test -f mobile/src/App.tsx
+          test -f mobile/src/new-design/SecurityHubScreen.tsx
+          test -f mobile/src/new-design/HomeFeedScreen.tsx
+          test -f mobile/src/new-design/MusicV2Screen.tsx
+          test -f mobile/src/new-design/AccountAccessScreen.tsx
+          test -f mobile/assets/traydaq-logo.png
+          test -f mobile/google-services.json
+          grep -Fq '"package": "com.traydaq.app"' mobile/app.json
+          grep -Fq '"icon": "./assets/traydaq-logo.png"' mobile/app.json
+          node -e "const p=require('./mobile/package.json');if(!p.dependencies?.expo||!p.dependencies?.['react-native'])process.exit(1)"
+          echo "Native V2 and padded TRAYDAQ logo verified."
+          echo "Source commit: $(git rev-parse HEAD)"
 
-      - name: Set up Node.js 22
+      - name: Install Node.js 22
         uses: actions/setup-node@v4
         with:
           node-version: '22'
 
-      - name: Set up Java 21
+      - name: Install Java 17
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '21'
+          java-version: '17'
 
-      - name: Install V2 project dependencies
-        run: npm install --no-audit --no-fund
+      - name: Configure Android SDK
+        uses: android-actions/setup-android@v3
 
-      - name: Test and build TRAYDAQ V2 web app
-        run: npm run check
-
-      - name: Install Android API 35 using runner SDK
+      - name: Install Android API 36
         shell: bash
         run: |
           set -euo pipefail
-          echo "Using preinstalled Android SDK at ${ANDROID_HOME:-${ANDROID_SDK_ROOT:-unknown}}"
-          SDK_ROOT="${ANDROID_HOME:-${ANDROID_SDK_ROOT:?Android SDK root not set}}"
-          SDKMANAGER="$(find "$SDK_ROOT/cmdline-tools" -maxdepth 3 -type f -path '*/bin/sdkmanager' | sort -V | tail -n 1)"
-          test -n "$SDKMANAGER"
-          "$SDKMANAGER" --version
-          yes | "$SDKMANAGER" --licenses >/dev/null || true
-          "$SDKMANAGER" --sdk_root="$SDK_ROOT" --install "platforms;android-35" "build-tools;35.0.0" "platform-tools"
-          test -d "${ANDROID_HOME:-$ANDROID_SDK_ROOT}/platforms/android-35"
-          test -d "${ANDROID_HOME:-$ANDROID_SDK_ROOT}/build-tools/35.0.0"
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platforms;android-36" "build-tools;36.0.0" "platform-tools"
 
-      - name: Generate V2 Android wrapper (no legacy code)
-        run: |
-          npx cap add android
-          npx cap sync android
+      - name: Install native dependencies
+        working-directory: mobile
+        run: npm install --no-audit --no-fund
 
-      - name: Build V2 debug APK
-        working-directory: android
+      - name: Test all React Native V2 contracts
+        working-directory: mobile
+        run: node --test tests/*.test.mjs
+
+      - name: Typecheck current V2 Android app
+        working-directory: mobile
+        run: npm run typecheck
+
+      - name: Validate Expo dependency compatibility
+        working-directory: mobile
+        run: npx expo-doctor
+
+      - name: Generate Android native project
+        working-directory: mobile
+        run: npm run prebuild:android
+
+      - name: Build Android native debug APK
+        working-directory: mobile/android
         run: |
           chmod +x gradlew
           ./gradlew --no-daemon assembleDebug
 
-      - name: Stage Android debug APK
+      - name: Stage installable debug APK
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p apk
-          cp android/app/build/outputs/apk/debug/app-debug.apk apk/TRAYDAQ-V2-debug.apk
-          test -s apk/TRAYDAQ-V2-debug.apk
+          cp mobile/android/app/build/outputs/apk/debug/app-debug.apk apk/TRAYDAQ-V2-native-debug.apk
+          test -s apk/TRAYDAQ-V2-native-debug.apk
+          sha256sum apk/TRAYDAQ-V2-native-debug.apk
 
-      - name: Upload V2 APK only (never upload private source)
+      - name: Upload APK only, never private source
         uses: actions/upload-artifact@v4
         with:
-          name: TRAYDAQ-V2-debug-APK
-          path: apk/TRAYDAQ-V2-debug.apk
-          if-no-files-found: error
+          name: TRAYDAQ-V2-native-debug-APK
+          path: apk/TRAYDAQ-V2-native-debug.apk
           retention-days: 14
+          if-no-files-found: error
