@@ -123,6 +123,23 @@ jobs:
         working-directory: mobile
         run: npm run prebuild:android
 
+      - name: Require stable Android signing certificate and verify Google OAuth
+        working-directory: mobile
+        env:
+          V2_DEBUG_KEYSTORE_B64: ${{ secrets.TRAYDAQ_V2_DEBUG_KEYSTORE_B64 || secrets.TRAYDAQ_DEBUG_KEYSTORE_B64 }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "$V2_DEBUG_KEYSTORE_B64" ]; then
+            echo "::error::Missing permanent signing certificate. Set TRAYDAQ_V2_DEBUG_KEYSTORE_B64 or TRAYDAQ_DEBUG_KEYSTORE_B64 as an Actions secret. A temporary certificate breaks Google sign-in."
+            exit 1
+          fi
+          # Generated native debug signing config references android/app/debug.keystore.
+          printf '%s' "$V2_DEBUG_KEYSTORE_B64" | base64 --decode > android/app/debug.keystore
+          test -s android/app/debug.keystore
+          chmod 600 android/app/debug.keystore
+          node scripts/verify-google-signing.mjs android/app/debug.keystore
+
       # Do NOT distribute assembleDebug APKs: without Metro they cannot load JS.
       # The release variant embeds JS; sign this TEST build with the debug key.
       - name: Configure signed standalone Android test APK
